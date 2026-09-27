@@ -1,0 +1,72 @@
+{
+  "source": "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/inkpad/App/Views/CanvasPageView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Background",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 61
+        }
+      },
+      {
+        "comment": "",
+        "key": "Background",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 67
+        }
+      },
+      {
+        "comment": "",
+        "key": "Finger Drawing",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 76
+        }
+      },
+      {
+        "comment": "",
+        "key": "Undo",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 83
+        }
+      },
+      {
+        "comment": "",
+        "key": "Redo",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 86
+        }
+      },
+      {
+        "comment": "",
+        "key": "Export PNG",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 93
+        }
+      },
+      {
+        "comment": "",
+        "key": "Export PDF",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 94
+        }
+      },
+      {
+        "comment": "",
+        "key": "Export",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 96
+        }
+      }
+    ]
+  },
+  "version": 1
+}

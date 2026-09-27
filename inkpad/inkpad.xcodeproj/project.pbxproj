@@ -1,0 +1,546 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 110;
+	objects = {
+
+/* Begin PBXContainerItemProxy section */
+		31CCF3D0306464F6002820B4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 31CCF3B8306464F2002820B4 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 31CCF3BF306464F2002820B4;
+			remoteInfo = inkpad;
+		};
+		31CCF3DA306464F6002820B4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 31CCF3B8306464F2002820B4 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 31CCF3BF306464F2002820B4;
+			remoteInfo = inkpad;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		31CCF3C0306464F2002820B4 /* inkpad.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = inkpad.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		31CCF3CF306464F6002820B4 /* inkpadTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = inkpadTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		31CCF3D9306464F6002820B4 /* inkpadUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = inkpadUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		31CCF3C2306464F2002820B4 /* inkpad */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = inkpad;
+			sourceTree = "<group>";
+		};
+		31CCF3D2306464F6002820B4 /* inkpadTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = inkpadTests;
+			sourceTree = "<group>";
+		};
+		31CCF3DC306464F6002820B4 /* inkpadUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = inkpadUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		31CCF3BD306464F2002820B4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		31CCF3CC306464F6002820B4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		31CCF3D6306464F6002820B4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		31CCF3B7306464F2002820B4 = {
+			isa = PBXGroup;
+			children = (
+				31CCF3C2306464F2002820B4 /* inkpad */,
+				31CCF3D2306464F6002820B4 /* inkpadTests */,
+				31CCF3DC306464F6002820B4 /* inkpadUITests */,
+				31CCF3C1306464F2002820B4 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		31CCF3C1306464F2002820B4 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				31CCF3C0306464F2002820B4 /* inkpad.app */,
+				31CCF3CF306464F6002820B4 /* inkpadTests.xctest */,
+				31CCF3D9306464F6002820B4 /* inkpadUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		31CCF3BF306464F2002820B4 /* inkpad */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 31CCF3E1306464F6002820B4 /* Build configuration list for PBXNativeTarget "inkpad" */;
+			buildPhases = (
+				31CCF3BC306464F2002820B4 /* Sources */,
+				31CCF3BD306464F2002820B4 /* Frameworks */,
+				31CCF3BE306464F2002820B4 /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				31CCF3C2306464F2002820B4 /* inkpad */,
+			);
+			name = inkpad;
+			productName = inkpad;
+			productReference = 31CCF3C0306464F2002820B4 /* inkpad.app */;
+			productType = "com.apple.product-type.application";
+		};
+		31CCF3CE306464F6002820B4 /* inkpadTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 31CCF3E4306464F6002820B4 /* Build configuration list for PBXNativeTarget "inkpadTests" */;
+			buildPhases = (
+				31CCF3CB306464F6002820B4 /* Sources */,
+				31CCF3CC306464F6002820B4 /* Frameworks */,
+				31CCF3CD306464F6002820B4 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				31CCF3D1306464F6002820B4 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				31CCF3D2306464F6002820B4 /* inkpadTests */,
+			);
+			name = inkpadTests;
+			productName = inkpadTests;
+			productReference = 31CCF3CF306464F6002820B4 /* inkpadTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		31CCF3D8306464F6002820B4 /* inkpadUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 31CCF3E7306464F6002820B4 /* Build configuration list for PBXNativeTarget "inkpadUITests" */;
+			buildPhases = (
+				31CCF3D5306464F6002820B4 /* Sources */,
+				31CCF3D6306464F6002820B4 /* Frameworks */,
+				31CCF3D7306464F6002820B4 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				31CCF3DB306464F6002820B4 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				31CCF3DC306464F6002820B4 /* inkpadUITests */,
+			);
+			name = inkpadUITests;
+			productName = inkpadUITests;
+			productReference = 31CCF3D9306464F6002820B4 /* inkpadUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		31CCF3B8306464F2002820B4 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2700;
+				LastUpgradeCheck = 2700;
+				TargetAttributes = {
+					31CCF3BF306464F2002820B4 = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					31CCF3CE306464F6002820B4 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = 31CCF3BF306464F2002820B4;
+					};
+					31CCF3D8306464F6002820B4 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = 31CCF3BF306464F2002820B4;
+					};
+				};
+			};
+			buildConfigurationList = 31CCF3BB306464F2002820B4 /* Build configuration list for PBXProject "inkpad" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 31CCF3B7306464F2002820B4;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 31CCF3C1306464F2002820B4 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				31CCF3BF306464F2002820B4 /* inkpad */,
+				31CCF3CE306464F6002820B4 /* inkpadTests */,
+				31CCF3D8306464F6002820B4 /* inkpadUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		31CCF3BE306464F2002820B4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		31CCF3CD306464F6002820B4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		31CCF3D7306464F6002820B4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		31CCF3BC306464F2002820B4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		31CCF3CB306464F6002820B4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		31CCF3D5306464F6002820B4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		31CCF3D1306464F6002820B4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 31CCF3BF306464F2002820B4 /* inkpad */;
+			targetProxy = 31CCF3D0306464F6002820B4 /* PBXContainerItemProxy */;
+		};
+		31CCF3DB306464F6002820B4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 31CCF3BF306464F2002820B4 /* inkpad */;
+			targetProxy = 31CCF3DA306464F6002820B4 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		31CCF3DF306464F6002820B4 /* Debug configuration for PBXProject "inkpad" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		31CCF3E0306464F6002820B4 /* Release configuration for PBXProject "inkpad" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		31CCF3E2306464F6002820B4 /* Debug configuration for PBXNativeTarget "inkpad" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dev.inkpad;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		31CCF3E3306464F6002820B4 /* Release configuration for PBXNativeTarget "inkpad" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dev.inkpad;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		31CCF3E5306464F6002820B4 /* Debug configuration for PBXNativeTarget "inkpadTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dev.inkpadTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/inkpad.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/inkpad";
+			};
+			name = Debug;
+		};
+		31CCF3E6306464F6002820B4 /* Release configuration for PBXNativeTarget "inkpadTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dev.inkpadTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/inkpad.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/inkpad";
+			};
+			name = Release;
+		};
+		31CCF3E8306464F6002820B4 /* Debug configuration for PBXNativeTarget "inkpadUITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dev.inkpadUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = inkpad;
+			};
+			name = Debug;
+		};
+		31CCF3E9306464F6002820B4 /* Release configuration for PBXNativeTarget "inkpadUITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dev.inkpadUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = inkpad;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		31CCF3BB306464F2002820B4 /* Build configuration list for PBXProject "inkpad" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				31CCF3DF306464F6002820B4 /* Debug configuration for PBXProject "inkpad" */,
+				31CCF3E0306464F6002820B4 /* Release configuration for PBXProject "inkpad" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		31CCF3E1306464F6002820B4 /* Build configuration list for PBXNativeTarget "inkpad" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				31CCF3E2306464F6002820B4 /* Debug configuration for PBXNativeTarget "inkpad" */,
+				31CCF3E3306464F6002820B4 /* Release configuration for PBXNativeTarget "inkpad" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		31CCF3E4306464F6002820B4 /* Build configuration list for PBXNativeTarget "inkpadTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				31CCF3E5306464F6002820B4 /* Debug configuration for PBXNativeTarget "inkpadTests" */,
+				31CCF3E6306464F6002820B4 /* Release configuration for PBXNativeTarget "inkpadTests" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		31CCF3E7306464F6002820B4 /* Build configuration list for PBXNativeTarget "inkpadUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				31CCF3E8306464F6002820B4 /* Debug configuration for PBXNativeTarget "inkpadUITests" */,
+				31CCF3E9306464F6002820B4 /* Release configuration for PBXNativeTarget "inkpadUITests" */,
+			);
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 31CCF3B8306464F2002820B4 /* Project object */;
+	validationLevel = 1;
+}

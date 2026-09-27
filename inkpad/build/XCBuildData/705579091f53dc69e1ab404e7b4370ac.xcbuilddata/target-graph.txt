@@ -1,0 +1,2 @@
+Target dependency graph (1 target)
+Target 'inkpad' in project 'inkpad' (no dependencies)

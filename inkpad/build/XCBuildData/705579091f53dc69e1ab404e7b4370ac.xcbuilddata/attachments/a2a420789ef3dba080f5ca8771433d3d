@@ -1,0 +1,139 @@
+{
+  "" : {
+    "diagnostics" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/inkpad-primary.dia",
+    "emit-module-dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/inkpad-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/inkpad-primary-emit-module.dia",
+    "pch" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/inkpad-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/inkpad-primary.swiftdeps"
+  },
+  "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "const-values" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftconstvalues",
+    "dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/GeneratedAssetSymbols.d",
+    "diagnostics" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/GeneratedAssetSymbols.dia",
+    "index-unit-output-path" : "/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "swift-dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftdeps",
+    "swiftmodule" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/GeneratedAssetSymbols~partial.swiftmodule"
+  },
+  "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/inkpad/App/Models/Notebook.swift" : {
+    "const-values" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/Notebook.swiftconstvalues",
+    "dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/Notebook.d",
+    "diagnostics" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/Notebook.dia",
+    "index-unit-output-path" : "/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/Notebook.o",
+    "llvm-bc" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/Notebook.bc",
+    "object" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/Notebook.o",
+    "swift-dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/Notebook.swiftdeps",
+    "swiftmodule" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/Notebook~partial.swiftmodule"
+  },
+  "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/inkpad/App/Models/Page.swift" : {
+    "const-values" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/Page.swiftconstvalues",
+    "dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/Page.d",
+    "diagnostics" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/Page.dia",
+    "index-unit-output-path" : "/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/Page.o",
+    "llvm-bc" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/Page.bc",
+    "object" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/Page.o",
+    "swift-dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/Page.swiftdeps",
+    "swiftmodule" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/Page~partial.swiftmodule"
+  },
+  "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/inkpad/App/Navigation/AppNavigation.swift" : {
+    "const-values" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/AppNavigation.swiftconstvalues",
+    "dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/AppNavigation.d",
+    "diagnostics" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/AppNavigation.dia",
+    "index-unit-output-path" : "/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/AppNavigation.o",
+    "llvm-bc" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/AppNavigation.bc",
+    "object" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/AppNavigation.o",
+    "swift-dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/AppNavigation.swiftdeps",
+    "swiftmodule" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/AppNavigation~partial.swiftmodule"
+  },
+  "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/inkpad/App/Views/CanvasPageView.swift" : {
+    "const-values" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/CanvasPageView.swiftconstvalues",
+    "dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/CanvasPageView.d",
+    "diagnostics" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/CanvasPageView.dia",
+    "index-unit-output-path" : "/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/CanvasPageView.o",
+    "llvm-bc" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/CanvasPageView.bc",
+    "object" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/CanvasPageView.o",
+    "swift-dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/CanvasPageView.swiftdeps",
+    "swiftmodule" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/CanvasPageView~partial.swiftmodule"
+  },
+  "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/inkpad/App/Views/LibraryView.swift" : {
+    "const-values" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/LibraryView.swiftconstvalues",
+    "dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/LibraryView.d",
+    "diagnostics" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/LibraryView.dia",
+    "index-unit-output-path" : "/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/LibraryView.o",
+    "llvm-bc" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/LibraryView.bc",
+    "object" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/LibraryView.o",
+    "swift-dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/LibraryView.swiftdeps",
+    "swiftmodule" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/LibraryView~partial.swiftmodule"
+  },
+  "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/inkpad/App/Views/NotebookView.swift" : {
+    "const-values" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/NotebookView.swiftconstvalues",
+    "dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/NotebookView.d",
+    "diagnostics" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/NotebookView.dia",
+    "index-unit-output-path" : "/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/NotebookView.o",
+    "llvm-bc" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/NotebookView.bc",
+    "object" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/NotebookView.o",
+    "swift-dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/NotebookView.swiftdeps",
+    "swiftmodule" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/NotebookView~partial.swiftmodule"
+  },
+  "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/inkpad/InkCore/CanvasView.swift" : {
+    "const-values" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/CanvasView.swiftconstvalues",
+    "dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/CanvasView.d",
+    "diagnostics" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/CanvasView.dia",
+    "index-unit-output-path" : "/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/CanvasView.o",
+    "llvm-bc" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/CanvasView.bc",
+    "object" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/CanvasView.o",
+    "swift-dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/CanvasView.swiftdeps",
+    "swiftmodule" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/CanvasView~partial.swiftmodule"
+  },
+  "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/inkpad/InkCore/CanvasViewModel.swift" : {
+    "const-values" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/CanvasViewModel.swiftconstvalues",
+    "dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/CanvasViewModel.d",
+    "diagnostics" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/CanvasViewModel.dia",
+    "index-unit-output-path" : "/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/CanvasViewModel.o",
+    "llvm-bc" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/CanvasViewModel.bc",
+    "object" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/CanvasViewModel.o",
+    "swift-dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/CanvasViewModel.swiftdeps",
+    "swiftmodule" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/CanvasViewModel~partial.swiftmodule"
+  },
+  "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/inkpad/InkCore/ExportService.swift" : {
+    "const-values" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/ExportService.swiftconstvalues",
+    "dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/ExportService.d",
+    "diagnostics" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/ExportService.dia",
+    "index-unit-output-path" : "/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/ExportService.o",
+    "llvm-bc" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/ExportService.bc",
+    "object" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/ExportService.o",
+    "swift-dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/ExportService.swiftdeps",
+    "swiftmodule" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/ExportService~partial.swiftmodule"
+  },
+  "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/inkpad/InkCore/PageBackground.swift" : {
+    "const-values" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/PageBackground.swiftconstvalues",
+    "dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/PageBackground.d",
+    "diagnostics" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/PageBackground.dia",
+    "index-unit-output-path" : "/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/PageBackground.o",
+    "llvm-bc" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/PageBackground.bc",
+    "object" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/PageBackground.o",
+    "swift-dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/PageBackground.swiftdeps",
+    "swiftmodule" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/PageBackground~partial.swiftmodule"
+  },
+  "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/inkpad/InkCore/StrokeProvider.swift" : {
+    "const-values" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/StrokeProvider.swiftconstvalues",
+    "dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/StrokeProvider.d",
+    "diagnostics" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/StrokeProvider.dia",
+    "index-unit-output-path" : "/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/StrokeProvider.o",
+    "llvm-bc" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/StrokeProvider.bc",
+    "object" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/StrokeProvider.o",
+    "swift-dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/StrokeProvider.swiftdeps",
+    "swiftmodule" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/StrokeProvider~partial.swiftmodule"
+  },
+  "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/inkpad/inkpadApp.swift" : {
+    "const-values" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/inkpadApp.swiftconstvalues",
+    "dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/inkpadApp.d",
+    "diagnostics" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/inkpadApp.dia",
+    "index-unit-output-path" : "/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/inkpadApp.o",
+    "llvm-bc" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/inkpadApp.bc",
+    "object" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/inkpadApp.o",
+    "swift-dependencies" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/inkpadApp.swiftdeps",
+    "swiftmodule" : "/Users/devmody/Documents/LearningTech/Projects/ink-pad/inkpad/build/inkpad.build/Debug-iphonesimulator/inkpad.build/Objects-normal/arm64/inkpadApp~partial.swiftmodule"
+  }
+}
