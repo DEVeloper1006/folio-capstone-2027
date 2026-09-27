@@ -1,0 +1,6 @@
+build/
+inkpad/build/
+DerivedData/
+*.xcuserstate
+*.xcuserdatad/
+.DS_Store

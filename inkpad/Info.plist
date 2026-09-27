@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Folio uses the microphone for the voice assistant feature to help you work through math problems hands-free.</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Caveat-Variable.ttf</string>
+	</array>
+</dict>
+</plist>

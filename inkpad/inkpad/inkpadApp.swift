@@ -7,6 +7,8 @@ struct inkpadApp: App {
         let schema = Schema([
             Notebook.self,
             Page.self,
+            Step.self,
+            Branch.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
