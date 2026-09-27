@@ -45,7 +45,11 @@ enum InkColor: String, CaseIterable, Identifiable {
 final class CanvasViewModel {
     var drawing: PKDrawing
     var backgroundStyle: PageBackgroundStyle
+    #if targetEnvironment(simulator)
+    var allowFingerDrawing: Bool = true
+    #else
     var allowFingerDrawing: Bool = false
+    #endif
 
     var currentTool: DrawingTool = .pen
     var currentColor: InkColor = .graphite

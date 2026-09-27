@@ -9,6 +9,12 @@ struct inkpadApp: App {
             Page.self,
             Step.self,
             Branch.self,
+            ChatThread.self,
+            ChatMessage.self,
+            Snapshot.self,
+            Insight.self,
+            ClassSpace.self,
+            WorkedExample.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

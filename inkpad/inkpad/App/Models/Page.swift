@@ -12,6 +12,12 @@ final class Page {
     var steps: [Step]
     @Relationship(deleteRule: .cascade, inverse: \Branch.page)
     var branches: [Branch]
+    @Relationship(deleteRule: .cascade, inverse: \ChatThread.page)
+    var chatThreads: [ChatThread]
+    @Relationship(deleteRule: .cascade, inverse: \Snapshot.page)
+    var snapshots: [Snapshot]
+    @Relationship(deleteRule: .cascade, inverse: \Insight.page)
+    var insights: [Insight]
 
     init(sortIndex: Int, backgroundStyle: PageBackgroundStyle = .dot, mathMode: MathMode = .linalg) {
         self.sortIndex = sortIndex
@@ -20,6 +26,9 @@ final class Page {
         self.mathModeRaw = mathMode.rawValue
         self.steps = []
         self.branches = []
+        self.chatThreads = []
+        self.snapshots = []
+        self.insights = []
     }
 
     var background: PageBackgroundStyle {

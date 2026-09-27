@@ -208,3 +208,62 @@ import.
    features.
 5. Flag PencilKit, overlay-alignment, or WKWebView limitations instead of
    silently working around them.
+## Phase 2 features
+
+### Global rules
+- UI only. All intelligence goes through protocols with Mock implementations. No real ML, OCR, CAS, audio, or network.
+- Tier A = fully interactive with mock data.
+- Tier B = a visible entry point plus a static preview screen with a small "PREVIEW" tag. No fake logic.
+- Keep the existing visual language: dotted paper, graphite ink, teal only for AI-authored content, muted green/amber/red status colors, Goodnotes-style floating chrome.
+- Overlays never get baked into the PKDrawing.
+
+### A. AI Chat, LaTeX-native (Tier A)
+- Chat panel: messages render inline $...$ and display $$...$$ with the bundled offline MathJax. Reuse the typeset WKWebView renderer and make it a shared component.
+- Input box with a live LaTeX preview strip above it as the user types.
+- Ink → chat: drag a lasso selection into the chat. It becomes an editable "recognized LaTeX" chip (MockRecognitionService) that can be corrected before sending.
+- Chat → canvas: long-press/drag any equation in an AI reply onto the page. It lands as a teal AI-authored block that is movable and deletable.
+- Scoped threads: a thread can be pinned to a step or selection. A small speech-bubble marker appears in the step gutter, and tapping it opens that thread. There is also a "Page" thread for general questions.
+- Socratic dial in the chat header: Hint / Nudge / Explain / Solve. Solo hides chat, Coach allows up to Explain, Check allows Hint only. Mock replies change tone per level.
+- Predict-then-reveal (Tier A): the AI posts "What do you expect next?" and the user writes a guess on the canvas or in chat. Then the reveal card shows the expected step with a mock match/mismatch badge.
+- MockAssistantService: scripted replies with rich LaTeX (matrices, fractions, integrals) based on the page 1 linear algebra example.
+
+### B. Math-aware canvas
+- Live variables (Tier A): tap a number in the ghost typeset to get an inline slider. Dependent mock values in later steps and in linked cards update.
+- Visualize cards (Tier A): floating, draggable cards linked to their source step with a thin teal leader line. Graph card (Swift Charts), 2D vector card, matrix heatmap card.
+- Equivalence badge (Tier A): drawing a straight connector between two lines while in a "Relate" lasso action shows a ≡ or ≠ chip (mock).
+- Contradiction trace (Tier A): tapping an × badge highlights the earliest faulty ancestor step and dims unrelated steps.
+- Unit/dimension check (Tier B).
+
+### C. Learning layer
+- Misconception cards (Tier A): an "Insights" drawer with mock learner-model cards. Each links to the steps where the pattern occurred.
+- Formula sheet (Tier A): an auto-collected list of the definitions, theorems, and operations used in the notebook, rendered in LaTeX and exportable (Markdown/LaTeX).
+- Fork to practise (Tier B): generates a variant problem page.
+- Confidence tap (Tier A): a long-press on a gutter badge offers 1–3 confidence. A mismatch with the verifier state shows a subtle outline.
+
+### D. Replay & history
+- Reasoning replay (Tier A): a bottom timeline scrubber with play/pause and 1x/2x/4x speed. Animates handwriting stroke by stroke using PKStroke point timestamps. AI events (hints, checks, branches) appear as markers on the timeline.
+- Branch compare (Tier A): from the Branches drawer, pick two forks for a side-by-side split. The first diverging step is highlighted.
+- Version snapshots (Tier B): automatic named snapshots listed per page.
+
+### E. Voice (extends existing voice pill)
+- Point + talk (Tier A): while listening, any lasso selection attaches as context ("talking about: selection"), and the scripted reply references it.
+- Dictate math (Tier A, mock): the voice pill shows a scripted transcript like "x squared over two", which becomes a LaTeX chip insertable onto the canvas.
+- Read-aloud (Tier B).
+
+### F. Classroom
+- Class space (Tier A): a "Classes" tab in the Library with one mock class ("STATS 2D03"). An instructor-published worked examples list. "Fork to my notebook" copies an example into a new page with a "Forked from" banner.
+- Role toggle in settings: Student / Instructor. Instructor can mark a page "Published".
+- Live lecture mode (Tier B): a "Follow live" screen with an "I'm lost here" flag button and a quick-check poll mock.
+- Misconception dashboard (Tier B): a mock heatmap of steps by class error rate.
+
+### G. Workflow
+- PDF import + annotate (Tier A): the Files importer brings in a PDF, and each PDF page becomes a notebook page with the PDF as background (PDFKit rendering) and ink on top. This is local only, so it is allowed.
+- Templates (Tier A): new-page picker with Problem Set, Proof, Lecture Notes, and Exam Practice. Each has its own background and header layout.
+- Split view (Tier B): two pages side by side.
+- Desktop handoff (Tier B): sheet with a mock QR code.
+
+### Architecture additions
+- Protocols + mocks: ChatService, LearnerModelService, ReplayService, ClassService, VisualizationService
+- SwiftData models: ChatThread, Message (anchorable to step/selection), Snapshot, Insight, ClassSpace, WorkedExample
+- A shared MathRenderer component (offline MathJax WKWebView) used by the typeset pane, ghost lines, chat, cards, and the formula sheet. Cache rendered SVGs by LaTeX string.
+- Extended seed data for every Tier A feature on first launch.

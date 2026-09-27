@@ -12,6 +12,13 @@ struct NotebookView: View {
     @State private var showPageSidebar = false
     @State private var showBranches = false
     @State private var showChat = false
+    @State private var chatAnchor: ChatAnchor = .page
+    @State private var showInsights = false
+    @State private var showReplay = false
+    @State private var showFormulaSheet = false
+    @State private var visualizeCards: [VisualizeData] = []
+    @State private var contradictionStepIndex: Int? = nil
+    @State private var confidenceValues: [Int: Int] = [:]
     @State private var showTypeset = false
     @State private var showCommandPalette = false
     @State private var showExport = false
@@ -20,6 +27,14 @@ struct NotebookView: View {
     @State private var scrollOffset: CGFloat = 0
     @State private var exportedFileURL: URL?
     @State private var showShareSheet = false
+    @State private var showTemplatePicker = false
+    @State private var showPDFImport = false
+    @State private var showSplitViewPreview = false
+    @State private var showDesktopHandoff = false
+    @State private var showUnitCheck = false
+    @State private var showForkToPractise = false
+    @State private var showVersionSnapshots = false
+    @State private var showBranchCompare = false
 
     init(notebook: Notebook) {
         self.notebook = notebook
@@ -42,8 +57,13 @@ struct NotebookView: View {
 
     private var mockBadges: [StepBadge] {
         guard let page = currentPage else { return [] }
+        let threads = page.chatThreads
         return page.steps.sorted { $0.sortIndex < $1.sortIndex }.map { step in
-            StepBadge(status: step.status, yPosition: step.yPosition, explanation: step.explanation)
+            let hasThread = threads.contains { $0.anchorStepIndex == step.sortIndex }
+            return StepBadge(
+                status: step.status, yPosition: step.yPosition, explanation: step.explanation,
+                hasThread: hasThread, confidence: confidenceValues[step.sortIndex]
+            )
         }
     }
 
@@ -85,10 +105,14 @@ struct NotebookView: View {
             PaletteCommand(name: "Save", icon: "square.and.arrow.down") { viewModel.save() },
             PaletteCommand(name: "Switch Math Mode", icon: "function") { viewModel.cycleMathMode() },
             PaletteCommand(name: "Export", icon: "square.and.arrow.up") { showExport = true },
-            PaletteCommand(name: "New Page", icon: "plus.rectangle") { addPage() },
+            PaletteCommand(name: "New Page", icon: "plus.rectangle") { showTemplatePicker = true },
+            PaletteCommand(name: "Import PDF", icon: "doc.fill") { showPDFImport = true },
             PaletteCommand(name: "Help", icon: "questionmark.circle") { showHelp = true },
             PaletteCommand(name: "Toggle Typeset", icon: "textformat") { showTypeset.toggle() },
             PaletteCommand(name: "Start Voice", icon: "mic") { },
+            PaletteCommand(name: "Replay", icon: "play.circle") { showReplay = true },
+            PaletteCommand(name: "Formula Sheet", icon: "list.bullet.rectangle") { showFormulaSheet = true },
+            PaletteCommand(name: "Insights", icon: "lightbulb") { showInsights = true },
         ]
     }
 
@@ -97,10 +121,92 @@ struct NotebookView: View {
             ZStack {
                 canvasArea(geo: geo)
                 overlays(geo: geo)
-                floatingUI(geo: geo)
             }
         }
         .ignoresSafeArea(edges: .bottom)
+        .overlay(alignment: .top) {
+            SessionModeControl(mode: $viewModel.sessionMode)
+                .padding(.top, 8)
+        }
+        .overlay(alignment: .bottomTrailing) {
+            StatusChipView(
+                mathMode: viewModel.mathMode,
+                saveState: "saved",
+                stepCount: mockBadges.count
+            )
+            .padding(.trailing, 60)
+            .padding(.bottom, 8)
+            .allowsHitTesting(false)
+        }
+        .overlay(alignment: .bottomTrailing) {
+            VStack(spacing: 12) {
+                VoicePillView(onAnnotation: { _ in })
+                Button {
+                    withAnimation { showChat.toggle() }
+                } label: {
+                    Image(systemName: "bubble.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(FolioTheme.ink)
+                        .frame(width: 48, height: 48)
+                        .background(
+                            Circle()
+                                .fill(FolioTheme.chromeBackground)
+                                .shadow(color: FolioTheme.chromeShadow, radius: 8, y: 2)
+                        )
+                }
+            }
+            .padding(.trailing, 16)
+            .padding(.bottom, 16)
+        }
+        .overlay(alignment: .trailing) {
+            if showChat {
+                ChatPanelView(
+                    isOpen: $showChat,
+                    sessionMode: viewModel.sessionMode,
+                    mathMode: viewModel.mathMode,
+                    anchor: chatAnchor
+                )
+                .padding(.trailing, 72)
+                .padding(.bottom, 80)
+                .frame(maxHeight: .infinity, alignment: .bottom)
+            }
+        }
+        .overlay(alignment: .leading) {
+            InsightsDrawer(
+                insights: MockLearnerModelService().insights(for: mockBadges.map { $0.explanation }, mode: viewModel.mathMode),
+                isOpen: $showInsights,
+                onNavigateToStep: { _ in }
+            )
+        }
+        .overlay(alignment: .trailing) {
+            BranchesDrawer(
+                branches: mockBranches,
+                isOpen: $showBranches,
+                onSelectBranch: { _ in }
+            )
+        }
+        .overlay(alignment: .bottom) {
+            if showReplay {
+                ReplayTimelineView(
+                    isActive: $showReplay,
+                    events: MockReplayService().events(for: currentPage?.drawingData),
+                    totalDuration: MockReplayService().totalDuration(for: currentPage?.drawingData)
+                )
+            }
+        }
+        .overlay {
+            if showCommandPalette {
+                ZStack {
+                    Color.black.opacity(0.2)
+                        .ignoresSafeArea()
+                        .onTapGesture { showCommandPalette = false }
+                    CommandPaletteView(
+                        isPresented: $showCommandPalette,
+                        commands: paletteCommands
+                    )
+                }
+            }
+        }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbarContent }
         .onAppear { setupSave() }
@@ -111,8 +217,51 @@ struct NotebookView: View {
             }
         }
         .sheet(isPresented: $showHelp) { HelpSheetView() }
+        .sheet(isPresented: $showFormulaSheet) {
+            FormulaSheetView(
+                formulas: mockBadges.enumerated().map { i, b in
+                    (label: "Step \(i + 1)", latex: mockGhostLines.indices.contains(i) ? mockGhostLines[i].latex : "")
+                }.filter { !$0.latex.isEmpty },
+                isPresented: $showFormulaSheet
+            )
+        }
         .sheet(isPresented: $showShareSheet) {
             if let url = exportedFileURL { ShareSheet(url: url) }
+        }
+        .sheet(isPresented: $showTemplatePicker) {
+            TemplatePickerView(isPresented: $showTemplatePicker) { template in
+                let nextIndex = (sortedPages.last?.sortIndex ?? -1) + 1
+                let page = Page(sortIndex: nextIndex, backgroundStyle: template.background, mathMode: viewModel.mathMode)
+                page.notebook = notebook
+                notebook.pages.append(page)
+            }
+        }
+        .sheet(isPresented: $showPDFImport) {
+            PDFImportView(isPresented: $showPDFImport, notebook: notebook)
+        }
+        .sheet(isPresented: $showBranchCompare) {
+            if mockBranches.count >= 2 {
+                BranchCompareView(
+                    branchA: mockBranches[0], branchB: mockBranches[1],
+                    stepsA: mockBadges, stepsB: mockBadges,
+                    isPresented: $showBranchCompare
+                )
+            }
+        }
+        .overlay {
+            if showSplitViewPreview { SplitViewPreview(isPresented: $showSplitViewPreview) }
+        }
+        .overlay {
+            if showDesktopHandoff { DesktopHandoffPreview(isPresented: $showDesktopHandoff) }
+        }
+        .overlay {
+            if showUnitCheck { UnitCheckPreview(isPresented: $showUnitCheck) }
+        }
+        .overlay {
+            if showForkToPractise { ForkToPractisePreview(isPresented: $showForkToPractise) }
+        }
+        .overlay {
+            if showVersionSnapshots { VersionSnapshotsPreview(isPresented: $showVersionSnapshots) }
         }
         .onKeyPress(.init("k"), phases: .down) { _ in
             showCommandPalette.toggle()
@@ -136,11 +285,21 @@ struct NotebookView: View {
     private func overlays(geo: GeometryProxy) -> some View {
         let showOverlays = viewModel.sessionMode.showsBadges
 
-        StepGutterView(badges: mockBadges, visible: showOverlays, scrollOffset: scrollOffset)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        StepGutterView(
+            badges: mockBadges, visible: showOverlays, scrollOffset: scrollOffset,
+            onOpenThread: { stepIndex in
+                chatAnchor = .step(stepIndex)
+                showChat = true
+            },
+            onSetConfidence: { stepIndex, level in
+                confidenceValues[stepIndex] = level
+            }
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
         GhostTypesetView(lines: mockGhostLines, visible: viewModel.showTypeset, scrollOffset: scrollOffset)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .allowsHitTesting(false)
 
         AnnotationLayerView(
             annotations: mockAnnotations,
@@ -149,9 +308,11 @@ struct NotebookView: View {
             onAccept: { _ in }
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .allowsHitTesting(false)
 
         if let bounds = viewModel.selectedStrokesBounds {
             SelectionHullView(bounds: bounds, scrollOffset: scrollOffset)
+                .allowsHitTesting(false)
         }
 
         if viewModel.showRadialMenu, let bounds = viewModel.selectedStrokesBounds {
@@ -162,74 +323,21 @@ struct NotebookView: View {
                 onDismiss: { viewModel.showRadialMenu = false }
             )
         }
-    }
 
-    // MARK: - Floating UI
-
-    @ViewBuilder
-    private func floatingUI(geo: GeometryProxy) -> some View {
-        VStack {
-            SessionModeControl(mode: $viewModel.sessionMode)
-                .padding(.top, 8)
-            Spacer()
-        }
-
-        VStack {
-            Spacer()
-            HStack {
-                Spacer()
-                StatusChipView(
-                    mathMode: viewModel.mathMode,
-                    saveState: "saved",
-                    stepCount: mockBadges.count
-                )
-                .padding(.trailing, 60)
-            }
-            .padding(.bottom, 8)
-        }
-
-        VStack(spacing: 12) {
-            Spacer()
-            VoicePillView(onAnnotation: { _ in })
-            Button {
-                withAnimation { showChat.toggle() }
-            } label: {
-                Image(systemName: "bubble.fill")
-                    .font(.system(size: 20))
-                    .foregroundStyle(FolioTheme.ink)
-                    .frame(width: 48, height: 48)
-                    .background(
-                        Circle()
-                            .fill(FolioTheme.chromeBackground)
-                            .shadow(color: FolioTheme.chromeShadow, radius: 8, y: 2)
-                    )
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .trailing)
-        .padding(.trailing, 16)
-        .padding(.bottom, 16)
-
-        HStack {
-            Spacer()
-            ChatPanelView(isOpen: $showChat)
-                .padding(.trailing, 72)
-                .padding(.bottom, 80)
-        }
-
-        BranchesDrawer(
-            branches: mockBranches,
-            isOpen: $showBranches,
-            onSelectBranch: { _ in }
+        ContradictionTraceView(
+            badges: mockBadges,
+            errorStepIndex: contradictionStepIndex,
+            scrollOffset: scrollOffset
         )
+        .allowsHitTesting(false)
 
-        if showCommandPalette {
-            Color.black.opacity(0.2)
-                .ignoresSafeArea()
-                .onTapGesture { showCommandPalette = false }
-            CommandPaletteView(
-                isPresented: $showCommandPalette,
-                commands: paletteCommands
+        ForEach(visualizeCards) { card in
+            let stepY = mockBadges.first(where: { _ in card.stepIndex < mockBadges.count })?.yPosition ?? 200
+            VisualizeCardView(
+                data: card,
+                sourcePosition: CGPoint(x: 400, y: stepY)
             )
+            .offset(x: 380, y: stepY - scrollOffset - 20)
         }
     }
 
@@ -313,7 +421,9 @@ struct NotebookView: View {
                 showBranches = true
             }
         case .visualize:
-            break
+            let viz = MockVisualizationService()
+            let card = viz.visualize(stepLabel: "", mode: viewModel.mathMode)
+            visualizeCards.append(card)
         }
     }
 

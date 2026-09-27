@@ -18,7 +18,99 @@ enum SeedDataBuilder {
         page3.notebook = ps1
         ps1.pages.append(page3)
 
+        seedChatThreads(page1: page1, context: context)
+        seedInsights(page1: page1, context: context)
+        seedClassSpace(context: context)
+
         try? context.save()
+    }
+
+    private static func seedChatThreads(page1: Page, context: ModelContext) {
+        let pageThread = ChatThread(title: "Page discussion")
+        pageThread.page = page1
+        page1.chatThreads.append(pageThread)
+
+        let msg1 = ChatMessage(text: "How do I know which row operation to pick?", isUser: true)
+        msg1.thread = pageThread
+        pageThread.messages.append(msg1)
+
+        let msg2 = ChatMessage(
+            text: "Look at the pivot column. You want to eliminate entries below the pivot. Try $R_2 \\leftarrow R_2 - \\frac{a_{21}}{a_{11}} R_1$.",
+            isUser: false,
+            latexContent: "R_2 \\leftarrow R_2 - \\frac{a_{21}}{a_{11}} R_1"
+        )
+        msg2.thread = pageThread
+        pageThread.messages.append(msg2)
+
+        let reveal = ChatMessage(
+            text: "What should the (2,1) entry be after this row op?",
+            isUser: false,
+            isRevealCard: true,
+            revealMatch: true
+        )
+        reveal.thread = pageThread
+        pageThread.messages.append(reveal)
+
+        let stepThread = ChatThread(title: "Error in R2 − 4·R3", anchorStepIndex: 3)
+        stepThread.page = page1
+        page1.chatThreads.append(stepThread)
+
+        let s1 = ChatMessage(text: "Why is step 4 wrong?", isUser: true)
+        s1.thread = stepThread
+        stepThread.messages.append(s1)
+
+        let s2 = ChatMessage(
+            text: "You subtracted $4R_3$ from $R_2$ but used the wrong value for $R_3$'s second entry. Recheck: $R_3 = [0, 2, 1 \\mid 5]$.",
+            isUser: false,
+            latexContent: "R_3 = [0, 2, 1 \\mid 5]"
+        )
+        s2.thread = stepThread
+        stepThread.messages.append(s2)
+    }
+
+    private static func seedInsights(page1: Page, context: ModelContext) {
+        let insight1 = Insight(
+            title: "Recurring sign error",
+            detail: "Steps 3 and 4 both show sign mistakes when subtracting rows. Review the subtraction of negative entries.",
+            category: "arithmetic",
+            linkedStepIndices: "2,3",
+            severity: "high"
+        )
+        insight1.page = page1
+        page1.insights.append(insight1)
+
+        let insight2 = Insight(
+            title: "Pivot selection",
+            detail: "Consider using partial pivoting to avoid small pivots that amplify rounding errors.",
+            category: "strategy",
+            linkedStepIndices: "0",
+            severity: "medium"
+        )
+        insight2.page = page1
+        page1.insights.append(insight2)
+    }
+
+    private static func seedClassSpace(context: ModelContext) {
+        let classSpace = ClassSpace(name: "Linear Algebra", courseCode: "MATH 2LA3", instructorName: "Dr. Rivera")
+        context.insert(classSpace)
+
+        let ex1 = WorkedExample(
+            title: "Row Reduction to RREF",
+            detail: "Reduce a 3×3 augmented matrix to RREF using elementary row operations.",
+            mathMode: .linalg,
+            stepsJSON: "[\"Form augmented matrix\",\"Eliminate below pivot 1\",\"Eliminate below pivot 2\",\"Back-substitute\"]"
+        )
+        ex1.classSpace = classSpace
+        classSpace.workedExamples.append(ex1)
+
+        let ex2 = WorkedExample(
+            title: "Determinant via Cofactor Expansion",
+            detail: "Compute the determinant of a 3×3 matrix using cofactor expansion along the first row.",
+            mathMode: .linalg,
+            stepsJSON: "[\"Write 3×3 matrix\",\"Expand along row 1\",\"Compute 2×2 minors\",\"Combine with signs\"]"
+        )
+        ex2.classSpace = classSpace
+        classSpace.workedExamples.append(ex2)
     }
 
     private static func buildLinalgPage() -> Page {

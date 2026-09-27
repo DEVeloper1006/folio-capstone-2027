@@ -31,41 +31,36 @@ struct BranchesDrawer: View {
     }
 
     private var tabHandle: some View {
-        VStack {
-            Spacer()
-            Button {
-                withAnimation(.spring(duration: 0.3)) {
-                    isOpen.toggle()
-                }
-            } label: {
-                VStack(spacing: 2) {
-                    Text("B")
-                    Text("R")
-                    Text("A")
-                    Text("N")
-                    Text("C")
-                    Text("H")
-                    Text("E")
-                    Text("S")
-                }
-                .font(FolioTheme.uiFont(size: 10, weight: .bold))
-                .foregroundStyle(FolioTheme.muted)
-                .padding(.vertical, 12)
-                .padding(.horizontal, 6)
-                .background(
-                    UnevenRoundedRectangle(
-                        topLeadingRadius: 8,
-                        bottomLeadingRadius: 8,
-                        bottomTrailingRadius: 0,
-                        topTrailingRadius: 0
-                    )
-                    .fill(FolioTheme.panel)
-                    .shadow(color: FolioTheme.chromeShadow, radius: 4, x: -2)
-                )
+        Button {
+            withAnimation(.spring(duration: 0.3)) {
+                isOpen.toggle()
             }
-            Spacer()
+        } label: {
+            VStack(spacing: 2) {
+                Text("B")
+                Text("R")
+                Text("A")
+                Text("N")
+                Text("C")
+                Text("H")
+                Text("E")
+                Text("S")
+            }
+            .font(FolioTheme.uiFont(size: 10, weight: .bold))
+            .foregroundStyle(FolioTheme.muted)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 6)
+            .background(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 8,
+                    bottomLeadingRadius: 8,
+                    bottomTrailingRadius: 0,
+                    topTrailingRadius: 0
+                )
+                .fill(FolioTheme.panel)
+                .shadow(color: FolioTheme.chromeShadow, radius: 4, x: -2)
+            )
         }
-        .frame(maxWidth: .infinity, alignment: .trailing)
     }
 
     private var drawerContent: some View {
