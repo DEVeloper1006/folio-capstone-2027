@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "folio-ipad-labs"
+version = "0.1.0"
+description = "ML experiments powering the Folio iPad math workspace"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch",
+    "pix2tex",
+    "Pillow",
+    "numpy",
+    "nltk",
+    "editdistance",
+    "pyyaml",
+]
+
+[tool.setuptools.packages.find]
+include = ["shared*"]

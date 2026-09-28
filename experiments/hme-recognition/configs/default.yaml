@@ -1,0 +1,11 @@
+# pix2tex baseline eval. Paths are relative to the repo root.
+model: pix2tex
+image_dir: data/test_images
+# Optional: JSON {"img.png": "latex"} or TSV "img.png<TAB>latex".
+# If null, sidecar <stem>.tex / <stem>.txt files next to each image are used.
+labels: null
+output: results/hme-recognition/
+# Crop to ink + downscale via shared/utils/rasterize.py before inference.
+preprocess: false
+# Max images to evaluate (null = all).
+limit: null
