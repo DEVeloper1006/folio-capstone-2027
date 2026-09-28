@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 
 
 def load_grayscale(path: str | Path) -> Image.Image:
@@ -60,3 +60,57 @@ def preprocess(
     img = load_grayscale(path)
     img = crop_to_ink(img, padding=padding)
     return resize_keep_aspect(img, max_height, max_width)
+
+
+# ---------------------------------------------------------------------------
+# Online ink (stroke) rendering
+# ---------------------------------------------------------------------------
+
+Stroke = np.ndarray  # shape (N, 2+): columns x, y[, t]; y points down
+
+
+def render_ink(
+    strokes: list[Stroke],
+    height: int = 128,
+    max_width: int = 2048,
+    stroke_width: int = 3,
+    padding: int = 16,
+) -> Image.Image:
+    """Render ink strokes as black-on-white grayscale, scaled to a fixed height.
+
+    Aspect ratio is preserved; if the result would exceed ``max_width``, the
+    whole drawing is scaled down further (and the image gets shorter).
+    """
+    pts = [np.asarray(s, dtype=np.float64)[:, :2] for s in strokes if len(s)]
+    if not pts:
+        return Image.new("L", (2 * padding + 1, height), 255)
+    allp = np.concatenate(pts)
+    lo = allp.min(axis=0)
+    w, h = allp.max(axis=0) - lo
+    inner_h = max(height - 2 * padding, 1)
+    inner_w_max = max(max_width - 2 * padding, 1)
+    scale = inner_h / h if h > 0 else 1.0
+    if w * scale > inner_w_max:
+        scale = inner_w_max / w
+    out_w = int(np.ceil(w * scale)) + 2 * padding + 1
+    out_h = int(np.ceil(h * scale)) + 2 * padding + 1
+    img = Image.new("L", (out_w, out_h), 255)
+    draw = ImageDraw.Draw(img)
+    r = stroke_width / 2
+    for s in pts:
+        xy = (s - lo) * scale + padding
+        coords = [tuple(p) for p in xy]
+        if len(coords) == 1 or np.allclose(xy, xy[0]):
+            x, y = coords[0]
+            draw.ellipse((x - r, y - r, x + r, y + r), fill=0)
+        else:
+            draw.line(coords, fill=0, width=stroke_width, joint="curve")
+    return img
+
+
+def save_png(img: Image.Image, path: str | Path) -> Path:
+    """Save an image as PNG, creating parent directories."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    img.save(path, format="PNG")
+    return path

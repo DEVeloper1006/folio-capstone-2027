@@ -26,7 +26,8 @@ env/
 *.tflite
 
 # ===== Data =====
-data/
+/data/*
+!/data/.gitkeep
 *.tar.gz
 *.zip
 *.h5

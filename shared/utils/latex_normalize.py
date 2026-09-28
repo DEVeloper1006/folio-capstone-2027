@@ -40,6 +40,8 @@ _NULL_DELIM_RE = re.compile(r"\\(?:left|right)\.")
 _SPACING_RE = re.compile(r"(?<!\\)\\[,;:! ]|\\quad|\\qquad|~")
 _MATH_DELIMS_RE = re.compile(r"^\s*(\$\$|\$|\\\[|\\\()|(\$\$|\$|\\\]|\\\))\s*$")
 _WHITESPACE_RE = re.compile(r"\s+")
+# x^{3} -> x^3, _{\alpha} -> _\alpha (single-token scripts only).
+_SINGLE_TOKEN_SCRIPT_RE = re.compile(r"([\^_])\s*\{\s*(\\[a-zA-Z]+|[^{}\s\\])\s*\}")
 
 
 def _replace_command(s: str, old: str, new: str) -> str:
@@ -60,7 +62,7 @@ def normalize_latex(s: str) -> str:
     """Canonicalize a LaTeX string for comparison.
 
     Strips math delimiters, drops sizing/spacing commands, maps common aliases
-    to one form, and collapses whitespace.
+    to one form, unwraps single-token sub/superscripts, and collapses whitespace.
     """
     s = strip_math_delimiters(s.strip())
     s = _NULL_DELIM_RE.sub(" ", s)
@@ -69,5 +71,6 @@ def normalize_latex(s: str) -> str:
         s = _replace_command(s, cmd, " ")
     for old, new in sorted(LATEX_ALIASES.items(), key=lambda kv: -len(kv[0])):
         s = _replace_command(s, old, new)
+    s = _SINGLE_TOKEN_SCRIPT_RE.sub(r"\1\2", s)
     s = _WHITESPACE_RE.sub(" ", s).strip()
     return s
