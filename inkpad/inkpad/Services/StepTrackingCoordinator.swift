@@ -21,7 +21,7 @@ final class StepTrackingCoordinator: StepTracking {
         recognitionThreshold: Double = 0.65
     ) {
         self.segmenter = segmenter ?? SpatialInkSegmenter()
-        self.recognizer = recognizer ?? MockRecognitionService()
+        self.recognizer = recognizer ?? VisionMathRecognitionService()
         self.mathEngine = mathEngine ?? MockMathEngine()
         self.recognitionThreshold = recognitionThreshold
     }
@@ -63,11 +63,16 @@ final class StepTrackingCoordinator: StepTracking {
             matchedStepIDs.insert(step.stableID)
             step.isActive = true
             let inkChanged = step.strokeFingerprint != region.fingerprint
+            let hasLegacyPlaceholder = step.recognizedText.hasPrefix("Handwritten step (")
             if inkChanged {
                 step.inkData = region.inkData
                 step.bounds = region.bounds
                 step.strokeFingerprint = region.fingerprint
                 step.status = .unchecked
+                step.recognitionState = groupingIsAmbiguous ? .ambiguous : .recognizing
+                step.updatedAt = Date()
+                changedSteps.append((step, groupingIsAmbiguous))
+            } else if hasLegacyPlaceholder {
                 step.recognitionState = groupingIsAmbiguous ? .ambiguous : .recognizing
                 step.updatedAt = Date()
                 changedSteps.append((step, groupingIsAmbiguous))
@@ -91,24 +96,42 @@ final class StepTrackingCoordinator: StepTracking {
                 continue
             }
 
+#if DEBUG
+            let debugContext = makeDebugContext(step: step, page: page, inkData: inkData)
+#endif
+
             do {
                 let result = try await recognizer.recognize(inkData: inkData, mode: page.mathMode)
                 guard !Task.isCancelled, currentDrawingMatches(drawingFingerprint, page: page) else { return }
-                step.recognizedText = result.text
-                step.ghostLaTeX = result.latex
+#if DEBUG
+                await RecognitionDebugRecorder.shared.record(context: debugContext, result: result)
+#endif
                 step.recognitionConfidence = result.confidence
-                step.label = result.text
-                if result.confidence >= recognitionThreshold {
+                if result.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    step.recognitionState = .failed
+                    step.status = .unchecked
+                    step.label = "No math recognized"
+                    step.explanation = "Vision did not recognize this row. Its ink and debug image have been preserved."
+                } else if result.confidence >= recognitionThreshold {
+                    step.recognizedText = result.text
+                    step.ghostLaTeX = result.latex
+                    step.label = result.text
                     step.recognitionState = .ready
                     step.status = mathEngine.checkStep(latex: result.latex, mode: page.mathMode)
                     step.explanation = mathEngine.explain(latex: result.latex, mode: page.mathMode)
                 } else {
+                    step.recognizedText = result.text
+                    step.ghostLaTeX = result.latex
+                    step.label = result.text
                     step.recognitionState = .ambiguous
                     step.status = .unchecked
                     step.explanation = "Recognition confidence is low. The original ink has been preserved."
                 }
             } catch {
                 guard currentDrawingMatches(drawingFingerprint, page: page) else { return }
+#if DEBUG
+                await RecognitionDebugRecorder.shared.recordFailure(context: debugContext, error: error)
+#endif
                 step.recognitionState = .failed
                 step.status = .unchecked
                 step.label = "Unrecognized handwriting"
@@ -121,6 +144,24 @@ final class StepTrackingCoordinator: StepTracking {
 
         try? context.save()
     }
+
+#if DEBUG
+    private func makeDebugContext(step: Step, page: Page, inkData: Data) -> RecognitionDebugContext {
+        let strokes = PKStrokeProvider().strokes(from: inkData)
+        return RecognitionDebugContext(
+            pageID: String(describing: page.persistentModelID),
+            stepID: step.stableID,
+            rowIndex: step.sortIndex,
+            minX: step.bounds.minX,
+            minY: step.bounds.minY,
+            width: step.bounds.width,
+            height: step.bounds.height,
+            strokeCount: strokes.count,
+            pointCount: strokes.reduce(0) { $0 + $1.count },
+            fingerprint: step.strokeFingerprint
+        )
+    }
+#endif
 
     private func currentDrawingMatches(_ expected: String, page: Page) -> Bool {
         guard let current = page.drawingData else { return false }

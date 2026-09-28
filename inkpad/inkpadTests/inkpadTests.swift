@@ -59,6 +59,24 @@ final class inkpadTests: XCTestCase {
         XCTAssertEqual(first.first?.fingerprint, second.first?.fingerprint)
     }
 
+    func testSimpleMathTextIsNormalizedToLatex() {
+        let latex = SimpleMathLaTeXNormalizer.normalize("x² − 4 × y ≤ 10")
+
+        XCTAssertEqual(latex, "x^{2} - 4 \\times y \\le 10")
+    }
+
+    @MainActor
+    func testRowInkRendererProducesPNG() throws {
+        let drawing = PKDrawing(strokes: [
+            makeStroke(from: CGPoint(x: 20, y: 100), to: CGPoint(x: 80, y: 120)),
+        ])
+
+        let png = try RowInkRenderer.renderPNG(inkData: drawing.dataRepresentation())
+
+        XCTAssertGreaterThan(png.count, 8)
+        XCTAssertEqual(Array(png.prefix(8)), [137, 80, 78, 71, 13, 10, 26, 10])
+    }
+
     @MainActor
     func testTrackingUpdatesExistingStepAndAddsRevision() async throws {
         let schema = Schema([

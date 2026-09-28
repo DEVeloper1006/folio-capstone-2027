@@ -50,18 +50,24 @@
 /* Begin PBXFrameworksBuildPhase section */
 		31CCF3BD306464F2002820B4 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 		31CCF3CC306464F6002820B4 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 		31CCF3D6306464F6002820B4 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
@@ -98,6 +104,8 @@
 				31CCF3BE306464F2002820B4 /* Resources */,
 			);
 			buildRules = (
+			);
+			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
 				31CCF3C2306464F2002820B4 /* inkpad */,
@@ -196,36 +204,48 @@
 /* Begin PBXResourcesBuildPhase section */
 		31CCF3BE306464F2002820B4 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 		31CCF3CD306464F6002820B4 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 		31CCF3D7306464F6002820B4 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		31CCF3BC306464F2002820B4 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 		31CCF3CB306464F6002820B4 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 		31CCF3D5306464F6002820B4 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
@@ -243,7 +263,7 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		31CCF3DF306464F6002820B4 /* Debug configuration for PBXProject "inkpad" */ = {
+		31CCF3DF306464F6002820B4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -306,7 +326,7 @@
 			};
 			name = Debug;
 		};
-		31CCF3E0306464F6002820B4 /* Release configuration for PBXProject "inkpad" */ = {
+		31CCF3E0306464F6002820B4 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -362,7 +382,7 @@
 			};
 			name = Release;
 		};
-		31CCF3E2306464F6002820B4 /* Debug configuration for PBXNativeTarget "inkpad" */ = {
+		31CCF3E2306464F6002820B4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -394,7 +414,7 @@
 			};
 			name = Debug;
 		};
-		31CCF3E3306464F6002820B4 /* Release configuration for PBXNativeTarget "inkpad" */ = {
+		31CCF3E3306464F6002820B4 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -426,7 +446,7 @@
 			};
 			name = Release;
 		};
-		31CCF3E5306464F6002820B4 /* Debug configuration for PBXNativeTarget "inkpadTests" */ = {
+		31CCF3E5306464F6002820B4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -447,7 +467,7 @@
 			};
 			name = Debug;
 		};
-		31CCF3E6306464F6002820B4 /* Release configuration for PBXNativeTarget "inkpadTests" */ = {
+		31CCF3E6306464F6002820B4 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -468,7 +488,7 @@
 			};
 			name = Release;
 		};
-		31CCF3E8306464F6002820B4 /* Debug configuration for PBXNativeTarget "inkpadUITests" */ = {
+		31CCF3E8306464F6002820B4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -487,7 +507,7 @@
 			};
 			name = Debug;
 		};
-		31CCF3E9306464F6002820B4 /* Release configuration for PBXNativeTarget "inkpadUITests" */ = {
+		31CCF3E9306464F6002820B4 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -512,37 +532,40 @@
 		31CCF3BB306464F2002820B4 /* Build configuration list for PBXProject "inkpad" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				31CCF3DF306464F6002820B4 /* Debug configuration for PBXProject "inkpad" */,
-				31CCF3E0306464F6002820B4 /* Release configuration for PBXProject "inkpad" */,
+				31CCF3DF306464F6002820B4 /* Debug */,
+				31CCF3E0306464F6002820B4 /* Release */,
 			);
+			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		31CCF3E1306464F6002820B4 /* Build configuration list for PBXNativeTarget "inkpad" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				31CCF3E2306464F6002820B4 /* Debug configuration for PBXNativeTarget "inkpad" */,
-				31CCF3E3306464F6002820B4 /* Release configuration for PBXNativeTarget "inkpad" */,
+				31CCF3E2306464F6002820B4 /* Debug */,
+				31CCF3E3306464F6002820B4 /* Release */,
 			);
+			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		31CCF3E4306464F6002820B4 /* Build configuration list for PBXNativeTarget "inkpadTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				31CCF3E5306464F6002820B4 /* Debug configuration for PBXNativeTarget "inkpadTests" */,
-				31CCF3E6306464F6002820B4 /* Release configuration for PBXNativeTarget "inkpadTests" */,
+				31CCF3E5306464F6002820B4 /* Debug */,
+				31CCF3E6306464F6002820B4 /* Release */,
 			);
+			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		31CCF3E7306464F6002820B4 /* Build configuration list for PBXNativeTarget "inkpadUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				31CCF3E8306464F6002820B4 /* Debug configuration for PBXNativeTarget "inkpadUITests" */,
-				31CCF3E9306464F6002820B4 /* Release configuration for PBXNativeTarget "inkpadUITests" */,
+				31CCF3E8306464F6002820B4 /* Debug */,
+				31CCF3E9306464F6002820B4 /* Release */,
 			);
+			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
 	rootObject = 31CCF3B8306464F2002820B4 /* Project object */;
-	validationLevel = 1;
 }

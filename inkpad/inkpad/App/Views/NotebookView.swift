@@ -9,6 +9,8 @@ struct NotebookView: View {
 
     @State private var currentPageIndex = 0
     @State private var viewModel: CanvasViewModel
+    @State private var stepTracker = StepTrackingCoordinator()
+    @State private var stepTrackingTask: Task<Void, Never>?
     @State private var showPageSidebar = false
     @State private var showBranches = false
     @State private var showChat = false
@@ -104,7 +106,7 @@ struct NotebookView: View {
     }
 
     private var paletteCommands: [PaletteCommand] {
-        [
+        var commands = [
             PaletteCommand(name: "Save", icon: "square.and.arrow.down") { viewModel.save() },
             PaletteCommand(name: "Switch Math Mode", icon: "function") { viewModel.cycleMathMode() },
             PaletteCommand(name: "Export", icon: "square.and.arrow.up") { showExport = true },
@@ -117,6 +119,19 @@ struct NotebookView: View {
             PaletteCommand(name: "Formula Sheet", icon: "list.bullet.rectangle") { showFormulaSheet = true },
             PaletteCommand(name: "Insights", icon: "lightbulb") { showInsights = true },
         ]
+#if DEBUG
+        commands.append(
+            PaletteCommand(name: "Share Recognition Log", icon: "doc.text.magnifyingglass") {
+                Task { @MainActor in
+                    if let url = try? await RecognitionDebugRecorder.shared.currentLogURL() {
+                        exportedFileURL = url
+                        showShareSheet = true
+                    }
+                }
+            }
+        )
+#endif
+        return commands
     }
 
     var body: some View {
@@ -397,8 +412,11 @@ struct NotebookView: View {
                 page.background = background
                 notebook.lastEditedAt = Date()
                 try? context.save()
-                Task { @MainActor in
-                    await StepTrackingCoordinator().process(
+                stepTrackingTask?.cancel()
+                stepTrackingTask = Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(1.25))
+                    guard !Task.isCancelled else { return }
+                    await stepTracker.process(
                         drawingData: data,
                         page: page,
                         context: context
