@@ -55,6 +55,8 @@ actor RecognitionDebugRecorder {
         let root = documents.appendingPathComponent("InkPadDebug", isDirectory: true)
         sessionDirectory = root.appendingPathComponent("session-\(UUID().uuidString)", isDirectory: true)
         logURL = sessionDirectory.appendingPathComponent("rows.jsonl")
+        logger.info("Recognition debug directory: \(self.sessionDirectory.path, privacy: .public)")
+        logger.info("Recognition log file: \(self.logURL.path, privacy: .public)")
     }
 
     func record(context: RecognitionDebugContext, result: RecognitionResult) {
@@ -107,7 +109,7 @@ actor RecognitionDebugRecorder {
             try handle.close()
 
             logger.info(
-                "row=\(context.rowIndex) strokes=\(context.strokeCount) text=\(result.text, privacy: .public) latex=\(result.latex, privacy: .public) confidence=\(result.confidence)"
+                "row=\(context.rowIndex) strokes=\(context.strokeCount) text=\(result.text, privacy: .public) latex=\(result.latex, privacy: .public) confidence=\(result.confidence) log=\(self.logURL.path, privacy: .public)"
             )
         } catch {
             logger.error("Could not write recognition debug record: \(error.localizedDescription, privacy: .public)")
@@ -128,6 +130,7 @@ actor RecognitionDebugRecorder {
         if !FileManager.default.fileExists(atPath: logURL.path) {
             _ = FileManager.default.createFile(atPath: logURL.path, contents: nil)
         }
+        logger.info("Sharing recognition log: \(self.logURL.path, privacy: .public)")
         return logURL
     }
 }
