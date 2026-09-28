@@ -269,9 +269,12 @@ struct ChatPanelView: View {
     private var inputBar: some View {
         HStack(spacing: 8) {
             Button {
-                let recognized = MockRecognitionService().recognize(strokeData: Data())
-                inkChipLatex = recognized
-                showInkChip = true
+                Task {
+                    if let recognized = try? await MockRecognitionService().recognize(inkData: Data(), mode: mathMode) {
+                        inkChipLatex = recognized.latex
+                        showInkChip = true
+                    }
+                }
             } label: {
                 Image(systemName: "lasso.badge.sparkles")
                     .font(.system(size: 18))
@@ -325,9 +328,12 @@ struct ChatPanelView: View {
     }
 
     func attachInkSelection(strokeData: Data) {
-        let recognized = MockRecognitionService().recognize(strokeData: strokeData)
-        inkChipLatex = recognized
-        showInkChip = true
+        Task {
+            if let recognized = try? await MockRecognitionService().recognize(inkData: strokeData, mode: mathMode) {
+                inkChipLatex = recognized.latex
+                showInkChip = true
+            }
+        }
     }
 }
 

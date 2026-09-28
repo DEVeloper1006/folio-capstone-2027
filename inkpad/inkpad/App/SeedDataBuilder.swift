@@ -51,7 +51,12 @@ enum SeedDataBuilder {
         reveal.thread = pageThread
         pageThread.messages.append(reveal)
 
-        let stepThread = ChatThread(title: "Error in R2 − 4·R3", anchorStepIndex: 3)
+        let anchoredStep = page1.steps.first { $0.sortIndex == 3 }
+        let stepThread = ChatThread(
+            title: "Error in R2 − 4·R3",
+            anchorStepIndex: 3,
+            anchorStepID: anchoredStep?.stableID
+        )
         stepThread.page = page1
         page1.chatThreads.append(stepThread)
 
@@ -77,6 +82,10 @@ enum SeedDataBuilder {
             severity: "high"
         )
         insight1.page = page1
+        insight1.linkedStepIDs = page1.steps
+            .filter { [2, 3].contains($0.sortIndex) }
+            .map { $0.stableID.uuidString }
+            .joined(separator: ",")
         page1.insights.append(insight1)
 
         let insight2 = Insight(
@@ -87,6 +96,10 @@ enum SeedDataBuilder {
             severity: "medium"
         )
         insight2.page = page1
+        insight2.linkedStepIDs = page1.steps
+            .filter { $0.sortIndex == 0 }
+            .map { $0.stableID.uuidString }
+            .joined(separator: ",")
         page1.insights.append(insight2)
     }
 

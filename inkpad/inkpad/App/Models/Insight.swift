@@ -7,6 +7,7 @@ final class Insight {
     var detail: String
     var category: String
     var linkedStepIndices: String
+    var linkedStepIDs: String = ""
     var severity: String
     var page: Page?
 
@@ -20,5 +21,9 @@ final class Insight {
 
     var stepIndices: [Int] {
         linkedStepIndices.split(separator: ",").compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
+    }
+
+    var stepIDs: [UUID] {
+        linkedStepIDs.split(separator: ",").compactMap { UUID(uuidString: String($0)) }
     }
 }

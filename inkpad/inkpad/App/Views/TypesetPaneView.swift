@@ -89,6 +89,7 @@ struct MathJaxWebView: UIViewRepresentable {
         let stepsHTML = steps.map { step in
             let statusColor: String
             switch step.status {
+            case .unchecked: statusColor = "#8D8981"
             case .verified: statusColor = "#5A9E5A"
             case .warning: statusColor = "#C7943A"
             case .error: statusColor = "#C45C4A"

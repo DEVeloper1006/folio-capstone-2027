@@ -15,23 +15,32 @@ enum ReplayEventKind {
 }
 
 protocol ReplayService {
-    func events(for pageData: Data?) -> [ReplayEvent]
-    func totalDuration(for pageData: Data?) -> TimeInterval
+    func events(for page: Page?) -> [ReplayEvent]
+    func totalDuration(for page: Page?) -> TimeInterval
 }
 
-final class MockReplayService: ReplayService {
-    func events(for pageData: Data?) -> [ReplayEvent] {
-        [
-            ReplayEvent(timestamp: 0.0, kind: .stroke, label: "Wrote augmented matrix"),
-            ReplayEvent(timestamp: 2.5, kind: .stroke, label: "Row operation R2"),
-            ReplayEvent(timestamp: 4.0, kind: .aiCheck, label: "Step verified ✓"),
-            ReplayEvent(timestamp: 5.5, kind: .stroke, label: "Row operation R3"),
-            ReplayEvent(timestamp: 7.0, kind: .aiHint, label: "Hint: check row 2"),
-            ReplayEvent(timestamp: 8.5, kind: .stroke, label: "Row operation R2-4R3"),
-            ReplayEvent(timestamp: 10.0, kind: .aiCheck, label: "Error detected ×"),
-            ReplayEvent(timestamp: 11.0, kind: .branch, label: "Branch: Alternative pivot"),
-        ]
+final class RevisionReplayService: ReplayService {
+    func events(for page: Page?) -> [ReplayEvent] {
+        guard let page else { return [] }
+        let revisions = page.steps
+            .flatMap { step in step.revisions.map { (step, $0) } }
+            .sorted { $0.1.createdAt < $1.1.createdAt }
+        guard let start = revisions.first?.1.createdAt else { return [] }
+
+        return revisions.map { step, revision in
+            let label = revision.recognizedText.isEmpty
+                ? "Updated step \(step.sortIndex + 1)"
+                : revision.recognizedText
+            return ReplayEvent(
+                timestamp: revision.createdAt.timeIntervalSince(start),
+                kind: .stroke,
+                label: label
+            )
+        }
     }
 
-    func totalDuration(for pageData: Data?) -> TimeInterval { 12.0 }
+    func totalDuration(for page: Page?) -> TimeInterval {
+        let events = events(for: page)
+        return max(1, (events.last?.timestamp ?? 0) + 1)
+    }
 }

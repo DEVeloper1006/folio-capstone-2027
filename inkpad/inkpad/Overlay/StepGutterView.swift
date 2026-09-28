@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct StepBadge: Identifiable {
-    let id = UUID()
+    let id: UUID
     let status: StepStatus
     let yPosition: CGFloat
     let explanation: String
@@ -13,11 +13,11 @@ struct StepGutterView: View {
     let badges: [StepBadge]
     let visible: Bool
     let scrollOffset: CGFloat
-    var onOpenThread: ((Int) -> Void)? = nil
-    var onSetConfidence: ((Int, Int) -> Void)? = nil
+    var onOpenThread: ((UUID) -> Void)? = nil
+    var onSetConfidence: ((UUID, Int) -> Void)? = nil
 
     @State private var selectedBadge: StepBadge?
-    @State private var confidenceTarget: IdentifiableInt?
+    @State private var confidenceTarget: StepBadge?
 
     var body: some View {
         if visible {
@@ -30,12 +30,12 @@ struct StepGutterView: View {
                             badgeIcon(badge)
                         }
                         .simultaneousGesture(LongPressGesture().onEnded { _ in
-                            confidenceTarget = IdentifiableInt(value: index)
+                            confidenceTarget = badge
                         })
 
                         if badge.hasThread {
                             Button {
-                                onOpenThread?(index)
+                                onOpenThread?(badge.id)
                             } label: {
                                 Image(systemName: "bubble.left.fill")
                                     .font(.system(size: 10))
@@ -79,6 +79,7 @@ struct StepGutterView: View {
 
     private func confidenceMatches(_ conf: Int, _ status: StepStatus) -> Bool {
         switch status {
+        case .unchecked: false
         case .verified: conf >= 2
         case .warning: conf == 2
         case .error: conf <= 1
@@ -102,14 +103,14 @@ struct StepGutterView: View {
         .presentationCompactAdaptation(.popover)
     }
 
-    private func confidencePopover(_ idx: IdentifiableInt) -> some View {
+    private func confidencePopover(_ badge: StepBadge) -> some View {
         VStack(spacing: 8) {
             Text("How confident?")
                 .font(FolioTheme.uiFont(size: 13, weight: .semibold))
             HStack(spacing: 16) {
                 ForEach(1...3, id: \.self) { level in
                     Button {
-                        onSetConfidence?(idx.value, level)
+                        onSetConfidence?(badge.id, level)
                         confidenceTarget = nil
                     } label: {
                         Text("\(level)")
@@ -124,9 +125,4 @@ struct StepGutterView: View {
         .padding()
         .presentationCompactAdaptation(.popover)
     }
-}
-
-struct IdentifiableInt: Identifiable {
-    let id = UUID()
-    let value: Int
 }

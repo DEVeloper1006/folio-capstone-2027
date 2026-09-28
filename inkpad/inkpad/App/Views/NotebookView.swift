@@ -18,7 +18,7 @@ struct NotebookView: View {
     @State private var showFormulaSheet = false
     @State private var visualizeCards: [VisualizeData] = []
     @State private var contradictionStepIndex: Int? = nil
-    @State private var confidenceValues: [Int: Int] = [:]
+    @State private var confidenceValues: [UUID: Int] = [:]
     @State private var showTypeset = false
     @State private var showCommandPalette = false
     @State private var showExport = false
@@ -58,18 +58,21 @@ struct NotebookView: View {
     private var mockBadges: [StepBadge] {
         guard let page = currentPage else { return [] }
         let threads = page.chatThreads
-        return page.steps.sorted { $0.sortIndex < $1.sortIndex }.map { step in
-            let hasThread = threads.contains { $0.anchorStepIndex == step.sortIndex }
+        return page.steps.filter(\.isActive).sorted { $0.sortIndex < $1.sortIndex }.map { step in
+            let hasThread = threads.contains {
+                $0.anchorStepID == step.stableID || ($0.anchorStepID == nil && $0.anchorStepIndex == step.sortIndex)
+            }
             return StepBadge(
+                id: step.stableID,
                 status: step.status, yPosition: step.yPosition, explanation: step.explanation,
-                hasThread: hasThread, confidence: confidenceValues[step.sortIndex]
+                hasThread: hasThread, confidence: confidenceValues[step.stableID]
             )
         }
     }
 
     private var mockGhostLines: [GhostTypesetLine] {
         guard let page = currentPage else { return [] }
-        return page.steps.sorted { $0.sortIndex < $1.sortIndex }.compactMap { step in
+        return page.steps.filter(\.isActive).sorted { $0.sortIndex < $1.sortIndex }.compactMap { step in
             guard !step.ghostLaTeX.isEmpty else { return nil }
             return GhostTypesetLine(latex: step.ghostLaTeX, yPosition: step.yPosition + 36)
         }
@@ -78,7 +81,7 @@ struct NotebookView: View {
     private var mockAnnotations: [Annotation] {
         guard viewModel.sessionMode == .coach else { return [] }
         guard let page = currentPage else { return [] }
-        let errorSteps = page.steps.filter { $0.status == .warning || $0.status == .error }
+        let errorSteps = page.steps.filter { $0.isActive && ($0.status == .warning || $0.status == .error) }
         return errorSteps.enumerated().compactMap { i, step in
             let engine = MockMathEngine()
             let hintText = engine.hint(for: step.label, mode: viewModel.mathMode)
@@ -189,8 +192,8 @@ struct NotebookView: View {
             if showReplay {
                 ReplayTimelineView(
                     isActive: $showReplay,
-                    events: MockReplayService().events(for: currentPage?.drawingData),
-                    totalDuration: MockReplayService().totalDuration(for: currentPage?.drawingData)
+                    events: RevisionReplayService().events(for: currentPage),
+                    totalDuration: RevisionReplayService().totalDuration(for: currentPage)
                 )
             }
         }
@@ -287,12 +290,13 @@ struct NotebookView: View {
 
         StepGutterView(
             badges: mockBadges, visible: showOverlays, scrollOffset: scrollOffset,
-            onOpenThread: { stepIndex in
+            onOpenThread: { stepID in
+                let stepIndex = currentPage?.steps.first { $0.stableID == stepID }?.sortIndex ?? 0
                 chatAnchor = .step(stepIndex)
                 showChat = true
             },
-            onSetConfidence: { stepIndex, level in
-                confidenceValues[stepIndex] = level
+            onSetConfidence: { stepID, level in
+                confidenceValues[stepID] = level
             }
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -393,6 +397,13 @@ struct NotebookView: View {
                 page.background = background
                 notebook.lastEditedAt = Date()
                 try? context.save()
+                Task { @MainActor in
+                    await StepTrackingCoordinator().process(
+                        drawingData: data,
+                        page: page,
+                        context: context
+                    )
+                }
             }
         }
     }

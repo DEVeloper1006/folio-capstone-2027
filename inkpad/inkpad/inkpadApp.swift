@@ -8,6 +8,7 @@ struct inkpadApp: App {
             Notebook.self,
             Page.self,
             Step.self,
+            StepRevision.self,
             Branch.self,
             ChatThread.self,
             ChatMessage.self,
