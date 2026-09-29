@@ -1,0 +1,81 @@
+# Router eval: sends each utterance to Jev with the same question schema as
+# VoiceAgent/Brain/IntentRouter.swift::classify and scores the typed answers.
+#
+# Keep `modes`, `actions` and `keys` in sync with IntentRouter.Mode, ActionKind.singleShot
+# and KeyChord in the Swift sources.
+
+model: jev-latest
+endpoint: https://openrouter.ai/api/v1/systemone
+output_file: results/voice-agent/router_eval_{timestamp}.json
+timeout_s: 15
+
+modes:
+  action: "One immediate Mac command: open an app, press a shortcut, scroll, change volume, toggle Do Not Disturb"
+  task: "A multi-step goal that needs operating an app's UI (clicking, filling fields, navigating)"
+  chat: "A question or conversation that needs a spoken answer, not a Mac action"
+
+actions:
+  OPEN_APP: "Launch or switch to an application"
+  PRESS_KEY: "Press a keyboard key or shortcut"
+  SCROLL_UP: "Scroll the content up"
+  SCROLL_DOWN: "Scroll the content down"
+  VOLUME_UP: "Turn the system volume up"
+  VOLUME_DOWN: "Turn the system volume down"
+  TOGGLE_MUTE: "Mute or unmute system audio"
+  TOGGLE_DND: "Turn Do Not Disturb / Focus on or off"
+
+keys:
+  RETURN: "Return / Enter: submit or confirm"
+  ESCAPE: "Escape: cancel or dismiss"
+  TAB: "Tab: move to next field"
+  DELETE: "Delete / Backspace"
+  SPACE: "Space bar"
+  UP: "Up arrow"
+  DOWN: "Down arrow"
+  LEFT: "Left arrow"
+  RIGHT: "Right arrow"
+  CMD_C: "Cmd+C copy"
+  CMD_V: "Cmd+V paste"
+  CMD_A: "Cmd+A select all"
+  CMD_Z: "Cmd+Z undo"
+  CMD_N: "Cmd+N new window/document/message"
+  CMD_T: "Cmd+T new tab"
+  CMD_W: "Cmd+W close window or tab"
+  CMD_F: "Cmd+F find"
+  CMD_S: "Cmd+S save"
+  CMD_L: "Cmd+L focus browser address bar"
+  CMD_SPACE: "Cmd+Space open Spotlight"
+
+# Stand-in for the AppCatalog the app builds from /Applications at runtime.
+apps: [Safari, Google Chrome, Mail, Messages, Notes, Calendar, Music, Finder, Slack, Xcode, System Settings, Terminal]
+
+# `expect` fields are optional; only present fields are scored.
+cases:
+  - {text: "open safari", expect: {mode: action, action: OPEN_APP, app: Safari}}
+  - {text: "launch chrome", expect: {mode: action, action: OPEN_APP, app: Google Chrome}}
+  - {text: "bring up my notes", expect: {mode: action, action: OPEN_APP, app: Notes}}
+  - {text: "switch to slack", expect: {mode: action, action: OPEN_APP, app: Slack}}
+  - {text: "turn the volume up", expect: {mode: action, action: VOLUME_UP}}
+  - {text: "it's too loud", expect: {mode: action, action: VOLUME_DOWN}}
+  - {text: "mute", expect: {mode: action, action: TOGGLE_MUTE}}
+  - {text: "turn on do not disturb", expect: {mode: action, action: TOGGLE_DND}}
+  - {text: "scroll down", expect: {mode: action, action: SCROLL_DOWN}}
+  - {text: "go back up to the top", expect: {mode: action, action: SCROLL_UP}}
+  - {text: "close this tab", expect: {mode: action, action: PRESS_KEY, key: CMD_W}}
+  - {text: "new tab", expect: {mode: action, action: PRESS_KEY, key: CMD_T}}
+  - {text: "undo that", expect: {mode: action, action: PRESS_KEY, key: CMD_Z}}
+  - {text: "save", expect: {mode: action, action: PRESS_KEY, key: CMD_S}}
+  - {text: "hit enter", expect: {mode: action, action: PRESS_KEY, key: RETURN}}
+  - {text: "send a message to Alex in Messages saying I'm running late", expect: {mode: task, app: Messages}}
+  - {text: "reply to the last email with thanks", expect: {mode: task, app: Mail}}
+  - {text: "search google for the derivative of x squared", expect: {mode: task}}
+  - {text: "create a new note called shopping list", expect: {mode: task, app: Notes}}
+  - {text: "add a calendar event tomorrow at 3pm for office hours", expect: {mode: task, app: Calendar}}
+  - {text: "click the submit button", expect: {mode: task}}
+  - {text: "turn on dark mode in system settings", expect: {mode: task, app: System Settings}}
+  - {text: "what's the integral of sin x", expect: {mode: chat}}
+  - {text: "explain the chain rule like I'm five", expect: {mode: chat}}
+  - {text: "how are you doing today", expect: {mode: chat}}
+  - {text: "what's 17 times 23", expect: {mode: chat}}
+  - {text: "who proved Fermat's last theorem", expect: {mode: chat}}
+  - {text: "tell me a joke", expect: {mode: chat}}
