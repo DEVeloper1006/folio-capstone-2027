@@ -1,5 +1,7 @@
 # hme-recognition
 
+> **New to this experiment?** Start with [`HANDOFF.md`](HANDOFF.md). It covers full setup from a fresh clone, what's gitignored and how to recreate it, and the prioritized task list.
+
 Handwritten math expression (HME) → LaTeX for the Folio iPad workspace. Both models are run on the same MathWriting samples and scored with the same metrics.
 
 | Model | Status | Eval script |
