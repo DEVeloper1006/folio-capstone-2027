@@ -18,5 +18,13 @@ dependencies = [
     "pyyaml",
 ]
 
+[project.optional-dependencies]
+# Uni-MuMER (Qwen3-VL) eval: experiments/hme-recognition/eval_unimumer.py
+unimumer = [
+    "transformers>=4.57",
+    "accelerate",
+    "huggingface_hub",
+]
+
 [tool.setuptools.packages.find]
 include = ["shared*"]

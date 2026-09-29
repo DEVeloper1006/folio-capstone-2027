@@ -1,0 +1,22 @@
+# Uni-MuMER eval. Paths are relative to the repo root.
+# Samples + rendering match the pix2tex baseline run (valid, first 200, 128/3).
+model: phxember/Uni-MuMER-Qwen3-VL-2B
+dataset: mathwriting
+root: data/mathwriting-2024
+split: valid
+limit: 200
+render:
+  height: 128
+  stroke_width: 3
+preprocess: false
+
+# Fixed name so the baseline is easy to find; re-runs overwrite it.
+output_file: results/hme-recognition/unimumer_baseline.json
+
+# auto = mps if available, else cpu
+device: auto
+# auto = bfloat16 on mps/cuda, float32 on cpu
+dtype: auto
+max_new_tokens: 1024
+# 0 = greedy (reproducible). Uni-MuMER's vllm_infer.py uses 0.2 / top_p 0.8.
+temperature: 0.0

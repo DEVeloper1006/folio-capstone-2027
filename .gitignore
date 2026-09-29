@@ -58,3 +58,5 @@ results/**/*.log
 *.log
 .env
 .envrc
+# ===== Third-party clones (re-created by setup scripts) =====
+experiments/hme-recognition/uni-mumer/
