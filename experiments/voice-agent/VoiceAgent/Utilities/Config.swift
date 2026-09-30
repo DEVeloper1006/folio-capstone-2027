@@ -3,13 +3,14 @@ import Security
 
 /// Central configuration.
 ///
-/// Secrets resolve in order: process environment → `.env` file → Keychain.
+/// Secrets resolve in order: process environment → `.env` file (see `DotEnv.searchPaths`) → Keychain.
 /// Non-secret preferences live in `UserDefaults` (surfaced via `@AppStorage` keys below).
 enum Config {
     // MARK: Endpoints
 
     static let openRouterBase = URL(string: "https://openrouter.ai/api/v1")!
-    static var systemOneURL: URL { openRouterBase.appending(path: "systemone") }
+    /// OpenRouter Decisions API (Jev). Lives under `/api/alpha`, not `/api/v1`.
+    static let decisionsURL = URL(string: "https://openrouter.ai/api/alpha/decisions")!
     static var chatCompletionsURL: URL { openRouterBase.appending(path: "chat/completions") }
 
     // MARK: Preference keys (@AppStorage)
@@ -17,7 +18,6 @@ enum Config {
     enum Key {
         static let jevModel = "jevModel"
         static let chatModel = "chatModel"
-        static let extractModel = "extractModel"
         static let voiceIdentifier = "voiceIdentifier"
         static let speakResponses = "speakResponses"
         static let showOverlayPill = "showOverlayPill"
@@ -25,22 +25,22 @@ enum Config {
     }
 
     enum Default {
-        static let jevModel = "jev-latest"
+        static let jevModel = "typesafe/jev-1.13"
         static let chatModel = "anthropic/claude-sonnet-5.5"
-        static let extractModel = "anthropic/claude-haiku-4.5"
         static let maxTaskSteps = 15
     }
 
+    /// Slugs from the old System One endpoint (e.g. `jev-latest`) aren't valid on OpenRouter,
+    /// so a stored value without a provider prefix falls back to the default.
     static var jevModel: String {
-        UserDefaults.standard.string(forKey: Key.jevModel) ?? Default.jevModel
+        guard let stored = UserDefaults.standard.string(forKey: Key.jevModel), stored.contains("/") else {
+            return Default.jevModel
+        }
+        return stored
     }
 
     static var chatModel: String {
         UserDefaults.standard.string(forKey: Key.chatModel) ?? Default.chatModel
-    }
-
-    static var extractModel: String {
-        UserDefaults.standard.string(forKey: Key.extractModel) ?? Default.extractModel
     }
 
     static var maxTaskSteps: Int {
@@ -84,12 +84,22 @@ enum Config {
 // MARK: - .env
 
 enum DotEnv {
-    /// Candidate locations: `$VOICE_AGENT_ENV`, current directory, `~/.config/voice-agent/.env`.
+    /// `experiments/voice-agent/.env`, resolved from this source file's location at build time.
+    /// Only exists on the machine that built the app, which is the dev loop this experiment targets.
+    static let experimentEnv = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent()   // Utilities/
+        .deletingLastPathComponent()   // VoiceAgent/
+        .deletingLastPathComponent()   // experiments/voice-agent/
+        .appending(path: ".env")
+
+    /// Candidate locations: `$VOICE_AGENT_ENV`, `experiments/voice-agent/.env`, current directory,
+    /// `~/.config/voice-agent/.env`.
     static var searchPaths: [URL] {
         var paths: [URL] = []
         if let override = ProcessInfo.processInfo.environment["VOICE_AGENT_ENV"] {
             paths.append(URL(fileURLWithPath: override))
         }
+        paths.append(experimentEnv)
         paths.append(URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appending(path: ".env"))
         paths.append(FileManager.default.homeDirectoryForCurrentUser.appending(path: ".config/voice-agent/.env"))
         return paths

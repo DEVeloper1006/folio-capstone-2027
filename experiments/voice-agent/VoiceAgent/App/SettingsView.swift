@@ -8,7 +8,6 @@ struct SettingsView: View {
 
     @AppStorage(Config.Key.jevModel) private var jevModel = Config.Default.jevModel
     @AppStorage(Config.Key.chatModel) private var chatModel = Config.Default.chatModel
-    @AppStorage(Config.Key.extractModel) private var extractModel = Config.Default.extractModel
     @AppStorage(Config.Key.maxTaskSteps) private var maxTaskSteps = Config.Default.maxTaskSteps
     @AppStorage(Config.Key.speakResponses) private var speakResponses = true
     @AppStorage(Config.Key.showOverlayPill) private var showOverlayPill = true
@@ -40,9 +39,8 @@ struct SettingsView: View {
             }
 
             Section("Models") {
-                TextField("Jev (System One)", text: $jevModel, prompt: Text(Config.Default.jevModel))
+                TextField("Jev (Decisions)", text: $jevModel, prompt: Text(Config.Default.jevModel))
                 TextField("Chat (Claude)", text: $chatModel, prompt: Text(Config.Default.chatModel))
-                TextField("Text extraction", text: $extractModel, prompt: Text(Config.Default.extractModel))
                 Stepper("Max task steps: \(maxTaskSteps)", value: $maxTaskSteps, in: 3...40)
             }
 
@@ -111,7 +109,7 @@ private struct APIKeySheet: View {
             Label("OpenRouter API Key", systemImage: "key.fill")
                 .font(.title3.weight(.semibold))
 
-            Text("Used for Jev (System One) intent routing and Claude chat. Stored in your login Keychain. An `OPENROUTER_API_KEY` environment variable or `.env` file takes precedence.")
+            Text("Used for Jev intent routing (OpenRouter Decisions API) and Claude chat. Stored in your login Keychain. An `OPENROUTER_API_KEY` environment variable or `.env` file takes precedence.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

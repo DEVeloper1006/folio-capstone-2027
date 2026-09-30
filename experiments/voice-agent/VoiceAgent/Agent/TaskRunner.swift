@@ -2,8 +2,9 @@ import Foundation
 
 /// Multi-step computer-use loop: crawl AX tree → ask Jev for the next step → validate → execute → repeat.
 ///
-/// Jev only selects keys: a verb from `ActionKind.taskVerbs`, an element id from the current
-/// `ElementTable`, a `KeyChord`, or an installed app. Anything outside those sets is rejected.
+/// Jev only selects keys: a verb from `ActionKind.taskVerbs`, an element index from the current
+/// `ElementTable`, a `KeyChord`, an installed app, or a phrase from the goal's own words.
+/// Anything outside those sets is rejected.
 @MainActor
 @Observable
 final class TaskRunner {
@@ -36,7 +37,7 @@ final class TaskRunner {
 
     private(set) var goal: String?
     private(set) var steps: [Step] = []
-    private(set) var currentStep: String?
+    private(set) var currentStep: ActionRequest?
     private(set) var isRunning = false
 
     var settleDelay: Duration = .milliseconds(450)
@@ -44,14 +45,12 @@ final class TaskRunner {
     var repeatLimit = 3
 
     private let jev: JevClient
-    private let llm: LLMClient
     private let executor: ActionExecutor
     private let crawler: AXTreeCrawler
     private let apps: AppCatalog
 
-    init(jev: JevClient, llm: LLMClient, executor: ActionExecutor, apps: AppCatalog, crawler: AXTreeCrawler = AXTreeCrawler()) {
+    init(jev: JevClient, executor: ActionExecutor, apps: AppCatalog, crawler: AXTreeCrawler = AXTreeCrawler()) {
         self.jev = jev
-        self.llm = llm
         self.executor = executor
         self.apps = apps
         self.crawler = crawler
@@ -66,23 +65,27 @@ final class TaskRunner {
             currentStep = nil
         }
 
-        var textToType: String?? = .none   // lazily extracted once per goal
+        let candidates = TextPayload.candidates(from: goal)
         var lastDescriptions: [String] = []
 
         for index in 0..<Config.maxTaskSteps {
             try Task.checkCancellation()
 
             let table = observe()
-            let decision = try await jev.decide(state: state(goal: goal, table: table), questions: questions(for: table))
+            let decision = try await jev.decide(
+                state: state(goal: goal, table: table),
+                questions: questions(for: table, candidates: candidates)
+            )
 
-            if let done = decision["goal_met"]?.probability, done >= doneThreshold {
+            if let done = decision[JevQuestions.goalMet]?.probability, done >= doneThreshold {
                 return .done(steps: index)
             }
 
-            guard let verb = decision.choice("next").flatMap(ActionKind.init(rawValue:)),
-                  ActionKind.taskVerbs.contains(verb) else {
-                throw JevError.invalidChoice(question: "next", value: decision.choice("next"))
+            let verbChoice = decision.choice(JevQuestions.intent)
+            guard let verb = verbChoice.flatMap(ActionKind.init(rawValue:)), ActionKind.taskVerbs.contains(verb) else {
+                throw JevError.invalidChoice(question: JevQuestions.intent, value: verbChoice)
             }
+            let target = table.entry(forKey: decision.choice(JevQuestions.targetIndex))
 
             switch verb {
             case .done: return .done(steps: index)
@@ -93,32 +96,27 @@ final class TaskRunner {
             var request = ActionRequest(kind: verb)
             switch verb {
             case .click:
-                guard let id = decision.choice("target"), table[id] != nil else {
-                    return .blocked(reason: "no matching element to click")
-                }
-                request.targetID = id
+                guard let target else { return .blocked(reason: "no matching element to click") }
+                request.targetIndex = target.index
             case .typeText:
-                if textToType == nil {
-                    textToType = .some(try await llm.extractTextToType(from: goal))
+                guard let text = decision.choice(JevQuestions.textPayload), candidates.contains(text) else {
+                    return .blocked(reason: "no text to type")
                 }
-                guard let text = textToType ?? nil else { return .blocked(reason: "no text to type") }
                 request.text = text
                 // Only accept a target that is an observed text input; otherwise type at the caret.
-                if let id = decision.choice("target"), table[id]?.isTextInput == true {
-                    request.targetID = id
-                }
+                if let target, target.isTextInput { request.targetIndex = target.index }
             case .pressKey:
-                guard let key = decision.choice("key").flatMap(KeyChord.init(rawValue:)) else {
+                guard let chord = decision.choice(JevQuestions.key).flatMap(KeyChord.init(rawValue:)) else {
                     return .blocked(reason: "no valid key")
                 }
-                request.key = key
+                request.key = chord.press
             case .openApp:
-                guard let app = decision.choice("app"), apps.url(for: app) != nil else {
+                guard let app = decision.choice(JevQuestions.app), apps.url(for: app) != nil else {
                     return .blocked(reason: "app not installed")
                 }
                 request.appName = app
             case .scrollUp, .scrollDown:
-                if let id = decision.choice("target"), table[id] != nil { request.targetID = id }
+                request.targetIndex = target?.index
             default:
                 break
             }
@@ -130,7 +128,7 @@ final class TaskRunner {
                 return .stuck(description)
             }
 
-            currentStep = description
+            currentStep = request
             let result: ActionResult
             do {
                 result = try await executor.execute(request, table: table)
@@ -156,36 +154,32 @@ final class TaskRunner {
         }
     }
 
-    private func questions(for table: ElementTable) -> [String: JevQuestion] {
+    private func questions(for table: ElementTable, candidates: [String]) -> [String: JevQuestion] {
         var questions: [String: JevQuestion] = [
-            "next": .choice(
+            JevQuestions.intent: .choice(
                 instructions: "What is the single best next step toward the goal?",
                 criteria: ActionKind.criteria(ActionKind.taskVerbs)
             ),
-            "goal_met": .noul(instructions: "Is the goal already fully achieved on the current screen?"),
-            "key": .choice(instructions: "If pressing a key, which one?", criteria: KeyChord.criteria()),
+            JevQuestions.goalMet: .noul(
+                instructions: "Is the goal already fully achieved on the current screen?",
+                whenTrue: "The goal is fully achieved",
+                whenFalse: "More steps are needed"
+            ),
+            JevQuestions.key: JevQuestions.keyChord(),
         ]
-        if !table.isEmpty {
-            questions["target"] = .choice(
-                instructions: "If clicking, typing or scrolling, which on-screen element?",
-                criteria: table.criteria()
-            )
-        }
-        let appCriteria = apps.criteria()
-        if !appCriteria.isEmpty {
-            questions["app"] = .choice(instructions: "If opening an app, which one?", criteria: appCriteria)
-        }
+        questions[JevQuestions.targetIndex] = JevQuestions.target(table)
+        questions[JevQuestions.textPayload] = JevQuestions.text(candidates)
+        questions[JevQuestions.app] = JevQuestions.app(apps)
         return questions
     }
 
     private func state(goal: String, table: ElementTable) -> String {
-        var parts = ["Goal: \(goal)"]
+        var extra: [String] = []
         if !steps.isEmpty {
             let history = steps.suffix(8).map { "\($0.id + 1). \($0.request) → \($0.result.success ? "ok" : "failed"): \($0.result.message)" }
-            parts.append("Steps so far:\n" + history.joined(separator: "\n"))
+            extra.append("Steps so far:\n" + history.joined(separator: "\n"))
         }
-        parts.append("Current screen:\n" + (table.isEmpty && table.appName.isEmpty ? "(nothing observable)" : table.render()))
-        return parts.joined(separator: "\n\n")
+        return JevQuestions.state(transcript: goal, table: table, extra: extra)
     }
 
     private func blockedReason(_ table: ElementTable) -> String {

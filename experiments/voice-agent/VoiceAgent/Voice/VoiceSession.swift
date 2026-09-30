@@ -12,7 +12,7 @@ final class VoiceSession {
         case idle
         case listening
         case thinking
-        case executing(String)
+        case executing(label: String, symbol: String)
         case speaking
         case done(String)
         case error(String)
@@ -29,10 +29,10 @@ final class VoiceSession {
             case .idle: "waveform"
             case .listening: "mic.fill"
             case .thinking: "sparkles"
-            case .executing: "cursorarrow.click.2"
+            case .executing(_, let symbol): symbol
             case .speaking: "speaker.wave.2.fill"
             case .done: "checkmark"
-            case .error: "exclamationmark.triangle.fill"
+            case .error: "xmark"
             }
         }
 
@@ -41,7 +41,7 @@ final class VoiceSession {
             case .idle: "Ready"
             case .listening: "Listening…"
             case .thinking: "Thinking…"
-            case .executing(let step): step
+            case .executing(let label, _): label
             case .speaking: "Speaking…"
             case .done(let message): message
             case .error(let message): message
@@ -73,7 +73,7 @@ final class VoiceSession {
         let apps = AppCatalog()
         let executor = ActionExecutor(apps: apps)
         let conversation = ConversationManager()
-        let taskRunner = TaskRunner(jev: jev, llm: llm, executor: executor, apps: apps)
+        let taskRunner = TaskRunner(jev: jev, executor: executor, apps: apps)
 
         self.permissions = PermissionsManager()
         self.recognizer = SpeechRecognizer()
@@ -181,7 +181,7 @@ final class VoiceSession {
             if case .chat = intent {
                 // Chat keeps .thinking until the reply arrives.
             } else {
-                set(.executing(intent.description))
+                set(.executing(label: intent.description, symbol: intent.symbol))
                 armCancelHotKey()
             }
 
@@ -213,7 +213,7 @@ final class VoiceSession {
         let mirror = Task { [weak self] in
             while !Task.isCancelled {
                 if let self, let step = taskRunner.currentStep, case .executing = state {
-                    state = .executing(step)
+                    state = .executing(label: step.description, symbol: step.kind.symbol)
                 }
                 try? await Task.sleep(for: .milliseconds(100))
             }
@@ -234,6 +234,27 @@ final class VoiceSession {
         cancelHotKey?.unregister()
         cancelHotKey = nil
     }
+
+    #if DEBUG
+    /// Pins the pill in one state for visual checks: launch with `-PillState <name>`.
+    /// No auto-reset and no pipeline, so the state stays on screen.
+    func debugPin(_ name: String) {
+        let pinned: State? = switch name {
+        case "idle": .idle
+        case "listening": .listening
+        case "thinking": .thinking
+        case "executing": .executing(label: "Open Safari", symbol: ActionKind.openApp.symbol)
+        case "speaking": .speaking
+        case "done": .done("Opened Safari")
+        case "error": .error("Jev timed out")
+        default: nil
+        }
+        guard let pinned else { return }
+        if pinned == .thinking { transcript = "open safari" }
+        resetTask?.cancel()
+        state = pinned
+    }
+    #endif
 
     private func set(_ newState: State) {
         state = newState

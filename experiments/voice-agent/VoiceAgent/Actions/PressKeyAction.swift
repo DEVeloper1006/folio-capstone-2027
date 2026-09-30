@@ -78,6 +78,13 @@ enum KeyChord: String, CaseIterable, Sendable {
         }
     }
 
+    var press: KeyPress { KeyPress(keyCode: keyCode, modifiers: flags, name: rawValue) }
+
+    /// Registry name for a key code + modifiers, e.g. `CMD_N`; falls back to the raw code.
+    static func name(keyCode: CGKeyCode, modifiers: CGEventFlags) -> String {
+        allCases.first { $0.keyCode == keyCode && $0.flags == modifiers }?.rawValue ?? "key \(keyCode)"
+    }
+
     static func criteria() -> [String: String] {
         Dictionary(uniqueKeysWithValues: allCases.map { ($0.rawValue, $0.criterion) })
     }
@@ -86,15 +93,15 @@ enum KeyChord: String, CaseIterable, Sendable {
 @MainActor
 struct PressKeyAction: MacAction {
     func execute(_ request: ActionRequest, in context: ActionContext) async throws -> ActionResult {
-        guard let chord = request.key else { throw ActionError.missingArgument("key") }
+        guard let key = request.key else { throw ActionError.missingArgument("key") }
         let source = CGEventSource(stateID: .hidSystemState)
-        guard let down = CGEvent(keyboardEventSource: source, virtualKey: chord.keyCode, keyDown: true),
-              let up = CGEvent(keyboardEventSource: source, virtualKey: chord.keyCode, keyDown: false)
+        guard let down = CGEvent(keyboardEventSource: source, virtualKey: key.keyCode, keyDown: true),
+              let up = CGEvent(keyboardEventSource: source, virtualKey: key.keyCode, keyDown: false)
         else { throw ActionError.eventCreationFailed }
-        down.flags = chord.flags
-        up.flags = chord.flags
+        down.flags = key.modifiers
+        up.flags = key.modifiers
         down.post(tap: .cghidEventTap)
         up.post(tap: .cghidEventTap)
-        return .ok("Pressed \(chord.rawValue)")
+        return .ok("Pressed \(key.name)")
     }
 }

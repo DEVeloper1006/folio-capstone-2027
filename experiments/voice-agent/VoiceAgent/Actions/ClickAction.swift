@@ -6,8 +6,8 @@ import CoreGraphics
 @MainActor
 struct ClickAction: MacAction {
     func execute(_ request: ActionRequest, in context: ActionContext) async throws -> ActionResult {
-        guard let id = request.targetID else { throw ActionError.missingArgument("target") }
-        guard let element = context.table[id] else { throw ActionError.unknownElement(id) }
+        guard let index = request.targetIndex else { throw ActionError.missingArgument("target") }
+        guard let element = context.table.entry(at: index) else { throw ActionError.unknownElement(index) }
 
         for action in [kAXPressAction, kAXConfirmAction, kAXPickAction] where element.actions.contains(action) {
             if AXUIElementPerformAction(element.ref, action as CFString) == .success {

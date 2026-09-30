@@ -12,12 +12,17 @@ struct AXTreeCrawler {
     var maxVisited = 3_000
     var messagingTimeout: Float = 0.25
 
+    /// Roles that are targets in their own right.
     static let actionableRoles: Set<String> = [
-        kAXButtonRole, kAXTextFieldRole, kAXTextAreaRole, kAXCheckBoxRole,
-        kAXMenuItemRole, kAXPopUpButtonRole, kAXRadioButtonRole, kAXComboBoxRole,
-        kAXSliderRole, kAXMenuButtonRole, kAXIncrementorRole, kAXDisclosureTriangleRole,
-        "AXLink", "AXTab", "AXSearchField", "AXCell", "AXRow",
+        kAXButtonRole, kAXTextFieldRole, "AXLink", kAXMenuItemRole, kAXCheckBoxRole,
+        kAXRadioButtonRole, kAXPopUpButtonRole, kAXSliderRole,
+        // Text inputs beyond AXTextField, so TYPE_TEXT has somewhere to type.
+        kAXTextAreaRole, kAXComboBoxRole, "AXSearchField",
     ]
+
+    /// Anything else (AXStaticText, AXGroup, AXImage, AXCell…) only counts if it can be pressed.
+    /// Web and Electron UIs expose most clickable controls as AXGroup/AXStaticText with AXPress.
+    static let pressActions: Set<String> = [kAXPressAction, kAXConfirmAction]
 
     /// Containers whose children are worth descending into but that are not targets themselves.
     static let skipRoles: Set<String> = [kAXMenuBarRole, kAXMenuBarItemRole]
@@ -57,12 +62,13 @@ struct AXTreeCrawler {
         return ElementTable(appName: appName, windowTitle: windowTitle, elements: elements)
     }
 
+    /// Walks the tree via `kAXChildrenAttribute` (preferring visible children when the app exposes them).
     /// Breadth-first so top-level controls (toolbars, primary buttons) win the 50-slot budget
     /// over deeply nested list cells.
-    private func collect(from root: AXUIElement) -> [ObservedElement] {
+    private func collect(from root: AXUIElement) -> [ElementEntry] {
         var queue: [(AXUIElement, Int)] = [(root, 0)]
         var head = 0
-        var found: [ObservedElement] = []
+        var found: [ElementEntry] = []
 
         while head < queue.count, found.count < maxElements, head < maxVisited {
             let (element, depth) = queue[head]
@@ -81,14 +87,13 @@ struct AXTreeCrawler {
         return found
     }
 
-    private func observe(_ element: AXUIElement, index: Int) -> ObservedElement? {
+    private func observe(_ element: AXUIElement, index: Int) -> ElementEntry? {
         guard let role: String = element.attribute(kAXRoleAttribute),
               !Self.skipRoles.contains(role) else { return nil }
 
         let actions = element.actionNames()
         let isActionable = Self.actionableRoles.contains(role)
-            || actions.contains(kAXPressAction)
-            || actions.contains(kAXConfirmAction)
+            || !Self.pressActions.isDisjoint(with: actions)
         guard isActionable else { return nil }
 
         if let enabled: Bool = element.attribute(kAXEnabledAttribute), !enabled { return nil }
@@ -96,16 +101,17 @@ struct AXTreeCrawler {
         let frame = element.frame()
         guard frame.width > 1, frame.height > 1 else { return nil }
 
-        return ObservedElement(
-            id: "e\(index)",
+        return ElementEntry(
+            index: index,
             ref: element,
             role: role,
             subrole: element.attribute(kAXSubroleAttribute),
             title: element.attribute(kAXTitleAttribute) ?? element.attribute(kAXDescriptionAttribute),
+            identifier: element.attribute(kAXIdentifierAttribute),
             value: element.stringValue(),
             help: element.attribute(kAXHelpAttribute) ?? element.attribute(kAXPlaceholderValueAttribute),
-            frame: frame,
-            actions: actions
+            actions: actions,
+            frame: frame
         )
     }
 

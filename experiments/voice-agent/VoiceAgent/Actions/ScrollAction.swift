@@ -9,8 +9,8 @@ struct ScrollAction: MacAction {
         let delta: Int32 = request.kind == .scrollUp ? lines : -lines
 
         var location: CGPoint?
-        if let id = request.targetID {
-            guard let element = context.table[id] else { throw ActionError.unknownElement(id) }
+        if let index = request.targetIndex {
+            guard let element = context.table.entry(at: index) else { throw ActionError.unknownElement(index) }
             location = element.center
         }
 

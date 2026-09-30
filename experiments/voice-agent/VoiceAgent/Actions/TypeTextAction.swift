@@ -10,8 +10,8 @@ struct TypeTextAction: MacAction {
     func execute(_ request: ActionRequest, in context: ActionContext) async throws -> ActionResult {
         guard let text = request.text, !text.isEmpty else { throw ActionError.missingArgument("text") }
 
-        if let id = request.targetID {
-            guard let element = context.table[id] else { throw ActionError.unknownElement(id) }
+        if let index = request.targetIndex {
+            guard let element = context.table.entry(at: index) else { throw ActionError.unknownElement(index) }
             AXUIElementSetAttributeValue(element.ref, kAXFocusedAttribute as CFString, kCFBooleanTrue)
             try await Task.sleep(for: .milliseconds(80))
 

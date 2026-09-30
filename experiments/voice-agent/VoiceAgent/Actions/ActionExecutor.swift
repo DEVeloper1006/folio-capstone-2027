@@ -41,6 +41,25 @@ enum ActionKind: String, CaseIterable, Sendable {
         }
     }
 
+    /// SF Symbol for the pill while this verb executes.
+    var symbol: String {
+        switch self {
+        case .openApp: "macwindow.badge.plus"
+        case .click: "cursorarrow.click.2"
+        case .typeText: "keyboard"
+        case .pressKey: "command"
+        case .scrollUp: "arrow.up.circle"
+        case .scrollDown: "arrow.down.circle"
+        case .wait: "hourglass"
+        case .done: "checkmark"
+        case .blocked: "hand.raised.fill"
+        case .volumeUp: "speaker.plus.fill"
+        case .volumeDown: "speaker.minus.fill"
+        case .toggleMute: "speaker.slash.fill"
+        case .toggleDoNotDisturb: "moon.fill"
+        }
+    }
+
     /// Verbs available inside the multi-step task loop.
     static let taskVerbs: [ActionKind] = [
         .openApp, .click, .typeText, .pressKey, .scrollUp, .scrollDown, .wait, .done, .blocked,
@@ -62,19 +81,26 @@ enum ActionKind: String, CaseIterable, Sendable {
     }
 }
 
+/// A key press resolved from the `KeyChord` registry: a virtual key code plus modifier flags.
+struct KeyPress: Sendable, Equatable {
+    let keyCode: CGKeyCode
+    let modifiers: CGEventFlags
+    let name: String
+}
+
 /// A fully-resolved action: every argument is either a registry key or an observed element.
 struct ActionRequest: Sendable, CustomStringConvertible {
     var kind: ActionKind
-    var targetID: String? = nil      // ElementTable id, e.g. "e7"
+    var targetIndex: Int? = nil      // ElementTable index, e.g. 7
     var appName: String? = nil       // AppCatalog key
-    var key: KeyChord? = nil         // KeyChord registry entry
-    var text: String? = nil          // TYPE_TEXT payload, extracted by code/LLM from the user's words
+    var key: KeyPress? = nil         // from the KeyChord registry
+    var text: String? = nil          // TYPE_TEXT payload: a verbatim span of the user's words
 
     var description: String {
         var parts = [kind.rawValue]
-        if let targetID { parts.append(targetID) }
+        if let targetIndex { parts.append("#\(targetIndex)") }
         if let appName { parts.append(appName) }
-        if let key { parts.append(key.rawValue) }
+        if let key { parts.append(key.name) }
         if let text { parts.append("\"\(text.prefix(40))\"") }
         return parts.joined(separator: " ")
     }
@@ -90,7 +116,7 @@ struct ActionResult: Sendable {
 
 enum ActionError: Error, CustomStringConvertible {
     case missingArgument(String)
-    case unknownElement(String)
+    case unknownElement(Int)
     case unsupported(String)
     case eventCreationFailed
     case axFailure(String, AXError)
@@ -98,7 +124,7 @@ enum ActionError: Error, CustomStringConvertible {
     var description: String {
         switch self {
         case .missingArgument(let arg): "Missing argument: \(arg)"
-        case .unknownElement(let id): "Element \(id) is not in the current element table"
+        case .unknownElement(let index): "Element #\(index) is not in the current element table"
         case .unsupported(let what): "Unsupported: \(what)"
         case .eventCreationFailed: "Could not create input event"
         case .axFailure(let op, let code): "\(op) failed (AXError \(code.rawValue))"

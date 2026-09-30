@@ -35,6 +35,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if UserDefaults.standard.object(forKey: Config.Key.showOverlayPill) as? Bool ?? true {
             panels.showPill()
         }
+        #if DEBUG
+        let args = ProcessInfo.processInfo.arguments
+        if let flag = args.firstIndex(of: "-PillState"), args.indices.contains(flag + 1) {
+            session.debugPin(args[flag + 1])
+            return   // skip permission prompts in visual-check mode
+        }
+        #endif
         Task { await session.permissions.requestAll() }
     }
 }
@@ -199,19 +206,5 @@ struct MenuBarContent: View {
         Label("Some permissions are missing — open Settings to grant them.", systemImage: "lock.shield")
             .font(.caption)
             .foregroundStyle(.orange)
-    }
-}
-
-// MARK: - Shared styling
-
-extension VoiceSession.State {
-    /// Glass variant per state: neutral normally, tinted for attention states.
-    var glass: Glass {
-        switch self {
-        case .listening: .regular.tint(.accentColor.opacity(0.35))
-        case .error: .regular.tint(.red.opacity(0.4))
-        case .done: .regular.tint(.green.opacity(0.3))
-        default: .regular
-        }
     }
 }
