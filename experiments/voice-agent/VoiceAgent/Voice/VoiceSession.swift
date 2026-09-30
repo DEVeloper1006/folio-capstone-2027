@@ -54,6 +54,8 @@ final class VoiceSession {
     private(set) var transcript = ""
     private(set) var lastIntent: String?
     private(set) var lastJevLatency: Duration?
+    /// SF Symbol of an early intent that just fired mid-speech; the pill flashes it while listening.
+    private(set) var earlyFlash: String?
 
     let permissions: PermissionsManager
     let recognizer: SpeechRecognizer
@@ -67,6 +69,11 @@ final class VoiceSession {
     @ObservationIgnored private var resetTask: Task<Void, Never>?
     @ObservationIgnored private var toggleHotKey: GlobalHotKey?
     @ObservationIgnored private var cancelHotKey: GlobalHotKey?
+    @ObservationIgnored private let earlyDetector: EarlyIntentDetector
+    @ObservationIgnored private var earlyFired: EarlyIntent?
+    @ObservationIgnored private var lastEarlyMatch: EarlyIntent?
+    @ObservationIgnored private var earlyTask: Task<ActionResult, Never>?
+    @ObservationIgnored private var flashTask: Task<Void, Never>?
 
     init() {
         let jev = JevClient()
@@ -86,6 +93,7 @@ final class VoiceSession {
             jev: jev, llm: llm, executor: executor, taskRunner: taskRunner,
             conversation: conversation, apps: apps
         )
+        self.earlyDetector = EarlyIntentDetector(resolveApp: { apps.resolve($0) != nil })
         self.tts.fallback.voiceIdentifier = UserDefaults.standard.string(forKey: Config.Key.voiceIdentifier)
     }
 
@@ -121,28 +129,110 @@ final class VoiceSession {
             return
         }
 
-        transcript = ""
-        set(.listening)
+        beginUtterance()
         pipeline = Task { [weak self] in
             guard let self else { return }
-            do {
-                var finalText = ""
-                for try await result in try recognizer.transcripts() {
-                    transcript = result.text
-                    finalText = result.text
-                }
-                try Task.checkCancellation()
-                let utterance = finalText.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !utterance.isEmpty else {
-                    set(.idle)
-                    return
-                }
-                await process(utterance)
-            } catch is CancellationError {
-                // cancelled by user
-            } catch {
-                set(.error(String(describing: error)))
+            await runListening { try self.recognizer.transcripts() }
+        }
+    }
+
+    #if DEBUG
+    /// `-AudioFile`: same listening pipeline (partials → early intents → final), fed from a file.
+    func listen(toFile url: URL) {
+        cancel()
+        beginUtterance()
+        pipeline = Task { [weak self] in
+            guard let self else { return }
+            await runListening { try self.recognizer.transcripts(fileURL: url) }
+        }
+    }
+    #endif
+
+    // MARK: Listening + early intents
+
+    private func beginUtterance() {
+        transcript = ""
+        earlyFired = nil
+        lastEarlyMatch = nil
+        earlyTask = nil
+        recognizer.onPartialTranscript = { [weak self] partial in self?.handlePartial(partial) }
+        set(.listening)
+    }
+
+    private func runListening(_ makeStream: () throws -> AsyncThrowingStream<SpeechRecognizer.Transcript, Error>) async {
+        defer { recognizer.onPartialTranscript = nil }
+        do {
+            var finalText = ""
+            for try await result in try makeStream() {
+                transcript = result.text
+                finalText = result.text
             }
+            recognizer.onPartialTranscript = nil
+            try Task.checkCancellation()
+            let utterance = finalText.trimmingCharacters(in: .whitespacesAndNewlines)
+            DebugLog.print("Listen", "final: \"\(utterance)\"")
+            guard !utterance.isEmpty else {
+                set(.idle)
+                return
+            }
+
+            guard let early = earlyFired else {
+                await process(utterance)
+                return
+            }
+            // An early intent already ran mid-speech: only the rest of the sentence is new.
+            let earlyResult = await earlyTask?.value ?? .failed("Early action didn't run")
+            switch earlyDetector.remainder(of: utterance, after: early) {
+            case .some(let rest) where rest.isEmpty:
+                DebugLog.print("Early", "final fully handled by early \(early.command)")
+                set(earlyResult.success ? .done(earlyResult.message) : .error(earlyResult.message))
+                await confirm(earlyResult.message)
+            case .some(let rest):
+                DebugLog.print("Early", "remainder after \(early.command): \"\(rest)\"")
+                await process(rest)
+            case nil:
+                // The recognizer revised the words; the command no longer leads. Process it all.
+                DebugLog.print("Early", "final no longer starts with \(early.command); processing full utterance")
+                await process(utterance)
+            }
+        } catch is CancellationError {
+            // cancelled by user
+        } catch {
+            set(.error(String(describing: error)))
+        }
+    }
+
+    /// Runs an unambiguous single-shot command from a partial transcript while the user keeps
+    /// talking. At most one per utterance, never spoken (the mic is open); the pill flashes its icon.
+    private func handlePartial(_ partial: String) {
+        guard state == .listening, earlyFired == nil else { return }
+        let fired = earlyDetector.detect(partial, previous: lastEarlyMatch)
+        lastEarlyMatch = earlyDetector.match(partial)
+        DebugLog.print("Early", "partial \"\(partial)\" → match \(lastEarlyMatch.map { "\($0.command)" } ?? "none")\(fired == nil ? "" : " → FIRE")")
+        guard let fired else { return }
+
+        let intent = fired.intent
+        if intent.requiresAccessibility, !AXIsProcessTrusted() {
+            DebugLog.print("Early", "skipped \(fired.command): needs Accessibility")
+            return
+        }
+        earlyFired = fired
+        flash(intent.symbol)
+        let router = router
+        earlyTask = Task {
+            let result = await router.executeEarly(intent)
+            DebugLog.print("Early", "\(fired.command) → \(result.success ? "ok" : "FAILED"): \(result.message)")
+            return result
+        }
+    }
+
+    private func flash(_ symbol: String) {
+        earlyFlash = symbol
+        flashTask?.cancel()
+        flashTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(1200))
+            guard !Task.isCancelled else { return }
+            self?.earlyFlash = nil
         }
     }
 
@@ -163,6 +253,9 @@ final class VoiceSession {
     func cancel() {
         pipeline?.cancel()
         pipeline = nil
+        recognizer.onPartialTranscript = nil
+        flashTask?.cancel()
+        earlyFlash = nil
         recognizer.cancel()
         tts.stop()
         disarmCancelHotKey()
@@ -206,7 +299,7 @@ final class VoiceSession {
                     set(.speaking)
                     await tts.speak(reply)
                     #if DEBUG
-                    print("[TTS] engine=\(tts.lastEngine?.rawValue ?? "-") fallbackReason=\(tts.lastError ?? "-") reply=\(reply)")
+                    DebugLog.print("TTS", "engine=\(tts.lastEngine?.rawValue ?? "-") fallbackReason=\(tts.lastError ?? "-") reply=\(reply)")
                     #endif
                 }
                 set(.done("Replied"))
@@ -239,7 +332,7 @@ final class VoiceSession {
         guard speaksResponses, !Task.isCancelled else { return }
         await tts.speak(message)
         #if DEBUG
-        print("[TTS] engine=\(tts.lastEngine?.rawValue ?? "-") fallbackReason=\(tts.lastError ?? "-") said=\(message)")
+        DebugLog.print("TTS", "engine=\(tts.lastEngine?.rawValue ?? "-") fallbackReason=\(tts.lastError ?? "-") said=\(message)")
         #endif
     }
 
@@ -293,7 +386,7 @@ final class VoiceSession {
 
     private func set(_ newState: State) {
         #if DEBUG
-        print("[VoiceSession] \(newState)" + (lastIntent.map { " intent=\($0)" } ?? "") + (lastJevLatency.map { " jev=\($0)" } ?? ""))
+        DebugLog.print("VoiceSession", "\(newState)" + (lastIntent.map { " intent=\($0)" } ?? "") + (lastJevLatency.map { " jev=\($0)" } ?? ""))
         #endif
         state = newState
         resetTask?.cancel()

@@ -42,6 +42,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             session.debugPin(args[flag + 1])
             return   // skip permission prompts in visual-check mode
         }
+        // Crawl whatever app is frontmost after 1 s and print the table: `-CrawlFrontmost`.
+        if args.contains("-CrawlFrontmost") {
+            Task {
+                let table = try? await AXTreeCrawler().crawl(delay: .seconds(1))
+                DebugLog.print("CrawlFrontmost", "\(table?.elements.count ?? -1) elements\n\(table?.serialize() ?? "crawl failed")")
+                exit(0)
+            }
+            return
+        }
+        if args.contains("-EarlyIntentSelfTest") {
+            let failures = EarlyIntentDetector.runSelfTest()
+            exit(failures == 0 ? 0 : 1)
+        }
+        // Streaming pipeline from an audio file instead of the mic: `-AudioFile /path/to/speech.aiff`.
+        if let flag = args.firstIndex(of: "-AudioFile"), args.indices.contains(flag + 1) {
+            Task {
+                await session.permissions.requestAll()
+                session.listen(toFile: URL(fileURLWithPath: args[flag + 1]))
+            }
+            return
+        }
         // Drives the full pipeline without the mic: `-Utterance "open youtube"`.
         if let flag = args.firstIndex(of: "-Utterance"), args.indices.contains(flag + 1) {
             session.submit(args[flag + 1])

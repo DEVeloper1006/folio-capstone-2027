@@ -43,7 +43,7 @@ struct SettingsView: View {
             Section("Models") {
                 TextField("Jev (Decisions)", text: $jevModel, prompt: Text(Config.Default.jevModel))
                 TextField("Chat (Claude)", text: $chatModel, prompt: Text(Config.Default.chatModel))
-                Stepper("Max task steps: \(maxTaskSteps)", value: $maxTaskSteps, in: 3...40)
+                Stepper("Max task steps: \(maxTaskSteps)", value: $maxTaskSteps, in: 3...TaskRunner.maxSteps)
             }
 
             Section("Voice") {

@@ -23,6 +23,9 @@ enum ActionKind: String, CaseIterable, Sendable {
     case toggleDoNotDisturb = "TOGGLE_DND"
     case brightnessUp = "BRIGHTNESS_UP"
     case brightnessDown = "BRIGHTNESS_DOWN"
+    // Explicit mute state, used by the early-intent detector ("mute" / "unmute"). Not offered to Jev.
+    case mute = "MUTE"
+    case unmute = "UNMUTE"
 
     /// Criteria text shown to Jev for this option.
     var criterion: String {
@@ -42,6 +45,8 @@ enum ActionKind: String, CaseIterable, Sendable {
         case .toggleDoNotDisturb: "Turn Do Not Disturb / Focus on or off"
         case .brightnessUp: "Make the screen brighter"
         case .brightnessDown: "Make the screen dimmer"
+        case .mute: "Mute system audio"
+        case .unmute: "Unmute system audio"
         }
     }
 
@@ -63,6 +68,8 @@ enum ActionKind: String, CaseIterable, Sendable {
         case .toggleDoNotDisturb: "moon.fill"
         case .brightnessUp: "sun.max.fill"
         case .brightnessDown: "sun.min.fill"
+        case .mute: "speaker.slash.fill"
+        case .unmute: "speaker.wave.2.fill"
         }
     }
 
@@ -179,7 +186,7 @@ final class ActionExecutor {
             return try await pressKey.execute(request, in: context)
         case .scrollUp, .scrollDown:
             return try await scroll.execute(request, in: context)
-        case .volumeUp, .volumeDown, .toggleMute, .toggleDoNotDisturb, .brightnessUp, .brightnessDown:
+        case .volumeUp, .volumeDown, .toggleMute, .toggleDoNotDisturb, .brightnessUp, .brightnessDown, .mute, .unmute:
             return try await system.execute(request, in: context)
         case .wait:
             try await Task.sleep(for: .milliseconds(800))

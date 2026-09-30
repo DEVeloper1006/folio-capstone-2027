@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 
 /// Multi-step computer-use loop: crawl AX tree → ask Jev for the next step → validate → execute → repeat.
 ///
@@ -17,8 +17,10 @@ final class TaskRunner {
     enum Outcome: Sendable {
         case done(steps: Int)
         case blocked(reason: String)
-        case stepLimit(Int)
+        case stepLimit(Int, lastActions: [String])
         case stuck(String)
+        /// Jev kept answering WAIT, even after a longer settle.
+        case stalled
 
         var isSuccess: Bool {
             if case .done = self { return true }
@@ -29,8 +31,10 @@ final class TaskRunner {
             switch self {
             case .done(let steps): steps == 0 ? "Already done" : "Done"
             case .blocked(let reason): "Blocked: \(reason)"
-            case .stepLimit(let n): "Stopped after \(n) steps"
+            case .stepLimit(let n, let lastActions):
+                "Stopped after \(n) steps" + (lastActions.isEmpty ? "" : ". Last: " + lastActions.joined(separator: ", "))
             case .stuck(let step): "Stuck repeating \(step)"
+            case .stalled: "I got stuck — the UI might still be loading"
             }
         }
     }
@@ -40,7 +44,19 @@ final class TaskRunner {
     private(set) var currentStep: ActionRequest?
     private(set) var isRunning = false
 
-    var settleDelay: Duration = .milliseconds(450)
+    /// Hard cap on Jev decisions per task, whatever the Settings value.
+    static let maxSteps = 15
+
+    /// Wait after every action before re-crawling: focusing a field, opening a menu or loading a page
+    /// takes a moment to show up in the AX tree.
+    var settleDelay: Duration = .milliseconds(400)
+    /// Longer settle after `waitLimit` WAITs in a row, before one last try.
+    var longSettleDelay: Duration = .milliseconds(800)
+    var waitLimit = 3
+    /// How long to watch for a new frontmost app after OPEN_APP (launches are slow) and after CLICK
+    /// (which rarely switches apps, so a long wait would slow every click).
+    var appSwitchTimeout: Duration = .milliseconds(1500)
+    var clickSwitchTimeout: Duration = .milliseconds(500)
     var doneThreshold = 0.9
     var repeatLimit = 3
 
@@ -66,12 +82,18 @@ final class TaskRunner {
         }
 
         let candidates = TextPayload.candidates(from: goal)
+        let limit = min(Config.maxTaskSteps, Self.maxSteps)
         var lastDescriptions: [String] = []
+        var nextDelay: Duration = .zero
+        var nextPID: pid_t?
+        var consecutiveWaits = 0
 
-        for index in 0..<Config.maxTaskSteps {
+        for index in 0..<limit {
             try Task.checkCancellation()
 
-            let table = observe()
+            let table = await observe(delay: nextDelay, pid: nextPID)
+            DebugLog.print("Task", "step \(index + 1)/\(limit) crawl (after \(nextDelay)\(nextPID.map { ", pid \($0)" } ?? "")): \(table.elements.count) elements\n\(table.serialize())")
+
             let decision = try await jev.decide(
                 state: state(goal: goal, table: table),
                 questions: questions(for: table, candidates: candidates)
@@ -82,15 +104,35 @@ final class TaskRunner {
             }
 
             let verbChoice = decision.choice(JevQuestions.intent)
-            guard let verb = verbChoice.flatMap(ActionKind.init(rawValue:)), ActionKind.taskVerbs.contains(verb) else {
+            guard let chosenVerb = verbChoice.flatMap(ActionKind.init(rawValue:)), ActionKind.taskVerbs.contains(chosenVerb) else {
                 throw JevError.invalidChoice(question: JevQuestions.intent, value: verbChoice)
             }
             let target = table.entry(forKey: decision.choice(JevQuestions.targetIndex))
 
+            // Right after a successful OPEN_APP the new window or page is often still loading, and Jev
+            // judges the half-built screen: it re-opens the same app/site (a duplicate tab) or says BLOCKED.
+            // Both become WAIT, which re-crawls after a settle and still counts toward `waitLimit`.
+            var verb = chosenVerb
+            if let previous = steps.last, previous.request.kind == .openApp, previous.result.success,
+               verb == .blocked || (verb == .openApp && previous.request.appName == decision.choice(JevQuestions.app)) {
+                DebugLog.print("Task", "\(verb.rawValue) right after opening \(previous.request.appName ?? "the app"); treating as WAIT")
+                verb = .wait
+            }
+
             switch verb {
             case .done: return .done(steps: index)
             case .blocked: return .blocked(reason: blockedReason(table))
-            default: break
+            case .wait:
+                // WAIT isn't executed or repeat-checked: it just re-crawls after a settle. After
+                // `waitLimit` in a row, settle longer and ask once more; another WAIT stops the task.
+                consecutiveWaits += 1
+                steps.append(Step(id: index, request: ActionRequest(kind: .wait), result: .ok("Waited")))
+                if consecutiveWaits > waitLimit { return .stalled }
+                nextDelay = consecutiveWaits == waitLimit ? longSettleDelay : settleDelay
+                DebugLog.print("Task", "WAIT \(consecutiveWaits)/\(waitLimit), re-crawling after \(nextDelay)")
+                continue
+            default:
+                consecutiveWaits = 0
             }
 
             var request = ActionRequest(kind: verb)
@@ -129,6 +171,7 @@ final class TaskRunner {
             }
 
             currentStep = request
+            let frontmostBefore = NSWorkspace.shared.frontmostApplication?.processIdentifier
             let result: ActionResult
             do {
                 result = try await executor.execute(request, table: table)
@@ -137,16 +180,44 @@ final class TaskRunner {
             }
             steps.append(Step(id: index, request: request, result: result))
 
-            try await Task.sleep(for: settleDelay)
+            let targetInfo = request.targetIndex.flatMap(table.entry(at:)).map { " on \($0.role) '\($0.spokenName)'" } ?? ""
+            DebugLog.print("Task", "step \(index + 1) action: \(description)\(targetInfo) → \(result.success ? "ok" : "FAILED"): \(result.message)")
+
+            // After CLICK / OPEN_APP the frontmost app may change; crawl the new app, not the old one.
+            nextPID = nil
+            if verb == .click || verb == .openApp,
+               let switched = await frontmostChange(
+                   from: frontmostBefore, timeout: verb == .openApp ? appSwitchTimeout : clickSwitchTimeout
+               ) {
+                nextPID = switched
+                DebugLog.print("Task", "frontmost app changed → pid \(switched) (\(NSRunningApplication(processIdentifier: switched)?.localizedName ?? "?"))")
+            }
+            nextDelay = settleDelay
         }
-        return .stepLimit(Config.maxTaskSteps)
+        let done = steps.filter { $0.request.kind != .wait && $0.result.success }.suffix(3).map { $0.result.message }
+        return .stepLimit(limit, lastActions: done)
+    }
+
+    /// Polls the frontmost app until it differs from `previous` or `timeout` elapses.
+    private func frontmostChange(from previous: pid_t?, timeout: Duration) async -> pid_t? {
+        let clock = ContinuousClock()
+        let deadline = clock.now + timeout
+        while clock.now < deadline {
+            if let current = NSWorkspace.shared.frontmostApplication?.processIdentifier, current != previous {
+                return current
+            }
+            try? await Task.sleep(for: .milliseconds(100))
+        }
+        return nil
     }
 
     // MARK: - Observation & prompting
 
-    private func observe() -> ElementTable {
+    private func observe(delay: Duration, pid: pid_t?) async -> ElementTable {
         do {
-            return try crawler.crawlFocusedApp()
+            return try await crawler.crawl(delay: delay, pid: pid)
+        } catch is CancellationError {
+            return .empty
         } catch AXTreeCrawler.CrawlError.noWindow(let app) {
             return ElementTable(appName: app, windowTitle: nil, elements: [])
         } catch {

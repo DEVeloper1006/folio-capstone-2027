@@ -7,9 +7,14 @@ import ApplicationServices
 /// a short messaging timeout so an unresponsive app can't stall the UI for long.
 @MainActor
 struct AXTreeCrawler {
-    var maxElements = 50
+    /// Total elements sent to Jev. Browsers and IDEs have deep trees; 50 missed important controls.
+    var maxElements = 80
+    /// Slots reserved for page content inside `AXWebArea`s, so browser chrome can't starve them.
+    var maxWebElements = 50
     var maxDepth = 25
+    var maxWebDepth = 45
     var maxVisited = 3_000
+    var maxWebVisited = 5_000
     var messagingTimeout: Float = 0.25
 
     /// Roles that are targets in their own right.
@@ -27,6 +32,17 @@ struct AXTreeCrawler {
     /// Containers whose children are worth descending into but that are not targets themselves.
     static let skipRoles: Set<String> = [kAXMenuBarRole, kAXMenuBarItemRole]
 
+    static let webAreaRole = "AXWebArea"
+
+    /// Chromium browsers only build their web accessibility tree when an assistive client asks for it.
+    static let chromiumBundleIDs: Set<String> = [
+        "com.google.Chrome", "company.thebrowser.Browser", "com.brave.Browser",
+        "com.microsoft.edgemac", "com.vivaldi.Vivaldi", "com.operasoftware.Opera",
+    ]
+
+    /// Apps already switched into full accessibility mode (per pid, for the app's lifetime).
+    private static var enabledPIDs: Set<pid_t> = []
+
     enum CrawlError: Error, CustomStringConvertible {
         case notTrusted
         case noFocusedApp
@@ -41,18 +57,40 @@ struct AXTreeCrawler {
         }
     }
 
+    /// Sleeps `delay` (to let the UI settle after an action), then crawls. With `pid`, crawls that
+    /// app, which is used after an app switch because the system-wide focused app can lag behind.
+    func crawl(delay: Duration = .zero, pid: pid_t? = nil) async throws -> ElementTable {
+        if delay > .zero { try await Task.sleep(for: delay) }
+        return try crawlApp(pid: pid)
+    }
+
     func crawlFocusedApp() throws -> ElementTable {
+        try crawlApp(pid: nil)
+    }
+
+    private func crawlApp(pid: pid_t?) throws -> ElementTable {
         guard AXIsProcessTrusted() else { throw CrawlError.notTrusted }
 
         let systemWide = AXUIElementCreateSystemWide()
         AXUIElementSetMessagingTimeout(systemWide, messagingTimeout)
 
-        guard let app: AXUIElement = systemWide.attribute(kAXFocusedApplicationAttribute) else {
-            throw CrawlError.noFocusedApp
+        let app: AXUIElement
+        if let pid {
+            app = AXUIElementCreateApplication(pid)
+        } else {
+            guard let focused: AXUIElement = systemWide.attribute(kAXFocusedApplicationAttribute) else {
+                throw CrawlError.noFocusedApp
+            }
+            app = focused
         }
         AXUIElementSetMessagingTimeout(app, messagingTimeout)
-        let appName: String = app.attribute(kAXTitleAttribute) ?? frontmostName() ?? "Unknown"
 
+        var appPID: pid_t = 0
+        AXUIElementGetPid(app, &appPID)
+        let running = NSRunningApplication(processIdentifier: appPID)
+        enableWebAccessibility(app, pid: appPID, bundleID: running?.bundleIdentifier)
+
+        let appName: String = app.attribute(kAXTitleAttribute) ?? running?.localizedName ?? "Unknown"
         let window: AXUIElement? = app.attribute(kAXFocusedWindowAttribute)
             ?? app.attribute(kAXMainWindowAttribute)
         guard let window else { throw CrawlError.noWindow(app: appName) }
@@ -62,24 +100,75 @@ struct AXTreeCrawler {
         return ElementTable(appName: appName, windowTitle: windowTitle, elements: elements)
     }
 
-    /// Walks the tree via `kAXChildrenAttribute` (preferring visible children when the app exposes them).
-    /// Breadth-first so top-level controls (toolbars, primary buttons) win the 50-slot budget
-    /// over deeply nested list cells.
-    private func collect(from root: AXUIElement) -> [ElementEntry] {
-        var queue: [(AXUIElement, Int)] = [(root, 0)]
+    /// Chromium and Electron expose web content to AX only on request: `AXManualAccessibility` (Electron,
+    /// harmless elsewhere) and `AXEnhancedUserInterface` (Chromium browsers). Set once per process.
+    private func enableWebAccessibility(_ app: AXUIElement, pid: pid_t, bundleID: String?) {
+        guard pid > 0, !Self.enabledPIDs.contains(pid) else { return }
+        Self.enabledPIDs.insert(pid)
+        AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+        if let bundleID, Self.chromiumBundleIDs.contains(bundleID) {
+            AXUIElementSetAttributeValue(app, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue)
+        }
+    }
+
+    /// Two passes over the window:
+    /// 1. Breadth-first over the native UI (preferring visible children), so toolbars and primary
+    ///    buttons win the budget over nested list cells. `AXWebArea`s are set aside, not descended.
+    /// 2. Breadth-first inside each web area via `kAXChildrenAttribute` (visible-children is often
+    ///    empty there), deeper, keeping only elements inside the window. Up to `maxWebElements`.
+    /// Native elements fill the rest of the budget; indices are assigned after merging.
+    private func collect(from window: AXUIElement) -> [ElementEntry] {
+        var webAreas: [AXUIElement] = []
+        let native = breadthFirst(
+            from: [window], limit: maxElements, maxDepth: maxDepth, maxVisited: maxVisited,
+            preferVisibleChildren: true, within: nil, deferWebAreas: &webAreas
+        )
+
+        var web: [ElementEntry] = []
+        DebugLog.print("Crawl", "native pass: \(native.count) elements, \(webAreas.count) web area(s)")
+        if !webAreas.isEmpty {
+            var nested: [AXUIElement] = []
+            web = breadthFirst(
+                from: webAreas, limit: maxWebElements, maxDepth: maxWebDepth, maxVisited: maxWebVisited,
+                preferVisibleChildren: false, within: window.frame(), deferWebAreas: &nested
+            )
+            DebugLog.print("Crawl", "web pass: \(web.count) elements")
+        }
+
+        let merged = native.prefix(maxElements - web.count) + web
+        return merged.enumerated().map { $0.element.reindexed($0.offset) }
+    }
+
+    private func breadthFirst(
+        from roots: [AXUIElement],
+        limit: Int,
+        maxDepth: Int,
+        maxVisited: Int,
+        preferVisibleChildren: Bool,
+        within bounds: CGRect?,
+        deferWebAreas webAreas: inout [AXUIElement]
+    ) -> [ElementEntry] {
+        var queue: [(AXUIElement, Int)] = roots.map { ($0, 0) }
         var head = 0
         var found: [ElementEntry] = []
 
-        while head < queue.count, found.count < maxElements, head < maxVisited {
+        while head < queue.count, found.count < limit, head < maxVisited {
             let (element, depth) = queue[head]
             head += 1
 
-            if let observed = observe(element, index: found.count) {
+            if preferVisibleChildren, depth > 0, let role: String = element.attribute(kAXRoleAttribute),
+               role == Self.webAreaRole {
+                webAreas.append(element)
+                continue
+            }
+
+            if let observed = observe(element, index: found.count),
+               bounds.map({ $0.intersects(observed.frame) }) ?? true {
                 found.append(observed)
             }
 
             guard depth < maxDepth else { continue }
-            let children: [AXUIElement] = element.attribute(kAXVisibleChildrenAttribute)
+            let children: [AXUIElement] = (preferVisibleChildren ? element.attribute(kAXVisibleChildrenAttribute) : nil)
                 ?? element.attribute(kAXChildrenAttribute)
                 ?? []
             queue.append(contentsOf: children.map { ($0, depth + 1) })
@@ -92,16 +181,15 @@ struct AXTreeCrawler {
               !Self.skipRoles.contains(role) else { return nil }
 
         let actions = element.actionNames()
-        let isActionable = Self.actionableRoles.contains(role)
-            || !Self.pressActions.isDisjoint(with: actions)
-        guard isActionable else { return nil }
+        let isControlRole = Self.actionableRoles.contains(role)
+        guard isControlRole || !Self.pressActions.isDisjoint(with: actions) else { return nil }
 
         if let enabled: Bool = element.attribute(kAXEnabledAttribute), !enabled { return nil }
 
         let frame = element.frame()
         guard frame.width > 1, frame.height > 1 else { return nil }
 
-        return ElementEntry(
+        let entry = ElementEntry(
             index: index,
             ref: element,
             role: role,
@@ -113,11 +201,12 @@ struct AXTreeCrawler {
             actions: actions,
             frame: frame
         )
+        // Elements admitted only because they're pressable (AXGroup, AXStaticText, …) must have a
+        // label: unlabeled web wrappers are noise that crowds out real targets.
+        guard isControlRole || entry.label != nil else { return nil }
+        return entry
     }
 
-    private func frontmostName() -> String? {
-        NSWorkspace.shared.frontmostApplication?.localizedName
-    }
 }
 
 // MARK: - AXUIElement helpers

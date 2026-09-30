@@ -3,20 +3,29 @@ import CoreGraphics
 
 /// Types text into an observed text element.
 ///
-/// Strategy: focus the element, insert at the caret via `kAXSelectedTextAttribute`
-/// (non-destructive), else fall back to synthesized unicode keystrokes.
+/// Strategy: focus the element, insert at the caret via `kAXSelectedTextAttribute` (non-destructive),
+/// then read `kAXValueAttribute` back. Web and Electron fields often accept the AX write without
+/// changing, so an unchanged value falls back to synthesized unicode keystrokes into the focused field.
 @MainActor
 struct TypeTextAction: MacAction {
+    var focusDelay: Duration = .milliseconds(120)
+
     func execute(_ request: ActionRequest, in context: ActionContext) async throws -> ActionResult {
         guard let text = request.text, !text.isEmpty else { throw ActionError.missingArgument("text") }
 
         if let index = request.targetIndex {
             guard let element = context.table.entry(at: index) else { throw ActionError.unknownElement(index) }
             AXUIElementSetAttributeValue(element.ref, kAXFocusedAttribute as CFString, kCFBooleanTrue)
-            try await Task.sleep(for: .milliseconds(80))
+            try await Task.sleep(for: focusDelay)
 
+            let before = element.ref.stringValue()
             if AXUIElementSetAttributeValue(element.ref, kAXSelectedTextAttribute as CFString, text as CFString) == .success {
-                return .ok("Typing \(text.prefix(60))")
+                let after = element.ref.stringValue()
+                if after != before, after?.contains(text) ?? false {
+                    DebugLog.print("Type", "AX insert verified in \(element.role) '\(element.spokenName)'")
+                    return .ok("Typing \(text.prefix(60))")
+                }
+                DebugLog.print("Type", "AX insert reported success but value unchanged; falling back to key events")
             }
         }
 

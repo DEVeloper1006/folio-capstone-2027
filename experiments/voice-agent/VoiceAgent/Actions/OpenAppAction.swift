@@ -47,6 +47,7 @@ final class AppCatalog {
         "spotify": "com.spotify.client",
         "notion": "notion.id",
         "vs code": "com.microsoft.VSCode",
+        "vscode": "com.microsoft.VSCode",
         "visual studio code": "com.microsoft.VSCode",
         "zoom": "us.zoom.xos",
         "discord": "com.hnc.Discord",
@@ -123,10 +124,11 @@ struct OpenAppAction: MacAction {
             let configuration = NSWorkspace.OpenConfiguration()
             configuration.activates = true
             _ = try await NSWorkspace.shared.openApplication(at: url, configuration: configuration)
-            return .ok("Opened \(name)")
+            return .ok("Opened \(url.deletingPathExtension().lastPathComponent)")
         case .website(let url):
             guard NSWorkspace.shared.open(url) else { return .failed("Couldn't open \(name) in the browser") }
-            return .ok("Opened \(name)")
+            let site = AppCatalog.websites.first { $0.url == url }?.name ?? name
+            return .ok("Opened \(site)")
         case nil:
             return .failed("I couldn't find \(name) as an app or website")
         }

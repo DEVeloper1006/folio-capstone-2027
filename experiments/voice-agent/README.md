@@ -133,7 +133,57 @@ If nothing matches, it says "I couldn't find *name* as an app or website".
 macOS has no public API that sets Focus. `TOGGLE_DND` runs a Shortcut named exactly **Toggle Focus**. Create it once in Shortcuts with a **Set Focus** action set to toggle Do Not Disturb. If that Shortcut doesn't exist, the pill says so.
 
 ### Accessibility
-Clicking, typing, key presses, scrolling, tasks and brightness need Accessibility. Debug rebuilds change the code signature, which silently invalidates the grant. The app doesn't re-open the system prompt; instead the pill shows **"Re-grant Accessibility in System Settings"**. To fix it, remove Voice Agent from Privacy & Security → Accessibility, add it again, and relaunch. Volume and mute still work without Accessibility, through AppleScript.
+Clicking, typing, key presses, scrolling, tasks and brightness need Accessibility. If it's missing, the app doesn't re-open the system prompt; instead the pill shows **"Re-grant Accessibility in System Settings"**. Volume and mute still work without Accessibility, through AppleScript.
+
+Debug builds are signed with an Apple Development certificate (`DEVELOPMENT_TEAM = P9FY8Y3Q3W` in the Debug configuration), so the grant survives rebuilds. Grant it once: Privacy & Security → Accessibility → **+** → the built `VoiceAgent.app` under DerivedData. On another machine, set your own team, or the grant resets on every build.
+
+To test with Accessibility from a script, launch through `open`, not by running the binary directly. A binary started from a terminal is checked against the terminal's permissions, not Voice Agent's:
+```bash
+open -n VoiceAgent.app --stdout out.log --stderr out.log --args -Utterance "in Safari, search for swift concurrency"
+```
+
+### Early execution while you speak
+While you talk, partial transcripts (at most one every 300 ms) go through `EarlyIntentDetector`, a keyword matcher that makes no Jev call. Unambiguous single commands run before you finish:
+
+| Starts with | Runs |
+|---|---|
+| `open <app or website>` | OPEN_APP |
+| `volume up` / `volume down` / `mute` / `unmute` | system action (mute and unmute set the state; they don't toggle) |
+| `scroll up` / `scroll down` | SCROLL |
+| `press <key>` ("command t", "enter", "escape", …) | PRESS_KEY |
+| `turn on` / `turn off` / `toggle` + `do not disturb` / `dnd` / `focus` | TOGGLE_DND |
+
+- **When it fires:** the name must resolve to a real app, website or key and run exactly to "and", "then", a comma or the end. "open mail chimp" doesn't fire Mail. It must also be stable: more words follow ("open Safari and …"), or the same match appeared in the previous partial.
+- **Limits:** at most one early command per utterance. The command isn't spoken, because the mic is open; the pill flashes its icon instead. TASK, CHAT, TYPE_TEXT and CLICK never fire early.
+- **After the final transcript:** the fired command is stripped, and the rest ("open a new tab") goes through the normal router. If the recognizer revised the words so the command no longer leads, the whole utterance is processed.
+
+### Task loop
+- **Settle:** after every action, TaskRunner waits 400 ms, then re-crawls. After CLICK or OPEN_APP it watches up to 1.5 s for a new frontmost app and crawls that app.
+- **WAIT:** three in a row trigger an 800 ms settle and one more try; another WAIT stops with "I got stuck — the UI might still be loading".
+- **Step cap:** at most 15 steps; the summary lists the last few actions.
+- **Typing:** TYPE_TEXT reads the field back and falls back to simulated keystrokes if the value didn't change.
+- **Crawler:**
+  - Up to 80 elements, with up to 50 reserved for web page content (`AXWebArea`).
+  - Chromium browsers and Electron apps are switched into full accessibility mode.
+  - Text fields show "(empty)" or their current value.
+- **Routing:** requests like "search YouTube for X" that name an app *and* carry something to type or search go to the task loop, not a bare OPEN_APP.
+
+### Debug logs and flags
+In Debug builds, stdout gets timestamped lines for:
+- state changes and TTS
+- the partials seen by the early detector
+- every Jev request (state, first 500 characters) and answer (choice, confidence, top probabilities)
+- each task step with its full element table
+
+Every Jev call is also appended in full to `experiments/voice-agent/logs/jev_requests.jsonl`. `logs/.gitignore` keeps that folder out of git, because it holds transcripts and on-screen text.
+
+| Flag | Does |
+|---|---|
+| `-Utterance "<text>"` | Runs text through the full pipeline (no mic) |
+| `-AudioFile <path>` | Plays an audio file into the recognizer at real-time pace, to test partials and early execution. Make one with `say -o speech.aiff "open Safari and open a new tab"`. |
+| `-EarlyIntentSelfTest` | Runs the detector's 31 table-driven cases and exits non-zero on failure |
+| `-CrawlFrontmost` | Crawls the frontmost app after 1 s and prints the element table |
+| `-PillState <state>` | Pins the pill in one state for visual checks |
 
 ### Manual smoke test
 | Say | Expect |
@@ -170,8 +220,16 @@ ElevenLabs time to first audio byte on `eleven_turbo_v2_5`, measured 2026-09-30:
 
 - **Do Not Disturb depends on a Shortcut you create yourself** (see above).
 - **Brightness media keys haven't been verified.** They need Accessibility, which the test build didn't have. They may not affect external displays.
-- **What has been run end to end** (through the DEBUG `-Utterance` driver, without the mic): chat with ElevenLabs speech, opening a website, volume through the AppleScript fallback, the Accessibility gate, and the missing-Shortcut message. The live mic path, clicking and typing in real apps, and the task loop haven't been run yet.
+- **What has been run end to end** (DEBUG drivers, no mic):
+  - chat with ElevenLabs speech
+  - opening a website
+  - volume
+  - the Accessibility gate and the missing-Shortcut message
+  - early execution from a real-time audio file
+  - a Safari search task (open → type → Return → done)
+
+  Not yet run: the live mic, the YouTube-in-Arc search, a Notes task, and brightness media keys.
 - **Criteria are duplicated.** They exist in Swift and in `configs/router_eval.yaml`, and the text-candidate logic exists in both `TextPayload.swift` and `eval_router.py`. All of it must be kept in sync by hand.
 - **Latency has a long tail.** About 1 call in 7 takes 1.3–1.8 s. The client times out at 3 s and retries once.
 - **The "Show floating status pill" setting only applies at the next launch.**
-- **The crawler only reads the focused window.** Menus, sheets opened in other windows, and web content deeper than depth 25 may be missed.
+- **The crawler only reads the focused window.** Menus and sheets opened in other windows may be missed. Web content is read up to depth 45, and at most 50 page elements are kept.

@@ -190,15 +190,65 @@ actor JevClient {
             DecisionsRequest(model: model ?? Config.jevModel, state: state, questions: questions)
         )
 
+        #if DEBUG
+        DebugLog.print("Jev→", "state: " + DebugLog.truncated(state))
+        #endif
+
+        let result: (decision: JevDecision, raw: Data)
         do {
-            return try await send(body, key: key)
+            result = try await send(body, key: key)
         } catch let error as JevError where error.isRetryable {
             try await Task.sleep(for: retryDelay)
-            return try await send(body, key: key)
+            result = try await send(body, key: key)
         }
+
+        #if DEBUG
+        Self.log(result.decision, raw: result.raw, requestBody: body)
+        #endif
+        return result.decision
     }
 
-    private func send(_ body: Data, key: String) async throws -> JevDecision {
+    #if DEBUG
+    /// Console: each answer with confidence and top probabilities. File: the full request and response
+    /// as one line of `logs/jev_requests.jsonl`.
+    private static func log(_ decision: JevDecision, raw: Data, requestBody: Data) {
+        let ms = Int(decision.latency.components.attoseconds / 1_000_000_000_000_000 + decision.latency.components.seconds * 1000)
+        for name in decision.answers.keys.sorted() {
+            guard let answer = decision.answers[name] else { continue }
+            switch answer {
+            case .choice(let choice, let confidence, let probabilities):
+                let top = (probabilities ?? [:]).sorted { $0.value > $1.value }.prefix(3)
+                    .map { "\($0.key)=\(String(format: "%.2f", $0.value))" }.joined(separator: " ")
+                DebugLog.print("Jev←", "\(name): \(choice) conf=\(confidence.map { String(format: "%.2f", $0) } ?? "-") [\(top)]")
+            case .noul(let p):
+                DebugLog.print("Jev←", "\(name): noul=\(String(format: "%.2f", p))")
+            case .score(let v, let confidence):
+                DebugLog.print("Jev←", "\(name): score=\(v) conf=\(confidence.map { String($0) } ?? "-")")
+            case .unknown(let type):
+                DebugLog.print("Jev←", "\(name): <\(type)>")
+            }
+        }
+        DebugLog.print("Jev←", "latency \(ms) ms, model \(decision.model ?? "-")")
+
+        var line: [String: Any] = [
+            "ts": ISO8601DateFormatter().string(from: Date()),
+            "latency_ms": ms,
+        ]
+        if let request = try? JSONSerialization.jsonObject(with: requestBody) as? [String: Any] {
+            line["model"] = request["model"]
+            line["state"] = request["state"]
+            line["questions"] = request["questions"]
+        }
+        if let response = try? JSONSerialization.jsonObject(with: raw) as? [String: Any] {
+            line["answers"] = response["answers"]
+            line["model_served"] = response["model"]
+            line["usage"] = response["usage"]
+        }
+        DebugLog.appendJSONLine(line, to: DebugLog.jevRequestsFile)
+    }
+    #endif
+
+    private func send(_ body: Data, key: String) async throws -> (decision: JevDecision, raw: Data) {
         var request = URLRequest(url: Config.decisionsURL)
         request.httpMethod = "POST"
         request.timeoutInterval = timeout
@@ -227,6 +277,6 @@ actor JevClient {
         guard let decoded = try? decoder.decode(DecisionsResponse.self, from: data) else {
             throw JevError.decoding(body: String(decoding: data, as: UTF8.self))
         }
-        return JevDecision(answers: decoded.answers, latency: latency, model: decoded.model)
+        return (JevDecision(answers: decoded.answers, latency: latency, model: decoded.model), data)
     }
 }

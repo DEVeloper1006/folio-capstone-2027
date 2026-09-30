@@ -67,13 +67,21 @@ struct OverlayPill: View {
                 .tint(.white)
                 .transition(.scale.combined(with: .opacity))
         } else {
-            Image(systemName: session.state.symbol)
+            Image(systemName: iconSymbol)
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(session.state.iconStyle)
                 .contentTransition(.symbolEffect(.replace))
-                .symbolEffect(.breathe, isActive: session.state == .listening && !reduceMotion)
+                .symbolEffect(.breathe, isActive: session.state == .listening && session.earlyFlash == nil && !reduceMotion)
+                .symbolEffect(.bounce, value: session.earlyFlash)
                 .transition(.scale.combined(with: .opacity))
         }
+    }
+
+    /// While listening, an early intent that fired mid-speech briefly replaces the mic with its
+    /// action icon, so the user sees the command was understood before they finish talking.
+    private var iconSymbol: String {
+        if session.state == .listening, let flash = session.earlyFlash { return flash }
+        return session.state.symbol
     }
 
     private var showsLabel: Bool {

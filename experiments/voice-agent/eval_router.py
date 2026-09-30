@@ -34,7 +34,7 @@ SCORED_QUESTIONS = ("intent", "key", "app", "target_index", "text_payload")
 # Mirror of Brain/TextPayload.swift.
 TEXT_TRIGGERS = (
     "with the text", "that says", "which says", "reply with", "search for", "look up",
-    "saying", "says", "type", "write", "enter", "put", "dictate",
+    "saying", "says", "type", "write", "enter", "put", "dictate", "for",
 )
 LOCATION_CUTS = (" into the ", " in the ", " on the ", " into ", " in ", " and press ", " then ")
 QUOTED = re.compile(r"[\"“'‘]([^\"“”'‘’]{1,200})[\"”'’]")
@@ -96,10 +96,17 @@ def text_candidates(transcript: str) -> list[str]:
     return ordered
 
 
-def summarize(role: str, label: str | None) -> str:
-    """Mirror of ElementEntry.summary."""
+TEXT_INPUT_ROLES = {"AXTextField", "AXTextArea", "AXComboBox", "AXSearchField"}
+
+
+def summarize(role: str, label: str | None, value: str | None = None) -> str:
+    """Mirror of ElementEntry.summary: text inputs also report whether they're empty."""
     kind = role.replace("AX", "").lower()
-    return f"{kind} '{label[:60]}'" if label else f"{kind} (unlabeled)"
+    text = f"{kind} '{label[:60]}'" if label else f"{kind} (unlabeled)"
+    if role in TEXT_INPUT_ROLES:
+        current = (value or "").strip()
+        text += " (empty)" if not current else f" (value: '{current[:40]}')"
+    return text
 
 
 def serialize_screen(screen: dict[str, Any] | None) -> str:

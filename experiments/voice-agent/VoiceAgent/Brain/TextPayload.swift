@@ -10,7 +10,7 @@ enum TextPayload {
     /// Phrases that introduce the literal text, longest first so "that says" wins over "says".
     static let triggers = [
         "with the text", "that says", "which says", "reply with", "search for", "look up",
-        "saying", "says", "type", "write", "enter", "put", "dictate",
+        "saying", "says", "type", "write", "enter", "put", "dictate", "for",
     ]
 
     /// Trailing location phrases trimmed off a tail: "hello world into the search field" → "hello world".
@@ -58,7 +58,7 @@ enum TextPayload {
         Dictionary(uniqueKeysWithValues: candidates.map { ($0, "Type exactly: \($0)") })
     }
 
-    private static func clean(_ phrase: String) -> String {
+    static func clean(_ phrase: String) -> String {
         var text = phrase.trimmingCharacters(in: .whitespacesAndNewlines)
         // Leading filler left over from the trigger ("type: hello", "saying that hello").
         for prefix in [":", "that ", "the text "] where text.lowercased().hasPrefix(prefix) {

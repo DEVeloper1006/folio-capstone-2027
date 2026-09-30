@@ -190,6 +190,9 @@ final class IntentRouter {
     /// Below this `intent` confidence, a single-shot action is handed to the task loop instead,
     /// which re-grounds against the screen step by step.
     var minActionConfidence = 0.45
+    /// If TASK's probability is within this margin of the chosen single action, prefer TASK: the task
+    /// loop can open the app as its first step, but a single action can't finish "search YouTube for X".
+    var taskMargin = 0.10
 
     private let jev: JevClient
     private let llm: LLMClient
@@ -260,9 +263,16 @@ final class IntentRouter {
         }
         let escalate = ActionIntent.task(transcript: transcript)
 
-        if option.actionKind.map({ !$0.isTerminal && $0 != .wait }) == true,
-           let confidence = decision.confidence(JevQuestions.intent), confidence < minActionConfidence {
-            return escalate
+        if option.actionKind.map({ !$0.isTerminal && $0 != .wait }) == true {
+            if let confidence = decision.confidence(JevQuestions.intent), confidence < minActionConfidence {
+                return escalate
+            }
+            if case .choice(_, _, let probabilities?) = decision[JevQuestions.intent],
+               let chosen = probabilities[option.rawValue], let task = probabilities[IntentOption.task.rawValue],
+               task >= chosen - taskMargin {
+                DebugLog.print("Router", "\(option.rawValue) \(chosen) vs TASK \(task): within \(taskMargin), escalating to TASK")
+                return escalate
+            }
         }
 
         switch option {
@@ -284,6 +294,13 @@ final class IntentRouter {
             return .scroll(.down)
         case .openApp:
             guard let app = decision.choice(JevQuestions.app), apps.resolve(app) != nil else { return escalate }
+            // "search YouTube for lofi music": the words carry something to type or search beyond the
+            // app name, so opening the app alone can't finish it. Let the task loop open it and continue.
+            let whole = TextPayload.clean(transcript).lowercased()
+            if candidates.contains(where: { $0.lowercased() != whole }) {
+                DebugLog.print("Router", "OPEN_APP \(app) but the request has a payload (\(candidates.first ?? "")); escalating to TASK")
+                return escalate
+            }
             return .openApp(name: app)
         case .pressKey:
             guard let chord = decision.choice(JevQuestions.key).flatMap(KeyChord.init(rawValue:)) else { return escalate }
@@ -317,6 +334,17 @@ final class IntentRouter {
         default:
             guard let request = Self.request(for: intent) else { return .acted(.failed("Nothing to execute")) }
             return .acted(try await executor.execute(request, table: observedTable))
+        }
+    }
+
+    /// Runs a single-shot intent detected from partial speech. No crawl (early intents never target
+    /// elements) and no Jev call.
+    func executeEarly(_ intent: ActionIntent) async -> ActionResult {
+        guard let request = Self.request(for: intent) else { return .failed("Nothing to execute") }
+        do {
+            return try await executor.execute(request)
+        } catch {
+            return .failed(String(describing: error))
         }
     }
 

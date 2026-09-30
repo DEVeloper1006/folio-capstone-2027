@@ -42,6 +42,10 @@ struct SystemAction: MacAction {
             guard AXIsProcessTrusted() else { return .failed(VoiceSession.accessibilityMessage) }
             try postMediaKey(.brightnessDown)
             return .ok("Brightness down")
+        case .mute, .unmute:
+            // Explicit state (not a toggle) so "unmute" can't mute. AppleScript needs no AX.
+            try AppleScriptBridge.run(.setMuted(request.kind == .mute))
+            return .ok(request.kind == .mute ? "Muted" : "Unmuted")
         case .toggleDoNotDisturb:
             return try await runFocusShortcut()
         default:
