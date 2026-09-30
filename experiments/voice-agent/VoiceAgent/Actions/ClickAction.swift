@@ -11,12 +11,12 @@ struct ClickAction: MacAction {
 
         for action in [kAXPressAction, kAXConfirmAction, kAXPickAction] where element.actions.contains(action) {
             if AXUIElementPerformAction(element.ref, action as CFString) == .success {
-                return .ok("Pressed \(element.summary)")
+                return .ok("Clicked \(element.spokenName)")
             }
         }
 
         try postClick(at: element.center)
-        return .ok("Clicked \(element.summary)")
+        return .ok("Clicked \(element.spokenName)")
     }
 
     private func postClick(at point: CGPoint) throws {

@@ -58,8 +58,10 @@ final class PermissionsManager {
         speech = status == .authorized ? .granted : .denied
     }
 
+    /// Requests microphone and speech. Accessibility is deliberately not prompted here: debug rebuilds
+    /// invalidate the grant, and re-prompting on every launch just stacks dialogs. The pill shows
+    /// "Re-grant Accessibility in System Settings" instead, and Settings has an explicit Grant button.
     func requestAll() async {
-        if !accessibility.isGranted { requestAccessibility() }
         if microphone == .notDetermined { await requestMicrophone() }
         if speech == .notDetermined { await requestSpeech() }
         refresh()

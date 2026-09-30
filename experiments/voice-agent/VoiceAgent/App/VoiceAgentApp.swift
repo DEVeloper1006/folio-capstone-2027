@@ -36,13 +36,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             panels.showPill()
         }
         #if DEBUG
+        setvbuf(stdout, nil, _IOLBF, 0)   // debug logs reach a redirected stdout promptly
         let args = ProcessInfo.processInfo.arguments
         if let flag = args.firstIndex(of: "-PillState"), args.indices.contains(flag + 1) {
             session.debugPin(args[flag + 1])
             return   // skip permission prompts in visual-check mode
         }
+        // Drives the full pipeline without the mic: `-Utterance "open youtube"`.
+        if let flag = args.firstIndex(of: "-Utterance"), args.indices.contains(flag + 1) {
+            session.submit(args[flag + 1])
+            return
+        }
         #endif
-        Task { await session.permissions.requestAll() }
+        Task {
+            await session.permissions.requestAll()
+            session.showAccessibilityHintIfNeeded()
+        }
     }
 }
 

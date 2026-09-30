@@ -27,7 +27,7 @@ final class TaskRunner {
 
         var summary: String {
             switch self {
-            case .done(let steps): steps == 0 ? "Already done" : "Done in \(steps) step\(steps == 1 ? "" : "s")"
+            case .done(let steps): steps == 0 ? "Already done" : "Done"
             case .blocked(let reason): "Blocked: \(reason)"
             case .stepLimit(let n): "Stopped after \(n) steps"
             case .stuck(let step): "Stuck repeating \(step)"
@@ -111,8 +111,8 @@ final class TaskRunner {
                 }
                 request.key = chord.press
             case .openApp:
-                guard let app = decision.choice(JevQuestions.app), apps.url(for: app) != nil else {
-                    return .blocked(reason: "app not installed")
+                guard let app = decision.choice(JevQuestions.app), apps.resolve(app) != nil else {
+                    return .blocked(reason: "no app or website called that")
                 }
                 request.appName = app
             case .scrollUp, .scrollDown:

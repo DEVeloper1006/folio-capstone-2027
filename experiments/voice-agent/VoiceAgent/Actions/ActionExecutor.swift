@@ -21,11 +21,13 @@ enum ActionKind: String, CaseIterable, Sendable {
     case volumeDown = "VOLUME_DOWN"
     case toggleMute = "TOGGLE_MUTE"
     case toggleDoNotDisturb = "TOGGLE_DND"
+    case brightnessUp = "BRIGHTNESS_UP"
+    case brightnessDown = "BRIGHTNESS_DOWN"
 
     /// Criteria text shown to Jev for this option.
     var criterion: String {
         switch self {
-        case .openApp: "Launch or switch to an application"
+        case .openApp: "Launch an app or open a well-known website"
         case .click: "Click/press a specific on-screen control"
         case .typeText: "Type text into a text field"
         case .pressKey: "Press a keyboard key or shortcut"
@@ -38,6 +40,8 @@ enum ActionKind: String, CaseIterable, Sendable {
         case .volumeDown: "Turn the system volume down"
         case .toggleMute: "Mute or unmute system audio"
         case .toggleDoNotDisturb: "Turn Do Not Disturb / Focus on or off"
+        case .brightnessUp: "Make the screen brighter"
+        case .brightnessDown: "Make the screen dimmer"
         }
     }
 
@@ -57,6 +61,8 @@ enum ActionKind: String, CaseIterable, Sendable {
         case .volumeDown: "speaker.minus.fill"
         case .toggleMute: "speaker.slash.fill"
         case .toggleDoNotDisturb: "moon.fill"
+        case .brightnessUp: "sun.max.fill"
+        case .brightnessDown: "sun.min.fill"
         }
     }
 
@@ -68,7 +74,7 @@ enum ActionKind: String, CaseIterable, Sendable {
     /// Actions a single utterance can trigger directly without grounding against the screen.
     static let singleShot: [ActionKind] = [
         .openApp, .pressKey, .scrollUp, .scrollDown,
-        .volumeUp, .volumeDown, .toggleMute, .toggleDoNotDisturb,
+        .volumeUp, .volumeDown, .toggleMute, .toggleDoNotDisturb, .brightnessUp, .brightnessDown,
     ]
 
     /// Actions that need an observed element and therefore go through the task loop.
@@ -173,7 +179,7 @@ final class ActionExecutor {
             return try await pressKey.execute(request, in: context)
         case .scrollUp, .scrollDown:
             return try await scroll.execute(request, in: context)
-        case .volumeUp, .volumeDown, .toggleMute, .toggleDoNotDisturb:
+        case .volumeUp, .volumeDown, .toggleMute, .toggleDoNotDisturb, .brightnessUp, .brightnessDown:
             return try await system.execute(request, in: context)
         case .wait:
             try await Task.sleep(for: .milliseconds(800))

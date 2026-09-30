@@ -52,6 +52,11 @@ struct ElementEntry: Identifiable {
         return parts.joined(separator: " ")
     }
 
+    /// Name for spoken confirmations: "Submit", or "the button" when unlabeled.
+    var spokenName: String {
+        label ?? "the " + role.replacingOccurrences(of: "AX", with: "").lowercased()
+    }
+
     private var label: String? {
         [title, help, value]
             .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }

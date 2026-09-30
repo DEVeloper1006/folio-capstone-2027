@@ -125,6 +125,18 @@ def build_state(text: str, screen: dict[str, Any] | None) -> str:
     return f'User said: "{text}"\n\nCurrent screen:\n{serialize_screen(screen)}'
 
 
+def app_criteria(cfg: dict[str, Any]) -> dict[str, str]:
+    """Mirror of AppCatalog.criteria(): installed apps, then websites that don't share a name."""
+    criteria = {name: f"The {name} app" for name in cfg["apps"]}
+    installed = {name.lower() for name in cfg["apps"]}
+    for name, extra_aliases in cfg.get("websites", {}).items():
+        if name.lower() in installed:
+            continue
+        alias = f" (also called {', '.join(extra_aliases)})" if extra_aliases else ""
+        criteria[name] = f"The {name} website{alias}, opened in the browser"
+    return criteria
+
+
 def build_questions(cfg: dict[str, Any], text: str, screen: dict[str, Any] | None) -> dict[str, Any]:
     """Mirror of IntentRouter.classify's question set."""
     questions: dict[str, Any] = {
@@ -140,8 +152,8 @@ def build_questions(cfg: dict[str, Any], text: str, screen: dict[str, Any] | Non
         },
         "app": {
             "type": "choice",
-            "instructions": "If opening an app, which one?",
-            "criteria": {name: f"The {name} app" for name in cfg["apps"]},
+            "instructions": "If opening an app or website, which one?",
+            "criteria": app_criteria(cfg),
         },
     }
     if screen and screen["elements"]:

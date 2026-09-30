@@ -10,7 +10,7 @@ output_file: results/voice-agent/router_eval_{timestamp}.json
 timeout_s: 15
 
 intents:
-  OPEN_APP: "Open, launch or switch to one application"
+  OPEN_APP: "Launch an app or open a well-known website"
   CLICK: "Click one specific control that is listed in the element table"
   TYPE_TEXT: "Type the user's words into a text field that is on screen now"
   PRESS_KEY: "Press one key or keyboard shortcut"
@@ -25,6 +25,8 @@ intents:
   VOLUME_DOWN: "Turn the system volume down"
   TOGGLE_MUTE: "Mute or unmute system audio"
   TOGGLE_DND: "Turn Do Not Disturb / Focus on or off"
+  BRIGHTNESS_UP: "Make the screen brighter"
+  BRIGHTNESS_DOWN: "Make the screen dimmer"
 
 keys:
   RETURN: "Return / Enter: submit or confirm"
@@ -50,6 +52,20 @@ keys:
 
 # Stand-in for the AppCatalog the app builds from /Applications at runtime.
 apps: [Safari, Google Chrome, Mail, Messages, Notes, Calendar, Music, Finder, Slack, Xcode, System Settings, Terminal]
+
+# Mirror of AppCatalog.websites: offered to Jev as "app" options when no installed app shares the name.
+websites:
+  YouTube: []
+  Gmail: []
+  X: [twitter]
+  Reddit: []
+  Spotify: []
+  Slack: []
+  Notion: []
+  GitHub: []
+  Netflix: []
+  ChatGPT: []
+  Claude: []
 
 # Fixture element tables standing in for a live AX crawl: [role, label, identifier?, actions].
 # Rendered the same way as ElementTable.serialize(); index = position in the list.
@@ -103,7 +119,14 @@ cases:
   - {text: "hit enter", expect: {intent: PRESS_KEY, key: RETURN}}
   - {text: "click the submit button", screen: form, expect: {intent: CLICK, target_index: "4"}}
   - {text: "check the newsletter box", screen: form, expect: {intent: CLICK, target_index: "3"}}
-  - {text: "open gmail", screen: safari, expect: {intent: CLICK, target_index: "4"}}
+  - {text: "click the gmail link", screen: safari, expect: {intent: CLICK, target_index: "4"}}
+  - {text: "open youtube", expect: {intent: OPEN_APP, app: YouTube}}
+  - {text: "go to reddit", expect: {intent: OPEN_APP, app: Reddit}}
+  - {text: "open twitter", expect: {intent: OPEN_APP, app: X}}
+  - {text: "open gmail", expect: {intent: OPEN_APP, app: Gmail}}
+  - {text: "pull up github", expect: {intent: OPEN_APP, app: GitHub}}
+  - {text: "make the screen brighter", expect: {intent: BRIGHTNESS_UP}}
+  - {text: "dim the display", expect: {intent: BRIGHTNESS_DOWN}}
   - {text: "go back", screen: safari, expect: {intent: CLICK, target_index: "0"}}
   - {text: "type hello world", screen: notes, expect: {intent: TYPE_TEXT, text_payload: hello world}}
   - {text: "put dev@example.com in the email field", screen: form, expect: {intent: TYPE_TEXT, target_index: "1"}}

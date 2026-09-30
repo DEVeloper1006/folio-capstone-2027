@@ -78,11 +78,17 @@ enum KeyChord: String, CaseIterable, Sendable {
         }
     }
 
-    var press: KeyPress { KeyPress(keyCode: keyCode, modifiers: flags, name: rawValue) }
+    var press: KeyPress { KeyPress(keyCode: keyCode, modifiers: flags, name: spokenName) }
+
+    /// "Command T", "Return": what confirmations say out loud.
+    var spokenName: String {
+        let parts = rawValue.split(separator: "_").map { $0 == "CMD" ? "Command" : $0.capitalized }
+        return parts.joined(separator: " ")
+    }
 
     /// Registry name for a key code + modifiers, e.g. `CMD_N`; falls back to the raw code.
     static func name(keyCode: CGKeyCode, modifiers: CGEventFlags) -> String {
-        allCases.first { $0.keyCode == keyCode && $0.flags == modifiers }?.rawValue ?? "key \(keyCode)"
+        allCases.first { $0.keyCode == keyCode && $0.flags == modifiers }?.spokenName ?? "key \(keyCode)"
     }
 
     static func criteria() -> [String: String] {

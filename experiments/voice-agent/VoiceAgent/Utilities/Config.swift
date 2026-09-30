@@ -18,7 +18,8 @@ enum Config {
     enum Key {
         static let jevModel = "jevModel"
         static let chatModel = "chatModel"
-        static let voiceIdentifier = "voiceIdentifier"
+        static let voiceIdentifier = "voiceIdentifier"   // AVSpeechSynthesisVoice, used by the System Default voice
+        static let ttsVoice = "ttsVoice"                 // TTSVoice raw value
         static let speakResponses = "speakResponses"
         static let showOverlayPill = "showOverlayPill"
         static let maxTaskSteps = "maxTaskSteps"
@@ -27,6 +28,9 @@ enum Config {
     enum Default {
         static let jevModel = "typesafe/jev-1.13"
         static let chatModel = "anthropic/claude-sonnet-5.5"
+        static let ttsVoice = TTSVoice.rachel
+        /// Lowest-latency ElevenLabs model.
+        static let ttsModel = "eleven_turbo_v2_5"
         static let maxTaskSteps = 15
     }
 
@@ -43,6 +47,10 @@ enum Config {
         UserDefaults.standard.string(forKey: Key.chatModel) ?? Default.chatModel
     }
 
+    static var ttsVoice: TTSVoice {
+        UserDefaults.standard.string(forKey: Key.ttsVoice).flatMap(TTSVoice.init(rawValue:)) ?? Default.ttsVoice
+    }
+
     static var maxTaskSteps: Int {
         let value = UserDefaults.standard.integer(forKey: Key.maxTaskSteps)
         return value > 0 ? value : Default.maxTaskSteps
@@ -51,6 +59,7 @@ enum Config {
     // MARK: API key
 
     static let apiKeyName = "OPENROUTER_API_KEY"
+    static let elevenLabsKeyName = "ELEVENLABS_API_KEY"
 
     enum KeySource: String, Sendable {
         case environment = "Environment"
@@ -60,13 +69,23 @@ enum Config {
 
     /// Returns the OpenRouter key and where it came from, or nil if none is configured.
     static func openRouterKey() -> (value: String, source: KeySource)? {
-        if let env = ProcessInfo.processInfo.environment[apiKeyName], !env.isEmpty {
+        secret(apiKeyName)
+    }
+
+    /// ElevenLabs key for TTS. Nil means TTS falls back to `AVSpeechSynthesizer`.
+    static func elevenLabsKey() -> (value: String, source: KeySource)? {
+        secret(elevenLabsKeyName)
+    }
+
+    /// Resolves a secret: process environment → `.env` → Keychain.
+    static func secret(_ name: String) -> (value: String, source: KeySource)? {
+        if let env = ProcessInfo.processInfo.environment[name], !env.isEmpty {
             return (env, .environment)
         }
-        if let dot = DotEnv.load()[apiKeyName], !dot.isEmpty {
+        if let dot = DotEnv.load()[name], !dot.isEmpty {
             return (dot, .dotenv)
         }
-        if let stored = Keychain.read(account: apiKeyName), !stored.isEmpty {
+        if let stored = Keychain.read(account: name), !stored.isEmpty {
             return (stored, .keychain)
         }
         return nil

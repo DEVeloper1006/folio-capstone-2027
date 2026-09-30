@@ -16,12 +16,12 @@ struct TypeTextAction: MacAction {
             try await Task.sleep(for: .milliseconds(80))
 
             if AXUIElementSetAttributeValue(element.ref, kAXSelectedTextAttribute as CFString, text as CFString) == .success {
-                return .ok("Typed into \(element.summary)")
+                return .ok("Typing \(text.prefix(60))")
             }
         }
 
         try postUnicode(text)
-        return .ok("Typed \(text.count) characters")
+        return .ok("Typing \(text.prefix(60))")
     }
 
     /// CGEvent carries at most ~20 UTF-16 units per event, so send in chunks.

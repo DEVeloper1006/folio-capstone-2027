@@ -12,9 +12,11 @@ struct SettingsView: View {
     @AppStorage(Config.Key.speakResponses) private var speakResponses = true
     @AppStorage(Config.Key.showOverlayPill) private var showOverlayPill = true
     @AppStorage(Config.Key.voiceIdentifier) private var voiceIdentifier = ""
+    @AppStorage(Config.Key.ttsVoice) private var ttsVoice = Config.Default.ttsVoice.rawValue
 
     @State private var showingKeySheet = false
     @State private var keyStatus = Config.openRouterKey()
+    @State private var elevenLabsStatus = Config.elevenLabsKey()
     @Namespace private var glass
 
     var body: some View {
@@ -45,15 +47,42 @@ struct SettingsView: View {
             }
 
             Section("Voice") {
-                Toggle("Speak chat replies", isOn: $speakResponses)
-                Picker("Voice", selection: $voiceIdentifier) {
-                    Text("System default").tag("")
-                    ForEach(SpeechSynthesizer.availableVoices, id: \.identifier) { voice in
-                        Text(voice.name).tag(voice.identifier)
+                Toggle("Speak replies and confirmations", isOn: $speakResponses)
+                Picker("Voice", selection: $ttsVoice) {
+                    ForEach(TTSVoice.allCases) { voice in
+                        Text("\(voice.name) — \(voice.detail)").tag(voice.rawValue)
                     }
                 }
-                .onChange(of: voiceIdentifier) { _, id in
-                    session.synthesizer.voiceIdentifier = id.isEmpty ? nil : id
+                if selectedVoice == .system {
+                    Picker("System voice", selection: $voiceIdentifier) {
+                        Text("System default").tag("")
+                        ForEach(SpeechSynthesizer.availableVoices, id: \.identifier) { voice in
+                            Text(voice.name).tag(voice.identifier)
+                        }
+                    }
+                    .onChange(of: voiceIdentifier) { _, id in
+                        session.tts.fallback.voiceIdentifier = id.isEmpty ? nil : id
+                    }
+                }
+                LabeledContent("ElevenLabs") {
+                    GlassEffectContainer(spacing: 8) {
+                        HStack(spacing: 8) {
+                            Label(elevenLabsStatusText, systemImage: elevenLabsStatus == nil ? "speaker.slash" : "waveform")
+                                .foregroundStyle(elevenLabsStatus == nil ? .orange : .secondary)
+                                .padding(.horizontal, 10)
+                                .frame(height: 28)
+                                .glassEffect(.regular, in: .capsule)
+                                .glassEffectID("tts-status", in: glass)
+                            Button {
+                                Task { await session.tts.speak("Hi, I'm \(selectedVoice.name). This is how I'll sound.", voice: selectedVoice) }
+                            } label: {
+                                Label("Preview", systemImage: "play.fill")
+                            }
+                            .buttonStyle(.glass)
+                            .tint(.clear)
+                            .glassEffectID("tts-preview", in: glass)
+                        }
+                    }
                 }
                 Toggle("Show floating status pill", isOn: $showOverlayPill)
             }
@@ -89,6 +118,15 @@ struct SettingsView: View {
         .sheet(isPresented: $showingKeySheet, onDismiss: { keyStatus = Config.openRouterKey() }) {
             APIKeySheet()
         }
+    }
+
+    private var selectedVoice: TTSVoice {
+        TTSVoice(rawValue: ttsVoice) ?? Config.Default.ttsVoice
+    }
+
+    private var elevenLabsStatusText: String {
+        guard let elevenLabsStatus else { return "No key · using System voice" }
+        return "…\(elevenLabsStatus.value.suffix(4)) · \(elevenLabsStatus.source.rawValue)"
     }
 
     private var keyStatusText: String {

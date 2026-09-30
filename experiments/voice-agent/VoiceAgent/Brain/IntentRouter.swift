@@ -36,6 +36,15 @@ enum ActionIntent: Sendable, CustomStringConvertible {
         }
     }
 
+    /// Needs Accessibility trust: AX element access or CGEvent posting. System media keys fall back
+    /// to AppleScript without it, and opening apps / chat never need it.
+    var requiresAccessibility: Bool {
+        switch self {
+        case .click, .typeText, .pressKey, .scroll, .task: true
+        case .openApp, .system, .chat, .wait, .done, .blocked: false
+        }
+    }
+
     /// SF Symbol shown in the pill while this intent executes.
     var symbol: String {
         switch self {
@@ -97,12 +106,14 @@ enum IntentOption: String, CaseIterable, Sendable {
     case volumeDown = "VOLUME_DOWN"
     case toggleMute = "TOGGLE_MUTE"
     case toggleDoNotDisturb = "TOGGLE_DND"
+    case brightnessUp = "BRIGHTNESS_UP"
+    case brightnessDown = "BRIGHTNESS_DOWN"
 
     /// Criteria for classifying a single utterance. Worded so one-step commands grounded in the
     /// current screen stay single-shot and anything longer goes to TASK.
     var criterion: String {
         switch self {
-        case .openApp: "Open, launch or switch to one application"
+        case .openApp: "Launch an app or open a well-known website"
         case .click: "Click one specific control that is listed in the element table"
         case .typeText: "Type the user's words into a text field that is on screen now"
         case .pressKey: "Press one key or keyboard shortcut"
@@ -113,7 +124,7 @@ enum IntentOption: String, CaseIterable, Sendable {
         case .wait: "The user asked to wait or hold on"
         case .done: "Nothing to do: the user cancelled, said thanks, or the request is already satisfied"
         case .blocked: "A Mac action that can't or shouldn't be done (e.g. needs a password, destructive, impossible here)"
-        case .volumeUp, .volumeDown, .toggleMute, .toggleDoNotDisturb: actionKind!.criterion
+        case .volumeUp, .volumeDown, .toggleMute, .toggleDoNotDisturb, .brightnessUp, .brightnessDown: actionKind!.criterion
         }
     }
 
@@ -160,7 +171,7 @@ enum JevQuestions {
     @MainActor
     static func app(_ apps: AppCatalog) -> JevQuestion? {
         let criteria = apps.criteria()
-        return criteria.isEmpty ? nil : .choice(instructions: "If opening an app, which one?", criteria: criteria)
+        return criteria.isEmpty ? nil : .choice(instructions: "If opening an app or website, which one?", criteria: criteria)
     }
 
     /// State block: the user's words, then the serialized element table.
@@ -265,14 +276,14 @@ final class IntentRouter {
             return .done
         case .blocked:
             return .blocked(reason: table.appName.isEmpty ? "can't do that here" : "can't do that in \(table.appName)")
-        case .volumeUp, .volumeDown, .toggleMute, .toggleDoNotDisturb:
+        case .volumeUp, .volumeDown, .toggleMute, .toggleDoNotDisturb, .brightnessUp, .brightnessDown:
             return option.actionKind.map(ActionIntent.system) ?? escalate
         case .scrollUp:
             return .scroll(.up)
         case .scrollDown:
             return .scroll(.down)
         case .openApp:
-            guard let app = decision.choice(JevQuestions.app), apps.url(for: app) != nil else { return escalate }
+            guard let app = decision.choice(JevQuestions.app), apps.resolve(app) != nil else { return escalate }
             return .openApp(name: app)
         case .pressKey:
             guard let chord = decision.choice(JevQuestions.key).flatMap(KeyChord.init(rawValue:)) else { return escalate }
