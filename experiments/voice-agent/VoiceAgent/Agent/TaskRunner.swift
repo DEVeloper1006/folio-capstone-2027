@@ -58,6 +58,8 @@ final class TaskRunner {
     var appSwitchTimeout: Duration = .milliseconds(1500)
     var clickSwitchTimeout: Duration = .milliseconds(500)
     var doneThreshold = 0.9
+    /// BLOCKED below this confidence is treated as WAIT (bounded by `waitLimit`).
+    var blockedThreshold = 0.5
     var repeatLimit = 3
 
     private let jev: JevClient
@@ -112,10 +114,17 @@ final class TaskRunner {
             // Right after a successful OPEN_APP the new window or page is often still loading, and Jev
             // judges the half-built screen: it re-opens the same app/site (a duplicate tab) or says BLOCKED.
             // Both become WAIT, which re-crawls after a settle and still counts toward `waitLimit`.
+            // A low-confidence BLOCKED is treated the same way at any step: live runs gave BLOCKED at
+            // 0.26–0.39 on a YouTube page that was still loading, which aborted the task.
             var verb = chosenVerb
-            if let previous = steps.last, previous.request.kind == .openApp, previous.result.success,
-               verb == .blocked || (verb == .openApp && previous.request.appName == decision.choice(JevQuestions.app)) {
-                DebugLog.print("Task", "\(verb.rawValue) right after opening \(previous.request.appName ?? "the app"); treating as WAIT")
+            let lastOpened = steps.last(where: { $0.request.kind != .wait })
+            let justOpened = lastOpened.map { $0.request.kind == .openApp && $0.result.success } ?? false
+            let blockedConfidence = decision.confidence(JevQuestions.intent) ?? 1
+            if verb == .blocked, justOpened || blockedConfidence < blockedThreshold {
+                DebugLog.print("Task", "BLOCKED (\(blockedConfidence)) \(justOpened ? "after opening an app" : "at low confidence"); treating as WAIT")
+                verb = .wait
+            } else if verb == .openApp, justOpened, lastOpened?.request.appName == decision.choice(JevQuestions.app) {
+                DebugLog.print("Task", "re-open of \(lastOpened?.request.appName ?? "the app") right after opening it; treating as WAIT")
                 verb = .wait
             }
 
@@ -191,6 +200,11 @@ final class TaskRunner {
                ) {
                 nextPID = switched
                 DebugLog.print("Task", "frontmost app changed → pid \(switched) (\(NSRunningApplication(processIdentifier: switched)?.localizedName ?? "?"))")
+            } else if verb == .openApp, result.success, let name = request.appName, let pid = apps.runningPID(for: name) {
+                // No visible switch (the app was already frontmost, or activation lagged): crawl the
+                // app that was opened, not whatever still has focus.
+                nextPID = pid
+                DebugLog.print("Task", "no frontmost change; crawling opened app pid \(pid)")
             }
             nextDelay = settleDelay
         }

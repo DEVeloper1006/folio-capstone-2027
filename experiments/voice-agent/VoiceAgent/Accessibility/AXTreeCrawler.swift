@@ -32,6 +32,12 @@ struct AXTreeCrawler {
     /// Containers whose children are worth descending into but that are not targets themselves.
     static let skipRoles: Set<String> = [kAXMenuBarRole, kAXMenuBarItemRole]
 
+    /// Window traffic lights. Unlabeled, they showed up as `[0] AXButton` and Jev clicked #0, which
+    /// closed the Spotify and VS Code windows mid-task. No voice task needs them.
+    static let skipSubroles: Set<String> = [
+        kAXCloseButtonSubrole, kAXMinimizeButtonSubrole, kAXZoomButtonSubrole, kAXFullScreenButtonSubrole,
+    ]
+
     static let webAreaRole = "AXWebArea"
 
     /// Chromium browsers only build their web accessibility tree when an assistive client asks for it.
@@ -74,7 +80,7 @@ struct AXTreeCrawler {
         let systemWide = AXUIElementCreateSystemWide()
         AXUIElementSetMessagingTimeout(systemWide, messagingTimeout)
 
-        let app: AXUIElement
+        var app: AXUIElement
         if let pid {
             app = AXUIElementCreateApplication(pid)
         } else {
@@ -83,10 +89,17 @@ struct AXTreeCrawler {
             }
             app = focused
         }
-        AXUIElementSetMessagingTimeout(app, messagingTimeout)
 
         var appPID: pid_t = 0
         AXUIElementGetPid(app, &appPID)
+        // Never crawl Voice Agent itself: with the conversation panel focused, a task typed its own
+        // text into the panel's input, which submitted it as a new request.
+        if appPID == getpid() {
+            guard let other = Self.frontmostOtherAppPID() else { throw CrawlError.noFocusedApp }
+            appPID = other
+            app = AXUIElementCreateApplication(other)
+        }
+        AXUIElementSetMessagingTimeout(app, messagingTimeout)
         let running = NSRunningApplication(processIdentifier: appPID)
         enableWebAccessibility(app, pid: appPID, bundleID: running?.bundleIdentifier)
 
@@ -98,6 +111,20 @@ struct AXTreeCrawler {
         let windowTitle: String? = window.attribute(kAXTitleAttribute)
         let elements = collect(from: window)
         return ElementTable(appName: appName, windowTitle: windowTitle, elements: elements)
+    }
+
+    /// The owner of the frontmost normal window that isn't this app (the window list is front to back).
+    static func frontmostOtherAppPID() -> pid_t? {
+        let own = getpid()
+        guard let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
+                as? [[String: Any]] else { return nil }
+        for window in windows {
+            guard let pid = window[kCGWindowOwnerPID as String] as? pid_t, pid != own,
+                  (window[kCGWindowLayer as String] as? Int) == 0,
+                  NSRunningApplication(processIdentifier: pid)?.activationPolicy == .regular else { continue }
+            return pid
+        }
+        return nil
     }
 
     /// Chromium and Electron expose web content to AX only on request: `AXManualAccessibility` (Electron,
@@ -179,6 +206,8 @@ struct AXTreeCrawler {
     private func observe(_ element: AXUIElement, index: Int) -> ElementEntry? {
         guard let role: String = element.attribute(kAXRoleAttribute),
               !Self.skipRoles.contains(role) else { return nil }
+        let subrole: String? = element.attribute(kAXSubroleAttribute)
+        if let subrole, Self.skipSubroles.contains(subrole) { return nil }
 
         let actions = element.actionNames()
         let isControlRole = Self.actionableRoles.contains(role)
@@ -193,7 +222,7 @@ struct AXTreeCrawler {
             index: index,
             ref: element,
             role: role,
-            subrole: element.attribute(kAXSubroleAttribute),
+            subrole: subrole,
             title: element.attribute(kAXTitleAttribute) ?? element.attribute(kAXDescriptionAttribute),
             identifier: element.attribute(kAXIdentifierAttribute),
             value: element.stringValue(),

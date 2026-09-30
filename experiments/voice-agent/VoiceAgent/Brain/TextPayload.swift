@@ -5,16 +5,20 @@ import Foundation
 /// Jev picks one of these as the `text_payload` choice, so nothing a model generates can ever be
 /// typed: the payload is always a verbatim span of the transcript.
 enum TextPayload {
-    static let maxCandidates = 8
+    static let maxCandidates = 10
 
     /// Phrases that introduce the literal text, longest first so "that says" wins over "says".
+    /// "search up", "called" and "named" come from live requests ("search up yes theory videos",
+    /// "a file called main.py") that otherwise only offered the whole utterance.
     static let triggers = [
-        "with the text", "that says", "which says", "reply with", "search for", "look up",
-        "saying", "says", "type", "write", "enter", "put", "dictate", "for",
+        "with the text", "that says", "which says", "reply with", "search for", "search up", "look up",
+        "look for", "called", "named", "titled", "saying", "says", "type", "write", "enter", "put",
+        "dictate", "search", "for",
     ]
 
     /// Trailing location phrases trimmed off a tail: "hello world into the search field" → "hello world".
-    static let locationCuts = [" into the ", " in the ", " on the ", " into ", " in ", " and press ", " then "]
+    /// " and " splits "called main.py and write hello world" → "main.py"; the uncut tail is still offered.
+    static let locationCuts = [" into the ", " in the ", " on the ", " into ", " in ", " and press ", " then ", " and "]
 
     static func candidates(from transcript: String) -> [String] {
         var ordered: [String] = []

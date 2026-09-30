@@ -70,9 +70,15 @@ final class VoiceSession {
     @ObservationIgnored private var toggleHotKey: GlobalHotKey?
     @ObservationIgnored private var cancelHotKey: GlobalHotKey?
     @ObservationIgnored private let earlyDetector: EarlyIntentDetector
-    @ObservationIgnored private var earlyFired: EarlyIntent?
+    /// Commands already run mid-speech this utterance, in order.
+    @ObservationIgnored private var earlyFired: [EarlyIntent] = []
+    /// Words of the transcript consumed by `earlyFired`; the next command is matched after them.
+    @ObservationIgnored private var earlyOffset = 0
     @ObservationIgnored private var lastEarlyMatch: EarlyIntent?
-    @ObservationIgnored private var earlyTask: Task<ActionResult, Never>?
+    /// Runs the early commands one after another ("open Safari and open YouTube" needs Safari first).
+    @ObservationIgnored private var earlyTask: Task<[ActionResult], Never>?
+    /// Upper bound on mid-speech commands per utterance.
+    static let maxEarlyCommands = 4
     @ObservationIgnored private var flashTask: Task<Void, Never>?
 
     init() {
@@ -152,7 +158,8 @@ final class VoiceSession {
 
     private func beginUtterance() {
         transcript = ""
-        earlyFired = nil
+        earlyFired = []
+        earlyOffset = 0
         lastEarlyMatch = nil
         earlyTask = nil
         recognizer.onPartialTranscript = { [weak self] partial in self?.handlePartial(partial) }
@@ -176,23 +183,26 @@ final class VoiceSession {
                 return
             }
 
-            guard let early = earlyFired else {
+            guard !earlyFired.isEmpty else {
                 await process(utterance)
                 return
             }
-            // An early intent already ran mid-speech: only the rest of the sentence is new.
-            let earlyResult = await earlyTask?.value ?? .failed("Early action didn't run")
-            switch earlyDetector.remainder(of: utterance, after: early) {
+            // Early commands already ran mid-speech: only the rest of the sentence is new.
+            let early = earlyFired.map { "\($0.command)" }.joined(separator: ", ")
+            let earlyResults = await earlyTask?.value ?? []
+            switch earlyDetector.remainder(of: utterance, after: earlyFired) {
             case .some(let rest) where rest.isEmpty:
-                DebugLog.print("Early", "final fully handled by early \(early.command)")
-                set(earlyResult.success ? .done(earlyResult.message) : .error(earlyResult.message))
-                await confirm(earlyResult.message)
+                DebugLog.print("Early", "final fully handled by early [\(early)]")
+                let message = earlyResults.map(\.message).joined(separator: ", ")
+                let failed = earlyResults.contains { !$0.success }
+                set(failed ? .error(message) : .done(message))
+                await confirm(message)
             case .some(let rest):
-                DebugLog.print("Early", "remainder after \(early.command): \"\(rest)\"")
+                DebugLog.print("Early", "remainder after [\(early)]: \"\(rest)\"")
                 await process(rest)
             case nil:
-                // The recognizer revised the words; the command no longer leads. Process it all.
-                DebugLog.print("Early", "final no longer starts with \(early.command); processing full utterance")
+                // The recognizer revised the words; the commands no longer lead. Process it all.
+                DebugLog.print("Early", "final no longer starts with [\(early)]; processing full utterance")
                 await process(utterance)
             }
         } catch is CancellationError {
@@ -202,28 +212,35 @@ final class VoiceSession {
         }
     }
 
-    /// Runs an unambiguous single-shot command from a partial transcript while the user keeps
-    /// talking. At most one per utterance, never spoken (the mic is open); the pill flashes its icon.
+    /// Runs unambiguous single-shot commands from a partial transcript while the user keeps talking.
+    /// Commands chain: each one is matched after the words the previous one consumed, and they run
+    /// in order. Never spoken (the mic is open); the pill flashes each icon.
     private func handlePartial(_ partial: String) {
-        guard state == .listening, earlyFired == nil else { return }
-        let fired = earlyDetector.detect(partial, previous: lastEarlyMatch)
-        lastEarlyMatch = earlyDetector.match(partial)
-        DebugLog.print("Early", "partial \"\(partial)\" → match \(lastEarlyMatch.map { "\($0.command)" } ?? "none")\(fired == nil ? "" : " → FIRE")")
-        guard let fired else { return }
-
-        let intent = fired.intent
-        if intent.requiresAccessibility, !AXIsProcessTrusted() {
-            DebugLog.print("Early", "skipped \(fired.command): needs Accessibility")
-            return
+        guard state == .listening else { return }
+        while earlyFired.count < Self.maxEarlyCommands,
+              let fired = earlyDetector.detect(partial, after: earlyOffset, previous: lastEarlyMatch) {
+            DebugLog.print("Early", "partial \"\(partial)\" → FIRE \(fired.command)")
+            let intent = fired.intent
+            if intent.requiresAccessibility, !AXIsProcessTrusted() {
+                DebugLog.print("Early", "skipped \(fired.command): needs Accessibility")
+                break
+            }
+            earlyFired.append(fired)
+            earlyOffset = fired.consumedWords
+            lastEarlyMatch = nil
+            flash(intent.symbol)
+            let router = router
+            let previous = earlyTask
+            earlyTask = Task {
+                var results = await previous?.value ?? []
+                let result = await router.executeEarly(intent)
+                DebugLog.print("Early", "\(fired.command) → \(result.success ? "ok" : "FAILED"): \(result.message)")
+                results.append(result)
+                return results
+            }
         }
-        earlyFired = fired
-        flash(intent.symbol)
-        let router = router
-        earlyTask = Task {
-            let result = await router.executeEarly(intent)
-            DebugLog.print("Early", "\(fired.command) → \(result.success ? "ok" : "FAILED"): \(result.message)")
-            return result
-        }
+        lastEarlyMatch = earlyDetector.match(partial, after: earlyOffset)
+        DebugLog.print("Early", "partial \"\(partial)\" → pending \(lastEarlyMatch.map { "\($0.command)" } ?? "none")")
     }
 
     private func flash(_ symbol: String) {

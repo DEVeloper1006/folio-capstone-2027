@@ -33,12 +33,13 @@ SCORED_QUESTIONS = ("intent", "key", "app", "target_index", "text_payload")
 
 # Mirror of Brain/TextPayload.swift.
 TEXT_TRIGGERS = (
-    "with the text", "that says", "which says", "reply with", "search for", "look up",
-    "saying", "says", "type", "write", "enter", "put", "dictate", "for",
+    "with the text", "that says", "which says", "reply with", "search for", "search up", "look up",
+    "look for", "called", "named", "titled", "saying", "says", "type", "write", "enter", "put",
+    "dictate", "search", "for",
 )
-LOCATION_CUTS = (" into the ", " in the ", " on the ", " into ", " in ", " and press ", " then ")
+LOCATION_CUTS = (" into the ", " in the ", " on the ", " into ", " in ", " and press ", " then ", " and ")
 QUOTED = re.compile(r"[\"“'‘]([^\"“”'‘’]{1,200})[\"”'’]")
-MAX_CANDIDATES = 8
+MAX_CANDIDATES = 10
 
 
 def resolve_path(path: str) -> Path:

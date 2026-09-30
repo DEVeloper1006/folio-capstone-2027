@@ -17,6 +17,17 @@ final class AppCatalog {
 
     private(set) var apps: [String: URL] = [:]
 
+    static let browserBundleIDs: Set<String> = [
+        "com.apple.Safari", "com.google.Chrome", "company.thebrowser.Browser", "org.mozilla.firefox",
+        "com.brave.Browser", "com.microsoft.edgemac", "com.vivaldi.Vivaldi", "com.operasoftware.Opera",
+    ]
+    /// A browser opened this recently is where the next website goes ("open Safari and open YouTube").
+    static let recentBrowserWindow: Duration = .seconds(30)
+
+    private var lastOpenedBrowser: (url: URL, at: ContinuousClock.Instant)?
+    /// App bundle that each website was last opened in, so the task loop can crawl it.
+    private var websiteBrowsers: [URL: URL] = [:]
+
     static let searchRoots: [URL] = [
         URL(fileURLWithPath: "/Applications"),
         URL(fileURLWithPath: "/Applications/Utilities"),
@@ -103,6 +114,41 @@ final class AppCatalog {
         return nil
     }
 
+    /// Records an opened app; browsers become the target for websites opened soon after.
+    func noteOpened(app url: URL) {
+        guard let id = Bundle(url: url)?.bundleIdentifier, Self.browserBundleIDs.contains(id) else { return }
+        lastOpenedBrowser = (url, .now)
+    }
+
+    /// Browser for a website: one opened in the last `recentBrowserWindow`, else the frontmost app if
+    /// it's a browser, else nil (the default browser).
+    func browser(forWebsite url: URL) -> URL? {
+        if let recent = lastOpenedBrowser, ContinuousClock.now - recent.at < Self.recentBrowserWindow {
+            return recent.url
+        }
+        if let pid = AXTreeCrawler.frontmostOtherAppPID(),
+           let app = NSRunningApplication(processIdentifier: pid),
+           let id = app.bundleIdentifier, Self.browserBundleIDs.contains(id) {
+            return app.bundleURL
+        }
+        return nil
+    }
+
+    func noteOpened(website url: URL, in browser: URL?) {
+        websiteBrowsers[url] = browser ?? NSWorkspace.shared.urlForApplication(toOpen: url)
+    }
+
+    /// Running process for an app or website name after OPEN_APP (for a website, its browser).
+    func runningPID(for name: String) -> pid_t? {
+        let bundle: URL? = switch resolve(name) {
+        case .app(let url): url
+        case .website(let url): websiteBrowsers[url] ?? NSWorkspace.shared.urlForApplication(toOpen: url)
+        case nil: nil
+        }
+        guard let bundle else { return nil }
+        return NSWorkspace.shared.runningApplications.first { $0.bundleURL?.standardizedFileURL == bundle.standardizedFileURL }?.processIdentifier
+    }
+
     /// Jev choice criteria: installed apps, plus websites that don't share a name with one.
     func criteria() -> [String: String] {
         var criteria = Dictionary(uniqueKeysWithValues: apps.keys.map { ($0, "The \($0) app") })
@@ -124,10 +170,19 @@ struct OpenAppAction: MacAction {
             let configuration = NSWorkspace.OpenConfiguration()
             configuration.activates = true
             _ = try await NSWorkspace.shared.openApplication(at: url, configuration: configuration)
+            context.apps.noteOpened(app: url)
             return .ok("Opened \(url.deletingPathExtension().lastPathComponent)")
         case .website(let url):
-            guard NSWorkspace.shared.open(url) else { return .failed("Couldn't open \(name) in the browser") }
             let site = AppCatalog.websites.first { $0.url == url }?.name ?? name
+            if let browser = context.apps.browser(forWebsite: url) {
+                let configuration = NSWorkspace.OpenConfiguration()
+                configuration.activates = true
+                _ = try await NSWorkspace.shared.open([url], withApplicationAt: browser, configuration: configuration)
+                context.apps.noteOpened(website: url, in: browser)
+                return .ok("Opened \(site) in \(browser.deletingPathExtension().lastPathComponent)")
+            }
+            guard NSWorkspace.shared.open(url) else { return .failed("Couldn't open \(name) in the browser") }
+            context.apps.noteOpened(website: url, in: nil)
             return .ok("Opened \(site)")
         case nil:
             return .failed("I couldn't find \(name) as an app or website")
