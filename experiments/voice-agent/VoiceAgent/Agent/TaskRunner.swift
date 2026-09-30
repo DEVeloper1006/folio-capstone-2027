@@ -43,6 +43,7 @@ final class TaskRunner {
     private(set) var steps: [Step] = []
     private(set) var currentStep: ActionRequest?
     private(set) var isRunning = false
+    @ObservationIgnored private var history: String?
 
     /// Hard cap on Jev decisions per task, whatever the Settings value.
     static let maxSteps = 15
@@ -74,8 +75,11 @@ final class TaskRunner {
         self.crawler = crawler
     }
 
-    func run(goal: String) async throws -> Outcome {
+    /// `history` is the recent conversation for Jev's state; `earlierRequests` add text candidates so a
+    /// follow-up can type a phrase from a previous turn.
+    func run(goal: String, history: String? = nil, earlierRequests: [String] = []) async throws -> Outcome {
         self.goal = goal
+        self.history = history
         steps = []
         isRunning = true
         defer {
@@ -83,7 +87,7 @@ final class TaskRunner {
             currentStep = nil
         }
 
-        let candidates = TextPayload.candidates(from: goal)
+        let candidates = TextPayload.candidates(from: goal, followingUp: earlierRequests)
         let limit = min(Config.maxTaskSteps, Self.maxSteps)
         var lastDescriptions: [String] = []
         var nextDelay: Duration = .zero
@@ -264,7 +268,7 @@ final class TaskRunner {
             let history = steps.suffix(8).map { "\($0.id + 1). \($0.request) → \($0.result.success ? "ok" : "failed"): \($0.result.message)" }
             extra.append("Steps so far:\n" + history.joined(separator: "\n"))
         }
-        return JevQuestions.state(transcript: goal, table: table, extra: extra)
+        return JevQuestions.state(transcript: goal, table: table, history: history, extra: extra)
     }
 
     private func blockedReason(_ table: ElementTable) -> String {

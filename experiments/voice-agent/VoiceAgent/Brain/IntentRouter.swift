@@ -175,8 +175,10 @@ enum JevQuestions {
     }
 
     /// State block: the user's words, then the serialized element table.
-    static func state(transcript: String, table: ElementTable, extra: [String] = []) -> String {
-        (["User said: \"\(transcript)\""] + extra + ["Current screen:\n" + table.serialize()])
+    /// `history` (earlier exchanges) comes first so follow-ups like "now search for cats there" or
+    /// "do that again" can be resolved against what already happened.
+    static func state(transcript: String, table: ElementTable, history: String? = nil, extra: [String] = []) -> String {
+        ([history].compactMap { $0 } + ["User said: \"\(transcript)\""] + extra + ["Current screen:\n" + table.serialize()])
             .joined(separator: "\n\n")
     }
 }
@@ -229,7 +231,7 @@ final class IntentRouter {
     func classify(_ transcript: String) async throws -> ActionIntent {
         let table = (try? crawler.crawlFocusedApp()) ?? .empty
         observedTable = table
-        let candidates = TextPayload.candidates(from: transcript)
+        let candidates = TextPayload.candidates(from: transcript, followingUp: conversation.recentUserTexts())
 
         var questions: [String: JevQuestion] = [
             JevQuestions.intent: .choice(
@@ -243,7 +245,7 @@ final class IntentRouter {
         questions[JevQuestions.app] = JevQuestions.app(apps)
 
         let decision = try await jev.decide(
-            state: JevQuestions.state(transcript: transcript, table: table),
+            state: JevQuestions.state(transcript: transcript, table: table, history: conversation.recentSummary()),
             questions: questions
         )
         lastDecision = decision
@@ -296,9 +298,11 @@ final class IntentRouter {
             guard let app = decision.choice(JevQuestions.app), apps.resolve(app) != nil else { return escalate }
             // "search YouTube for lofi music": the words carry something to type or search beyond the
             // app name, so opening the app alone can't finish it. Let the task loop open it and continue.
+            // Only this utterance's own phrases count: phrases carried over from earlier turns don't.
             let whole = TextPayload.clean(transcript).lowercased()
-            if candidates.contains(where: { $0.lowercased() != whole }) {
-                DebugLog.print("Router", "OPEN_APP \(app) but the request has a payload (\(candidates.first ?? "")); escalating to TASK")
+            let own = TextPayload.candidates(from: transcript)
+            if own.contains(where: { $0.lowercased() != whole }) {
+                DebugLog.print("Router", "OPEN_APP \(app) but the request has a payload (\(own.first ?? "")); escalating to TASK")
                 return escalate
             }
             return .openApp(name: app)
@@ -321,12 +325,12 @@ final class IntentRouter {
     func handle(_ intent: ActionIntent) async throws -> IntentOutcome {
         switch intent {
         case .task(let transcript):
-            return .task(try await taskRunner.run(goal: transcript))
+            return .task(try await taskRunner.run(
+                goal: transcript, history: conversation.recentSummary(), earlierRequests: conversation.recentUserTexts()
+            ))
         case .chat(let transcript):
-            conversation.appendUser(transcript)
-            let reply = try await llm.complete(conversation.context())
-            conversation.appendAssistant(reply)
-            return .replied(reply)
+            // Recorded by VoiceSession along with every other kind of turn.
+            return .replied(try await llm.complete(conversation.context(adding: transcript)))
         case .done:
             return .acted(.ok("Nothing to do"))
         case .blocked(let reason):

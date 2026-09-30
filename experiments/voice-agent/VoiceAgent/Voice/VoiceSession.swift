@@ -195,15 +195,16 @@ final class VoiceSession {
                 DebugLog.print("Early", "final fully handled by early [\(early)]")
                 let message = earlyResults.map(\.message).joined(separator: ", ")
                 let failed = earlyResults.contains { !$0.success }
+                conversation.recordAction(user: utterance, did: message)
                 set(failed ? .error(message) : .done(message))
                 await confirm(message)
             case .some(let rest):
                 DebugLog.print("Early", "remainder after [\(early)]: \"\(rest)\"")
-                await process(rest)
+                await process(rest, recordedAs: utterance, earlier: earlyResults)
             case nil:
                 // The recognizer revised the words; the commands no longer lead. Process it all.
                 DebugLog.print("Early", "final no longer starts with [\(early)]; processing full utterance")
-                await process(utterance)
+                await process(utterance, earlier: earlyResults)
             }
         } catch is CancellationError {
             // cancelled by user
@@ -285,7 +286,11 @@ final class VoiceSession {
     /// new code signature, which silently invalidates the grant, so this never re-opens the TCC prompt.
     static let accessibilityMessage = "Re-grant Accessibility in System Settings"
 
-    private func process(_ utterance: String) async {
+    /// Routes and runs `utterance`, then records the exchange in the conversation. `recordedAs` is the
+    /// full sentence when `utterance` is only the part left after mid-speech commands (`earlier`).
+    private func process(_ utterance: String, recordedAs spoken: String? = nil, earlier: [ActionResult] = []) async {
+        let userText = spoken ?? utterance
+        let earlierDone = earlier.map(\.message)
         set(.thinking)
         do {
             let intent = try await router.classify(utterance)
@@ -295,6 +300,7 @@ final class VoiceSession {
 
             if intent.requiresAccessibility, !AXIsProcessTrusted() {
                 permissions.refresh()
+                conversation.recordAction(user: userText, did: (earlierDone + ["Couldn't act: Accessibility isn't granted"]).joined(separator: ". "))
                 set(.error(Self.accessibilityMessage))
                 await confirm(Self.accessibilityMessage)
                 return
@@ -312,6 +318,9 @@ final class VoiceSession {
             try Task.checkCancellation()
 
             if case .replied(let reply) = outcome {
+                conversation.appendUser(userText)
+                let did = earlierDone.isEmpty ? "" : "\(ConversationManager.actionPrefix) \(earlierDone.joined(separator: ". ")).\n"
+                conversation.appendAssistant(did + reply)
                 if speaksResponses {
                     set(.speaking)
                     await tts.speak(reply)
@@ -321,15 +330,27 @@ final class VoiceSession {
                 }
                 set(.done("Replied"))
             } else {
+                conversation.recordAction(user: userText, did: (earlierDone + [record(of: outcome)]).joined(separator: ". "))
                 set(outcome.isFailure ? .error(outcome.summary) : .done(outcome.summary))
                 await confirm(outcome.summary)
             }
         } catch is CancellationError {
             disarmCancelHotKey()
+            if !earlierDone.isEmpty { conversation.recordAction(user: userText, did: earlierDone.joined(separator: ". ") + ". Then cancelled") }
         } catch {
             disarmCancelHotKey()
+            conversation.recordAction(user: userText, did: (earlierDone + ["Failed: \(error)"]).joined(separator: ". "))
             set(.error(String(describing: error)))
         }
+    }
+
+    /// What an action or task did, for the conversation record. Tasks list their steps so a follow-up
+    /// ("what did you click?", "why were you blocked?") can be answered.
+    private func record(of outcome: IntentOutcome) -> String {
+        guard case .task(let result) = outcome else { return outcome.summary }
+        let steps = taskRunner.steps.filter { $0.request.kind != .wait }
+            .map { "\($0.request.description) (\($0.result.success ? "ok" : "failed"): \($0.result.message))" }
+        return "Task: \(result.summary)" + (steps.isEmpty ? "" : ". Steps: " + steps.joined(separator: "; "))
     }
 
     /// Shows the re-grant message in the pill if AX trust is missing. Used at launch instead of the

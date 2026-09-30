@@ -202,6 +202,23 @@ python experiments/voice-agent/eval_router.py \
 ```
 It prints per-question accuracy and p50/p95 latency, and writes `results/voice-agent/router_eval_<timestamp>.json`. It reads the key from `experiments/voice-agent/.env` (or the environment). Without a key it exits with code 2.
 
+## Conversation memory
+`ConversationManager` records every turn, not only chat:
+- Chat replies.
+- Single actions, recorded as `[Did on the Mac] Opened YouTube`.
+- Tasks, with their steps.
+- Mid-speech commands.
+- Failures.
+
+How the history is used:
+- **Claude** gets it as chat history, so "what did you just do?" works.
+- **Jev** gets the last 4 exchanges at the top of its state (`Earlier in this conversation:`), for follow-ups like "now search for cats there".
+- **TYPE_TEXT** candidates also include phrases from the last 2 requests. They're still verbatim user words, and the current utterance's phrases come first.
+
+Where it's stored:
+- The history is saved to `~/Library/Application Support/VoiceAgent/conversation.json`, so it survives relaunches and rebuilds.
+- **Clear** in the Conversation panel wipes it.
+
 ## Metrics to expect
 
 | Metric | Target | Measured |

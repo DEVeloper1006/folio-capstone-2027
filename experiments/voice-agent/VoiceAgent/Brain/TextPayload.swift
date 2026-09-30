@@ -48,6 +48,20 @@ enum TextPayload {
         return ordered
     }
 
+    /// Candidates from this transcript first, then from earlier requests, so a follow-up ("search for
+    /// that on YouTube too") can still type a phrase the user said in a previous turn. Still verbatim.
+    static func candidates(from transcript: String, followingUp earlier: [String]) -> [String] {
+        var ordered = candidates(from: transcript)
+        var seen = Set(ordered.map { $0.lowercased() })
+        for text in earlier {
+            for phrase in candidates(from: text).dropLast() where ordered.count < maxCandidates {
+                // dropLast: skip the earlier request as a whole; only its extracted phrases carry over.
+                if seen.insert(phrase.lowercased()).inserted { ordered.append(phrase) }
+            }
+        }
+        return ordered
+    }
+
     /// `type "hello world"`, `write ‘hi’`, `“note to self”`.
     static func quotedSpans(in text: String) -> [String] {
         let pattern = #"[\"“'‘]([^\"“”'‘’]{1,200})[\"”'’]"#
