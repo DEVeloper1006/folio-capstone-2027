@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+FOLIO_NATIVE_NO_OPEN=1 ./scripts/run-native
+(cd native && swift run FolioCoreChecks)
+# Test the shipped bundle, not only the .build executable. Asset access differs.
+./artifacts/Folio.app/Contents/MacOS/FolioNative --self-test
+.venv-local-ocr/bin/python - <<'PY'
+import json
+from pathlib import Path
+from server.local_ocr import is_numeric
+examples = json.loads(Path("artifacts/practice-examples.json").read_text())
+for example in examples:
+    assert example["mode"] in {"math", "numbers"}, example
+    if example["mode"] == "numbers":
+        assert is_numeric(example["latex"]), example
+print("Practice example modes validated")
+PY

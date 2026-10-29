@@ -14,6 +14,7 @@ make eval-hme   # pix2tex baseline on data/test_images
 | Experiment | Status | Description |
 |------------|--------|-------------|
 | [`hme-recognition`](experiments/hme-recognition/) | Active | Handwritten math expression → LaTeX |
+| [`folio-workspace`](experiments/folio-workspace/) | Prototype | Native Mac and browser workspaces, local TexTeller adapter, and Grade 12 practice examples |
 | [`voice-agent`](experiments/voice-agent/) | Planned | Laya voice model fine-tuning for Folio |
 | [`graph-generation`](experiments/graph-generation/) | Planned | Math expression → visual graph/plot |
 | [`proof-explainer`](experiments/proof-explainer/) | Planned | Step-by-step proof breakdown |

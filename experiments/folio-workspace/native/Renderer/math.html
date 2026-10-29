@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self';">
+<link rel="stylesheet" href="katex.min.css">
+<style>
+html,body{margin:0;background:#fff;color:#252d32}
+body{padding:16px;font-size:24px;box-sizing:border-box}
+#math{overflow:auto;padding:8px;min-height:40px}
+.katex-display{margin:0;text-align:left}
+</style>
+</head>
+<body>
+<div id="math" aria-live="polite"></div>
+<script src="katex.min.js"></script>
+<script>
+window.renderMath = async function (latex) {
+  const target = document.getElementById('math');
+  try {
+    katex.render(latex, target, {
+      throwOnError:true, trust:false, strict:'warn',
+      maxExpand:200, maxSize:20, displayMode:true
+    });
+    await document.fonts.ready;
+    return {ok:true};
+  } catch (error) {
+    target.textContent = latex;
+    return {ok:false, error:String(error.message || error)};
+  }
+};
+</script>
+</body>
+</html>

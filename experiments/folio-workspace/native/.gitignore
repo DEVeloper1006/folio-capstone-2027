@@ -1,0 +1,6 @@
+.build/
+build/
+.swiftpm/
+Sources/FolioNative/Resources/Math/
+*.xcuserstate
+xcuserdata/

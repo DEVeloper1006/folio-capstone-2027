@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.venv/
+.venv-local-ocr/
+.env
+__pycache__/
+.pytest_cache/
+public/mathlive/
+artifacts/
+*.log
+*.tsbuildinfo
+# The tested small adapter is intentional; other weights stay excluded.
+!models/grade12/adapter_model.safetensors

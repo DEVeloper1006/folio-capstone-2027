@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+if [[ ! -x .venv-local-ocr/bin/python ]]; then
+  uv venv --python 3.12 .venv-local-ocr
+fi
+uv --no-config pip install --python .venv-local-ocr/bin/python --default-index https://pypi.org/simple -r scripts/local-ocr-requirements.txt
+.venv-local-ocr/bin/python - <<'PY'
+from huggingface_hub import snapshot_download
+snapshot_download('OleehyO/TexTeller', revision='7b96df06b9d81cdb129c3bef68b7250bc3e2b0ea', allow_patterns=['*.json', '*.txt', 'model.safetensors'])
+PY
+printf 'Ready. Run ./scripts/start-local-ocr\n'

@@ -1,0 +1,10 @@
+{
+  "id": "grade12-pilot-500",
+  "base_model": "OleehyO/TexTeller",
+  "revision": "7b96df06b9d81cdb129c3bef68b7250bc3e2b0ea",
+  "directory": "models/grade12",
+  "sha256": {
+    "adapter_config.json": "b60a356c113f36a095f069b4a035287bce9323a0f782d610984563ad33897c1b",
+    "adapter_model.safetensors": "001fdbd1e34661c007a286c04c405d21d56cab71c5006c16e4f56542af4ab6db"
+  }
+}

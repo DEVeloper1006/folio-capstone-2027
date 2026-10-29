@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+if [[ ! -x .venv-local-ocr/bin/python ]]; then
+  printf 'Run ./scripts/setup-local-ocr first.\n' >&2
+  exit 1
+fi
+export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_HUB_DISABLE_TELEMETRY=1
+exec .venv-local-ocr/bin/python -m uvicorn server.local_ocr:app --host 127.0.0.1 --port 8002
