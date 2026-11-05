@@ -1,0 +1,34 @@
+id,priority,platform,requirement_summary,owner,implementation_status,verification_status,code_or_issue,test_or_benchmark_evidence,source
+FR-01,P0,Both,"Create, save and reopen local documents",Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+FR-02,P0,macOS,Keyboard entry and editing of mathematical expressions,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+FR-03,P0,iPad,"Pen input with selection, movement and erasure",Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+FR-04,P0,iPad,Convert selected handwriting with correction before acceptance,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+FR-05,P0,Both,Render typeset math; preserve editable incomplete input,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+FR-06,P0,Both,Capture selected row or region as a discrete input object,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+FR-07,P0,Both,Duplicate steps and edit copies independently,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+FR-08,P0,Both,Preserve ordered mathematical steps and explanatory text,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+FR-09,P0,Both,Undo and redo edits,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+FR-10,P0,Both,Export typeset PDF without separate LaTeX rewriting,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+FR-11,P1,Both,Structured Math IR; at least 95% valid conversion of recognized supported inputs,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+FR-12,P1,macOS,/rref; at least 99% deterministic correctness,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+FR-13,P1,macOS,/matmul; at least 99% correctness,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+FR-14,P1,macOS,/derivative; at least 99% correctness against SymPy,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+FR-15,P1,macOS,/integral and /simplify; at least 99% correctness,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+FR-16,P1,macOS,Matrix row operations with operation shown,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+FR-17,P1,macOS,Substitute selected variable or expression while preserving original step,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+FR-18,P1,Both,Choose exported steps and scratch work without deleting saved content,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+FR-19,P1,Both,"AI checks, hints and explanations; accept changes explicitly",Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+FR-20,P2,iPad,Commands on recognized Math IR; gated by reliable conversion,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+FR-21,P2,Both,Preserve and navigate alternative solution branches,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+FR-22,P2,Both,Transfer documents using shared file format,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+FR-23,P2,Both,Linked 2D visualizations update with selected expression,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+FR-24,P2,macOS,User-defined commands chaining supported operations,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+FR-25,P3,Both,Broader complex handwriting recognition; improved ExpRate with minimal correction,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Functional Requirements
+NFR-01,P0,Application,Startup under 1 second; navigation within 250 ms,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Non-Functional Requirements
+NFR-02,P0,Application,Non-chat LLM latency under 300 ms,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Non-Functional Requirements
+NFR-03,P0,Application,95% of LLM responses relevant to context and action,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Non-Functional Requirements
+NFR-04,P0,Application,All mathematical data losslessly convertible to LaTeX,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Non-Functional Requirements
+NFR-05,P1,Application,Crash recovery loses no more than 10 seconds of work,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Non-Functional Requirements
+NFR-06,P1,Application,At least 95% of export test documents free of missing or clipped content and ordering errors,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Non-Functional Requirements
+NFR-07,P1,Application,Preserve work and show recoverable error within 2 seconds after AI failure detected,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Non-Functional Requirements
+NFR-08,P1,Application,Core workflows keyboard-operable; evaluate applicable WCAG 2.2 AA criteria,Unassigned,Not assessed,Not assessed,,,docs/srs_team_10.pdf — Non-Functional Requirements
