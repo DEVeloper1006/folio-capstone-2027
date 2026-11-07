@@ -1,0 +1,7 @@
+Folio bundles MathJax 3.2.2 (outputs/vendor/tex-svg.js).
+MathJax is distributed under the Apache License 2.0; its complete license is
+included in outputs/vendor/LICENSE-MathJax.txt and inside Folio.app.
+Project: https://github.com/mathjax/MathJax
+
+Ollama and model weights are separate installations, not part of this package.
+Consult the installed model's license before redistributing its weights.

@@ -1,0 +1,9 @@
+.DS_Store
+.hallmark/
+/build/
+/deliverables/
+/output/
+/tmp/
+/work/*
+!/work/keyboard_model_test.js
+!/work/mode_contract_test.js

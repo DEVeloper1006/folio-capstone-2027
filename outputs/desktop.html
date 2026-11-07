@@ -1,0 +1,1649 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Folio Desktop — Math Editor</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="native.css">
+  <style>
+    /* Hallmark · macrostructure: adaptive workbench · tone: strict · anchor hue: graphite
+     * knobs: center=source+compiled split · modes=status-only
+     * pre-emit critique: P5 H5 E5 S5 R5 V4
+     */
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; overflow-x: clip; background: var(--bg); color: var(--ink); font: 13px/1.5 var(--font); }
+    button, input, textarea { outline: 2px solid transparent; outline-offset: 1px; font: inherit; color: inherit; }
+    button { border: 0; background: transparent; cursor: pointer; white-space: nowrap; }
+    button:hover { background: var(--panel-2); }
+    button:active { background: var(--rule); }
+    button:focus-visible, input:focus-visible, textarea:focus-visible { outline-color: var(--ink); }
+    button:disabled, input:disabled, textarea:disabled { opacity: .55; cursor: not-allowed; }
+    .app { height: 100dvh; display: grid; grid-template-rows: 38px minmax(0, 1fr) 28px; overflow: hidden; }
+    .top, .status { min-width: 0; display: flex; align-items: center; }
+    .top { border-bottom: 1px solid var(--rule); background: var(--panel); }
+    .brand { height: 100%; display: grid; place-items: center; padding: 0 14px; color: var(--bg); background: var(--ink); font-weight: 800; letter-spacing: .08em; }
+    .file { min-width: 0; flex: 1; overflow: hidden; padding: 0 14px; text-overflow: ellipsis; white-space: nowrap; }
+    .file span, .runtime { color: var(--muted); }
+    .runtime { margin-left: auto; padding: 0 14px; }
+    .top-action { flex: 0 0 auto; align-self: stretch; padding: 0 14px; border-left: 1px solid var(--rule); font-weight: 700; }
+    .work { min-height: 0; display: grid; grid-template-columns: 190px minmax(0, 1fr) 286px; }
+    .rail, .inspect { min-width: 0; overflow: auto; background: var(--panel); }
+    .rail { border-right: 1px solid var(--rule); }
+    .inspect { border-left: 1px solid var(--rule); }
+    .title { height: 34px; display: flex; align-items: center; padding: 0 10px; border-bottom: 1px solid var(--rule); color: var(--muted); font-size: 11px; letter-spacing: .08em; }
+    .title span { margin-left: auto; }
+    .tree, .keys { padding: 8px 0; }
+    .tree button { width: 100%; min-height: 30px; padding: 0 10px; color: var(--muted); text-align: left; }
+    .tree .active { color: var(--ink); background: var(--panel-2); border-left: 2px solid var(--ink); }
+    .tree .indent { padding-left: 28px; }
+    .keys { border-top: 1px solid var(--rule); margin-top: 14px; }
+    .keys p { display: flex; justify-content: space-between; margin: 0; padding: 6px 10px; border-bottom: 1px solid var(--line-subtle); color: var(--muted); font-size: 11px; }
+    kbd { color: var(--ink); font: inherit; }
+    .document-workspace { min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, .8fr); }
+    .editor-pane { min-width: 0; min-height: 0; position: relative; border-right: 1px solid var(--rule); background: var(--bg); }
+    .gutter { position: absolute; inset: 0 auto 0 0; z-index: 2; width: 54px; padding-top: 20px; overflow: hidden; border-right: 1px solid var(--line-subtle); background: var(--panel); color: var(--dim); text-align: right; pointer-events: none; }
+    .gutter span { display: block; height: 28px; padding-right: 12px; line-height: 28px; }
+    .gutter span.active { color: var(--ink); font-weight: 700; }
+    .editor { width: 100%; height: 100%; display: block; resize: none; overflow: auto; padding: 20px 22px 80px 72px; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 15px; line-height: 28px; white-space: pre; tab-size: 2; caret-color: var(--ink); }
+    .editor[readonly] { cursor: default; }
+    .preview-pane { min-width: 0; min-height: 0; overflow: auto; background: var(--print-paper); color: var(--print-ink); }
+    .preview-head { position: sticky; z-index: 3; top: 0; height: 34px; display: flex; align-items: center; padding: 0 12px; border-bottom: 1px solid var(--rule); background: var(--panel); color: var(--muted); font: 11px/1 var(--font); letter-spacing: .08em; }
+    .preview-head span { margin-left: auto; }
+    .preview-body { padding: 28px 32px 80px; font: 16px/1.6 var(--font-print); }
+    .preview-body h1, .preview-body h2, .preview-body h3 { overflow-wrap: anywhere; font-style: normal; }
+    .preview-body h1 { margin: 0 0 24px; font-size: 24px; }
+    .preview-body h2 { margin: 24px 0 12px; font-size: 19px; }
+    .preview-body h3 { margin: 20px 0 8px; font-size: 15px; }
+    .preview-body p { min-height: 1lh; margin: 0 0 10px; white-space: pre-wrap; }
+    .preview-body p.formula { margin: 16px 0; text-align: center; }
+    .preview-body mjx-container { overflow-x: auto; overflow-y: hidden; }
+    .app.preview-hidden .document-workspace { grid-template-columns: minmax(0, 1fr); }
+    .app.preview-hidden .preview-pane { display: none; }
+    .block { padding: 10px; border-bottom: 1px solid var(--rule); }
+    .block h2 { margin: 0 0 8px; color: var(--muted); font-size: 11px; font-weight: 500; letter-spacing: .08em; }
+    .readout { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+    .readout span { color: var(--muted); }
+    .assume { padding: 8px; border: 1px solid var(--assumption-rule); background: var(--assumption-bg); }
+    .actions button { width: 100%; min-height: 34px; display: flex; justify-content: space-between; align-items: center; padding: 0 8px; border: 1px solid var(--rule); border-bottom: 0; }
+    .actions button:last-child { border-bottom: 1px solid var(--rule); }
+    .status { background: var(--ink); color: var(--bg); font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .status b { align-self: stretch; display: grid; place-items: center; min-width: 88px; padding: 0 10px; background: var(--panel-2); color: var(--ink); }
+    .status .math-state { background: var(--rule-strong); color: var(--bg); }
+    .status span { padding: 0 10px; }
+    .status .grow { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+    .commandbar { position: fixed; z-index: 10; left: 0; right: 0; bottom: 28px; height: 38px; display: flex; border-top: 1px solid var(--ink); background: var(--bg); }
+    .commandbar[hidden] { display: none; }
+    .commandbar input { flex: 1; min-width: 0; padding: 0 12px; border: 0; outline: 0; background: var(--bg); }
+    .mode-list { position: fixed; z-index: 11; left: 190px; right: 286px; bottom: 66px; display: grid; border: 1px solid var(--ink); background: var(--panel); }
+    .mode-list[hidden] { display: none; }
+    .mode-option { min-height: 44px; display: grid; grid-template-columns: 42px 110px 1fr; align-items: center; padding: 0 12px; border-bottom: 1px solid var(--rule); text-align: left; }
+    .mode-option:last-child { border-bottom: 0; }
+    .mode-option span { color: var(--muted); }
+    .mode-option.active { color: var(--bg); background: var(--ink); }
+    .mode-option.active span { color: var(--bg); }
+    dialog { width: min(760px, calc(100% - 32px)); max-height: min(720px, calc(100dvh - 32px)); padding: 0; border: 1px solid var(--ink); background: var(--bg); color: var(--ink); }
+    dialog::backdrop { background: var(--backdrop); }
+    .dialog-head { min-height: 46px; display: flex; align-items: center; border-bottom: 1px solid var(--rule); }
+    .dialog-head h2 { margin: 0; padding: 0 14px; font-size: 12px; letter-spacing: .08em; }
+    .dialog-head button { align-self: stretch; margin-left: auto; padding: 0 16px; border-left: 1px solid var(--rule); }
+    .help-layout { display: grid; grid-template-columns: 170px minmax(0, 1fr); min-height: 410px; }
+    .help-nav { border-right: 1px solid var(--rule); }
+    .help-nav input { width: 100%; height: 44px; padding: 0 10px; border: 0; border-bottom: 1px solid var(--rule); background: var(--panel); }
+    .help-nav button { width: 100%; min-height: 38px; padding: 0 10px; border-bottom: 1px solid var(--rule); color: var(--muted); text-align: left; }
+    .help-nav button.active { color: var(--bg); background: var(--ink); }
+    .help-body { overflow: auto; padding: 20px 24px 36px; }
+    .help-body h3 { margin: 0 0 14px; font-size: 16px; }
+    .help-body h4 { margin: 22px 0 8px; font-size: 11px; letter-spacing: .08em; }
+    .help-body p { max-width: 68ch; margin: 0 0 12px; color: var(--muted); }
+    .help-table { width: 100%; border-collapse: collapse; }
+    .help-table th, .help-table td { padding: 7px 8px; border: 1px solid var(--rule); text-align: left; vertical-align: top; }
+    .help-table th { width: 150px; background: var(--panel); font-weight: 500; }
+    .export-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 18px; border-bottom: 1px solid var(--rule); }
+    .field label { display: block; margin-bottom: 5px; color: var(--muted); font-size: 11px; }
+    .field input { width: 100%; height: 44px; padding: 0 10px; border: 1px solid var(--rule); background: var(--panel); }
+    .export-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .export-option { min-height: 96px; padding: 14px; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); text-align: left; }
+    .export-option:nth-child(2n) { border-right: 0; }
+    .export-option b, .export-option span { display: block; }
+    .export-option span { margin-top: 6px; color: var(--muted); white-space: normal; }
+    .print-paper { display: none; }
+    @page { size: Letter; margin: .8in .85in .75in; }
+    @media print {
+      html, body { overflow: visible; background: var(--print-paper); }
+      body > *:not(.print-paper) { display: none !important; }
+      .print-paper { display: block; color: var(--print-ink); background: var(--print-paper); font: 12pt/1.55 var(--font-print); }
+      .paper-title { margin: 0 0 8pt; font-size: 18pt; line-height: 1.2; text-align: center; }
+      .paper-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 4pt 24pt; margin-bottom: 22pt; padding-bottom: 10pt; border-bottom: 1px solid var(--print-rule); font-size: 10pt; }
+      .paper-meta span:nth-child(even) { text-align: right; }
+      .paper-body h2 { margin: 18pt 0 8pt; font-size: 14pt; }
+      .paper-body h3 { margin: 14pt 0 6pt; font-size: 12pt; }
+      .paper-line { margin: 0 0 8pt; white-space: pre-wrap; }
+      .paper-line.formula { margin: 10pt 0; text-align: center; font-size: 13pt; }
+      .paper-line.proof { padding-left: 18pt; text-indent: -18pt; }
+    }
+    @media (max-width: 1100px) { .document-workspace { grid-template-columns: minmax(0, 1fr); } .app:not(.preview-only) .preview-pane { display: none; } .app.preview-only .editor-pane { display: none; } }
+    @media (max-width: 900px) { .work { grid-template-columns: minmax(0, 1fr) 250px; } .rail { display: none; } .mode-list { left: 0; right: 250px; } }
+    @media (max-width: 650px) { .work { grid-template-columns: 1fr; } .inspect, .runtime { display: none; } .file { padding: 0 8px; } .top-action { padding: 0 8px; } .mode-list { right: 0; } .help-layout { grid-template-columns: 1fr; } .help-nav { border-right: 0; border-bottom: 1px solid var(--rule); } .export-form, .export-options { grid-template-columns: 1fr; } .export-option { border-right: 0; } }
+    @media (max-width: 480px) { .file { display: none; } .top-action { flex: 1; } }
+  </style>
+</head>
+<body>
+  <div class="app" data-editor-state="NORMAL" data-math-context="linalg">
+    <header class="top">
+      <div class="brand">FOLIO</div>
+      <div class="file">workspace.folio <span id="dirty-mark">— saved locally</span></div>
+      <div class="runtime">LOCAL · <span id="char-count">0 CHARS</span></div>
+      <button class="top-action" id="help-button">HELP</button>
+      <button class="top-action" id="preview-button">VIEW</button>
+      <button class="top-action" id="export-button">EXPORT</button>
+    </header>
+
+    <main class="work">
+      <aside class="rail">
+        <div class="title">BUFFER <span>1</span></div>
+        <nav class="tree" id="tree" aria-label="Document structure"></nav>
+        <div class="title">MATH MACROS <span>\</span></div>
+        <div class="keys" id="keys"></div>
+      </aside>
+
+      <section class="document-workspace" aria-label="Source and compiled document">
+        <section class="editor-pane" aria-label="Math editor">
+          <div class="gutter" id="gutter" aria-hidden="true"></div>
+          <textarea class="editor" id="editor" aria-label="Document text" wrap="off" spellcheck="false" autocomplete="off" autocapitalize="off" readonly></textarea>
+        </section>
+        <aside class="preview-pane" id="preview-pane" aria-label="Compiled document preview">
+          <div class="preview-head">COMPILED DOCUMENT <span id="preview-mode">LINALG BINDS</span></div>
+          <article class="preview-body" id="preview-body"></article>
+        </aside>
+      </section>
+
+      <aside class="inspect">
+        <div class="title">EDITOR <span>LIVE</span></div>
+        <div class="block"><h2>CURSOR</h2><div class="readout" id="readout"></div></div>
+        <div class="block"><h2>MATH MODE</h2><div class="assume" id="assumption"></div></div>
+        <div class="block actions">
+          <h2>VIM BINDINGS</h2>
+          <button type="button"><span>insert before cursor</span><kbd>i</kbd></button>
+          <button type="button"><span>append after cursor</span><kbd>a</kbd></button>
+          <button type="button"><span>visual selection</span><kbd>v</kbd></button>
+          <button type="button"><span>delete / yank line</span><kbd>dd / yy</kbd></button>
+          <button type="button"><span>undo / redo</span><kbd>u / C-r</kbd></button>
+          <button type="button"><span>record / play macro</span><kbd>q{r} / @{r}</kbd></button>
+        </div>
+        <div class="block actions">
+          <h2>FILE</h2>
+          <button id="save-button"><span>save locally</span><kbd>:w</kbd></button>
+          <button id="mode-button"><span>cycle math mode</span><kbd>C-m</kbd></button>
+          <button id="template-button"><span>load problem set</span><kbd>:template</kbd></button>
+          <button id="export-side"><span>export assignment</span><kbd>:export</kbd></button>
+          <button id="new-button"><span>reset current buffer</span><kbd>:new</kbd></button>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="status">
+      <b id="editor-state">NORMAL</b>
+      <button class="math-state" id="math-state" aria-label="Math modes and keybindings">LINALG</button>
+      <span class="grow" id="message">Press i to edit · C-m cycles math mode · $...$ compiles</span>
+      <span id="position">1:1</span>
+    </footer>
+  </div>
+
+  <div class="mode-list" id="mode-list" hidden>
+    <button class="mode-option active" data-mode-choice="linalg"><b>1</b><b>LINALG</b><span>matrices · row operations · RREF</span></button>
+    <button class="mode-option" data-mode-choice="calculus"><b>2</b><b>CALC</b><span>derivatives · integrals · limits</span></button>
+    <button class="mode-option" data-mode-choice="proof"><b>3</b><b>PROOF</b><span>assumptions · rewrites · QED</span></button>
+  </div>
+
+  <div class="commandbar" id="commandbar" hidden>
+    <input id="command-input" aria-label="Command line" autocomplete="off" spellcheck="false">
+  </div>
+
+  <dialog id="help-dialog">
+    <header class="dialog-head"><h2>FOLIO HELP</h2><button data-close-dialog="help-dialog">CLOSE <kbd>Esc</kbd></button></header>
+    <div class="help-layout">
+      <nav class="help-nav" aria-label="Help topics">
+        <input id="help-search" aria-label="Filter help topics" placeholder="filter topics">
+        <div id="help-topics"></div>
+      </nav>
+      <article class="help-body" id="help-content"></article>
+    </div>
+  </dialog>
+
+  <dialog id="export-dialog">
+    <header class="dialog-head"><h2>EXPORT ASSIGNMENT</h2><button data-close-dialog="export-dialog">CLOSE <kbd>Esc</kbd></button></header>
+    <div class="export-form">
+      <div class="field"><label for="meta-title">TITLE</label><input id="meta-title"></div>
+      <div class="field"><label for="meta-student">STUDENT</label><input id="meta-student"></div>
+      <div class="field"><label for="meta-course">COURSE</label><input id="meta-course"></div>
+      <div class="field"><label for="meta-date">DATE</label><input id="meta-date" type="date"></div>
+    </div>
+    <div class="export-options">
+      <button class="export-option" data-export="md"><b>MARKDOWN</b><span>Portable source with assignment metadata and readable Unicode math.</span></button>
+      <button class="export-option" data-export="tex"><b>LATEX</b><span>Article document using amsmath, amssymb, amsthm, and classroom margins.</span></button>
+      <button class="export-option" data-export="pdf"><b>PDF</b><span>Print-ready Letter paper. Choose Save as PDF in the system print dialog.</span></button>
+      <button class="export-option" data-export="txt"><b>PLAIN TEXT</b><span>Exact editor contents without conversion.</span></button>
+    </div>
+  </dialog>
+
+  <article class="print-paper" id="print-paper" aria-label="Printable assignment"></article>
+  <dialog id="recovery-dialog" aria-labelledby="recovery-title">
+    <header class="dialog-head"><h2 id="recovery-title">SAVED WORK NEEDS RECOVERY</h2></header>
+    <div class="assistant-content"><p id="recovery-message"></p>
+      <button id="recovery-export">DOWNLOAD ORIGINAL DATA</button>
+      <button id="recovery-reset">KEEP RECOVERY COPY & START EMPTY</button>
+    </div>
+  </dialog>
+
+  <dialog id="modes-dialog" aria-labelledby="modes-title">
+    <header class="dialog-head"><h2 id="modes-title">MATH MODES</h2><button data-close-dialog="modes-dialog">CLOSE <kbd>Esc</kbd></button></header>
+    <div class="mode-settings">
+      <button id="mode-auto">AUTOMATIC: ON</button><button id="mode-detect">DETECT NOW</button>
+      <label for="mode-model">Local AI model</label><select id="mode-model" disabled><option>Loading models…</option></select>
+      <p id="mode-status" role="status" aria-live="polite">Automatic modes follow the active section when you return to Normal mode.</p>
+      <label for="mode-topic">Create a toolbox for any mathematical subject</label>
+      <div class="mode-create"><input id="mode-topic" maxlength="200" placeholder="Describe the subject or notation you need"><button id="mode-create">CREATE MODE</button></div>
+    </div>
+    <div class="mode-library"><nav id="mode-library-list" aria-label="Saved math modes"></nav><section id="mode-details" aria-label="Mode keybindings"></section></div>
+    <p class="mode-note">Bindings insert editable notation, not verified mathematics. Selecting a mode pins it; turn Automatic back on to follow your work.</p>
+  </dialog>
+
+  <dialog id="assistant-dialog" aria-labelledby="assistant-title">
+    <header class="dialog-head"><h2 id="assistant-title">YOUR NEXT STEP</h2><button data-close-dialog="assistant-dialog">CLOSE <kbd>Esc</kbd></button></header>
+    <div class="assistant-content">
+      <p>Describe the step you chose. Folio proposes its notation; you decide whether to add it.</p>
+      <label for="assistant-model">Local Ollama model</label>
+      <select id="assistant-model" disabled><option>Loading models…</option></select>
+      <label for="assistant-request">Type or use macOS Dictation</label>
+      <textarea id="assistant-request" rows="4" placeholder="State the rule, the expression it applies to, and the result you intend."></textarea>
+      <button id="assistant-send" disabled>PROPOSE STEP</button>
+      <p id="assistant-status" role="status" aria-live="polite"></p>
+      <pre id="assistant-latex"></pre>
+      <div id="assistant-preview"></div>
+      <button id="assistant-accept" hidden>ACCEPT STEP</button>
+      <p class="assistant-note">AI output is a proposal, not a verified proof. Nothing changes until you accept.</p>
+    </div>
+  </dialog>
+
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$', '$']], displayMath: [['$$', '$$']], processEscapes: true, packages: {'[-]': ['noundefined']} },
+      svg: { fontCache: 'local' },
+      startup: { typeset: false }
+    };
+  </script>
+  <script src="vendor/tex-svg.js"></script>
+  <script src="math-modes.js"></script>
+  <script id="folio-app">
+    const STORAGE_KEY = 'folio-desktop-v4';
+    const LEGACY_STORAGE_KEY = 'folio-desktop-v3';
+    const seeds = {
+      linalg: '# Linear algebra\n\nA = [1 2 1; 2 5 3; 1 0 8]\n\nR₂ ← R₂ − 2R₁\nR₃ ← R₃ − R₁\n',
+      calculus: '# Calculus\n\nf(x) = x²eˣ\n\n∫ x²eˣ dx\n',
+      proof: '# Proof\n\nTheorem: √2 is irrational.\n\nproof by contradiction\nassume √2 = a/b, gcd(a,b) = 1\n'
+    };
+    const starterDocument = '# Mixed methods\n\n## Linear algebra\n$A = \\begin{bmatrix}1 & 2 \\\\ 3 & 4\\end{bmatrix}$\n\n$R_2 \\leftarrow R_2 - 3R_1$\n\n## Calculus\n$$\\int_0^1 x^2 \\, dx = \\frac{1}{3}$$\n\nSwitch math modes with Ctrl-m. The file does not change.\n';
+    const assignmentTemplates = {
+      linalg: '# Problems\n\n## Problem 1\n\n### Given\n$A = \\begin{bmatrix}1 & 0 \\\\ 0 & 1\\end{bmatrix}$\n\n### Task\nCompute $\\operatorname{rref}(A)$.\n\n### Work\n$R_2 \\leftarrow R_2 - R_1$\n\n### Answer\n$[state the result]$\n',
+      calculus: '# Problems\n\n## Problem 1\n\n### Given\n$f(x) = [enter the function]$\n\n### Task\nEvaluate the integral.\n\n### Work\n$$\\int f(x) \\, dx + C$$\n\n### Answer\n$[state the result]$\n',
+      proof: '# Problems\n\n## Problem 1\n\nTheorem: [state the claim].\n\nProof:\nassume [hypotheses]\n\n[derive the next statement]\n    by [justification]\n\n∎\n'
+    };
+    const bufferTree = ['▾ current-file', '● workspace', '· references', '· scratch'];
+    const contexts = {
+      linalg: {
+        label: 'LINALG', aliases: ['1', 'linalg', 'linauge', 'linear', 'linear algebra'],
+        assumption: 'Matrix and vector operations. Arithmetic domain: ℝ.',
+        macros: [
+          ['\\ c', 'copy last matrix', () => repeatLastMatrix(false)],
+          ['\\ n', 'next row-reduction step', () => repeatLastMatrix(true)],
+          ['\\ t', 'transform to RREF', () => wrapLastMatrix('rref')],
+          ['\\ b', 'build determinant', () => wrapLastMatrix('det')]
+        ]
+      },
+      calculus: {
+        label: 'CALC', aliases: ['2', 'calc', 'calculus'],
+        assumption: 'Primary variable: x. Indefinite integrals include + C.',
+        macros: [
+          ['\\ c', 'copy last expression', () => duplicatePreviousLine('prior expression copied')],
+          ['\\ n', 'continue last derivation', continuePreviousLine],
+          ['\\ t', 'differentiate expression', () => transformPreviousLine('differentiate')],
+          ['\\ b', 'build integral', () => transformPreviousLine('integrate')]
+        ]
+      },
+      proof: {
+        label: 'PROOF', aliases: ['3', 'proof'],
+        assumption: 'Natural-deduction writing with explicit justifications.',
+        macros: [
+          ['\\ c', 'copy prior step', () => duplicatePreviousLine('prior proof step copied')],
+          ['\\ n', 'continue with justification', continueProofStep],
+          ['\\ t', 'transform by inference', buildInferenceRule],
+          ['\\ b', 'build contradiction', buildContradiction]
+        ]
+      }
+    };
+
+    const commonSnippets = {
+      fr: '$\\frac{|}{}$', sq: '$\\sqrt{|}$', sum: '$\\sum_{i=1}^{n} |$',
+      prod: '$\\prod_{i=1}^{n} |$', cases: '$$\\begin{cases}| \\\\ \\end{cases}$$'
+    };
+    const modeSnippets = {
+      linalg: {
+        m2: '$\\begin{bmatrix}| &  \\\\  & \\end{bmatrix}$',
+        m3: '$\\begin{bmatrix}| &  &  \\\\  &  &  \\\\  &  & \\end{bmatrix}$',
+        aug: '$\\left[\\begin{array}{cc|c}| &  &  \\\\  &  & \\end{array}\\right]$'
+      },
+      calculus: {
+        int: '$\\int | \\, dx + C$', dint: '$\\int_{a}^{b} | \\, dx$',
+        lim: '$\\lim_{x \\to |} $', der: '$\\frac{d}{dx}\\left(|\\right)$'
+      },
+      proof: {
+        imp: '$| \\implies $', iff: '$| \\iff $', contra: '$| \\implies \\bot$'
+      }
+    };
+
+    const help = {
+      assistant: {
+        title: 'Learning assistant',
+        text: 'In the Mac app, describe your chosen next step with :step. Review its LaTeX and explanation before accepting. Ambiguous instructions should produce a question; :hint asks for guidance without editing. Requires a locally installed Ollama model.',
+        rows: [[':step [instruction]', 'Translate exactly one requested step'], [':hint [question]', 'Ask for a conceptual hint'], ['Accept step', 'Append at the captured line; undo remains available'], ['Mode changes', 'Proposed changes apply only when accepted'], ['Dictation', 'Use macOS Dictation in the request field']]
+      },
+      overview: {
+        title: 'Start here',
+        text: 'Folio has one file and two independent mode systems. Vim mode controls editing. Math mode changes local keybindings and assumptions without changing the file.',
+        rows: [['i / Esc', 'Enter Insert mode / return to Normal mode'], ['Ctrl-m', 'Cycle installed math modes and pin your choice'], ['\\ then a mode key', 'Insert the notation shown in :bindings'], ['fr then Tab', 'Expand a short token into editable LaTeX'], [':modes', 'Manage automatic detection and custom modes'], ['$x_1^2$', 'Compile inline LaTeX in the live view'], ['$$...$$', 'Compile display LaTeX'], [':template', 'Load the editable Problem Set template'], [':export format', 'Export md, tex, pdf, or txt']]
+      },
+      modes: {
+        title: 'Math modes',
+        text: 'Math mode changes notation keys, not your document. In the Mac app, a local Ollama model can identify the active selection or Markdown section, reuse a saved mode, or generate a new toolbox. Detection waits until you stop typing in Normal mode. Generated notation is checked for valid TeX, not mathematical correctness.',
+        rows: [[':modes / :bindings', 'Inspect keys, select the model, pin or remove custom modes'], [':detect / Cmd-Shift-D', 'Detect the active subject now'], [':auto on / :auto off', 'Enable / disable idle detection'], [':mode create subject', 'Generate notation for a subject you name'], [':M name / Ctrl-m', 'Choose a saved mode and turn automatic switching off'], [':M linalg / calc / proof', 'Pin a built-in toolbox'], ['\\ then the displayed key', 'Insert editable notation; Escape then u undoes it']]
+      },
+      latex: {
+        title: 'Live LaTeX',
+        text: 'The right pane compiles TeX continuously. Use dollar delimiters in the source file; the source remains plain text and exports directly.',
+        rows: [['$x_1^2$', 'Inline subscript and superscript'], ['$$\\int_0^1 x^2 \\, dx$$', 'Centered display equation'], ['$\\frac{a}{b}$', 'Fraction'], ['$\\sqrt{x}$', 'Square root'], ['$\\begin{bmatrix}1 & 0 \\\\ 0 & 1\\end{bmatrix}$', 'Matrix']]
+      },
+      vim: {
+        title: 'Vim editing',
+        text: 'Normal mode navigates and operates on text. Insert mode types. Visual mode selects ranges.',
+        rows: [['h j k l', 'Move by character or line'], ['w / b', 'Next / previous word'], ['0 / $', 'Start / end of line'], ['gg / G', 'Start / end of document'], ['i a I A', 'Enter Insert mode'], ['o / O', 'Open line below / above'], ['dd / yy / p', 'Delete line / yank line / paste'], ['v then y/d/c', 'Select then yank/delete/change'], ['u / Ctrl-r', 'Undo / redo'], ['q{register} / @{register}', 'Record / play a Normal-mode macro']]
+      },
+      macros: {
+        title: 'Math macros',
+        text: 'Press backslash in Normal mode, then a key shown in :bindings. Built-in modes use the four keys below. Generated modes have their own labeled keys; they wrap selected text or open an empty editable argument. Review the notation before using it.',
+        rows: [['\\ c in built-in modes', 'Copy the prior matrix, expression, or proof step'], ['\\ n in built-in modes', 'Create the next row, calculation, or justified proof step'], ['\\ t in built-in modes', 'RREF, differentiate, or create an inference rule'], ['\\ b in built-in modes', 'Build a determinant, integral, or contradiction'], [':bindings', 'Inspect every generated key and its LaTeX']]
+      },
+      snippets: {
+        title: 'Tab expansions',
+        text: 'In Insert mode, type a short token and press Tab. Folio replaces it with editable LaTeX and places the cursor at the first changing field.',
+        rows: [['fr / sq / sum / prod / cases', 'Fraction / root / summation / product / cases'], ['Linalg: m2 / m3 / aug', '2×2 matrix / 3×3 matrix / augmented matrix'], ['Calc: int / dint / lim / der', 'Integral / definite integral / limit / derivative'], ['Proof: imp / iff / contra', 'Implication / equivalence / contradiction']]
+      },
+      template: {
+        title: 'Problem Set template',
+        text: 'The template is plain Folio source: headings, prompt, work, and answer blocks. It adapts to the active math context and remains fully editable.',
+        rows: [[':template', 'Load the template when the buffer is empty or unchanged'], [':template!', 'Replace the current buffer with the template'], ['i', 'Edit the first placeholder'], [':export pdf', 'Submit the populated template as a classroom paper']]
+      },
+      commands: {
+        title: 'Commands',
+        text: 'Press colon in Normal mode, type a command, and press Enter.',
+        rows: [[':M [mode]', 'List or switch math mode without changing the file'], [':preview', 'Show or hide the compiled document'], [':help [topic]', 'Open overview, modes, latex, vim, macros, template, commands, or export'], [':template / :template!', 'Load safely / replace with the Problem Set template'], [':set title TEXT', 'Set assignment title'], [':set student TEXT', 'Set student name'], [':set course TEXT', 'Set course'], [':set date YYYY-MM-DD', 'Set submission date'], [':w', 'Save locally'], [':new', 'Clear the current file'], [':export [md|tex|pdf|txt]', 'Export the current document']]
+      },
+      export: {
+        title: 'Export and submit',
+        text: 'Set assignment metadata before export. Markdown and LaTeX download immediately. PDF opens the system print dialog with a clean Letter-size classroom layout; select Save as PDF.',
+        rows: [[':export md', 'Download Markdown'], [':export tex', 'Download a complete LaTeX article'], [':export pdf', 'Open the print-ready paper'], [':export txt', 'Download exact source text'], [':set title ...', 'Set the title used by every formatted export']]
+      }
+    };
+
+    const app = document.querySelector('.app');
+    const editor = document.querySelector('#editor');
+    const gutter = document.querySelector('#gutter');
+    const tree = document.querySelector('#tree');
+    const keys = document.querySelector('#keys');
+    const readout = document.querySelector('#readout');
+    const assumption = document.querySelector('#assumption');
+    const editorStateLabel = document.querySelector('#editor-state');
+    const mathStateLabel = document.querySelector('#math-state');
+    const message = document.querySelector('#message');
+    const position = document.querySelector('#position');
+    const charCount = document.querySelector('#char-count');
+    const dirtyMark = document.querySelector('#dirty-mark');
+    const commandbar = document.querySelector('#commandbar');
+    const commandInput = document.querySelector('#command-input');
+    const modeList = document.querySelector('#mode-list');
+    const helpDialog = document.querySelector('#help-dialog');
+    const helpTopics = document.querySelector('#help-topics');
+    const helpContent = document.querySelector('#help-content');
+    const helpSearch = document.querySelector('#help-search');
+    const exportDialog = document.querySelector('#export-dialog');
+    const printPaper = document.querySelector('#print-paper');
+    const previewBody = document.querySelector('#preview-body');
+    const previewMode = document.querySelector('#preview-mode');
+
+    let storageFailure = '';
+    let saved = loadState();
+    let customModes = saved.modes || [];
+    for (const mode of customModes) registerMode(mode);
+    let preferences = saved.preferences || { automatic: !window.FolioTesting, model: '' };
+    let documentText = saved.document ?? saved.documents?.[saved.current] ?? starterDocument;
+    function today() {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    }
+    let metadata = {
+      title: 'Untitled Assignment',
+      student: '',
+      course: '',
+      date: today(),
+      ...(saved.metadata || {})
+    };
+    let current = saved.current && contexts[saved.current] ? saved.current : 'linalg';
+    let editorState = 'NORMAL';
+    let pending = '';
+    let leader = false;
+    let visualAnchor = 0;
+    let visualHead = 0;
+    let clipboard = '';
+    let clipboardLinewise = false;
+    let recording = '';
+    let recordedKeys = [];
+    let registers = saved.registers || {};
+    let replaying = false;
+    const activeRegisters = new Set();
+    let replayBudget = 0;
+    let playbackError = '';
+    let history = { undo: [], redo: [] };
+    let previousText = documentText;
+    let typesetQueue = Promise.resolve();
+    let previewTimer = 0;
+    let modeTimer = 0;
+    let modePending = null;
+    let lastModePassage = '';
+    let availableModels = [];
+    let modeNotice = 'Automatic modes follow the active section in Normal mode.';
+    let inspectedMode = current;
+
+    function loadState() {
+      try {
+        const raw = window.FolioInitialState || JSON.parse(localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY));
+        if (!raw) return {};
+        validateWorkspace(raw);
+        return raw;
+      }
+      catch (error) { storageFailure = 'Saved browser data could not be read. It has NOT been overwritten. Export its recovery copy before resetting.'; return { document: '' }; }
+    }
+
+    function validateWorkspace(state) {
+      if (!state || typeof state !== 'object' || Array.isArray(state) ||
+          (typeof state.document !== 'string' && typeof state.documents?.[state.current] !== 'string')) throw Error('Invalid document');
+      if (new TextEncoder().encode(state.document ?? state.documents[state.current]).length > 4000000) throw Error('The workspace exceeds the 4 MB document limit.');
+      if (state.modes !== undefined && !Array.isArray(state.modes)) throw Error('Invalid mode library');
+      const modes = state.modes || [];
+      if (modes.length > 64 || new Set(modes.map(mode => mode.id)).size !== modes.length) throw Error('Invalid mode library');
+      for (const mode of modes) FolioModes.validate(mode);
+      if (new Set(modes.map(mode => mode.title.trim().toLowerCase())).size !== modes.length) throw Error('Duplicate mode names');
+      if (![...Object.keys(contexts), ...modes.map(mode => mode.id)].includes(state.current)) throw Error('Unknown saved math mode');
+      if (state.metadata !== undefined && (!state.metadata || typeof state.metadata !== 'object' || Array.isArray(state.metadata) ||
+          ['title', 'student', 'course', 'date'].some(key => typeof state.metadata[key] !== 'string') ||
+          Object.values(state.metadata).some(value => typeof value !== 'string' || value.length > 4000))) throw Error('Invalid metadata');
+      if (state.registers !== undefined && (!state.registers || typeof state.registers !== 'object' || Array.isArray(state.registers) || Object.keys(state.registers).length > 128 ||
+          Object.entries(state.registers).some(([name, keys]) => name.length !== 1 || !Array.isArray(keys) || keys.length > 1000 || keys.some(key => typeof key !== 'string' || key.length > 40)))) throw Error('Invalid macro registers');
+      if (state.preferences !== undefined && (!state.preferences || typeof state.preferences.automatic !== 'boolean' || typeof state.preferences.model !== 'string' || state.preferences.model.length > 200)) throw Error('Invalid preferences');
+    }
+
+    function persist() {
+      documentText = editor.value;
+      if (storageFailure) { setMessage(storageFailure); return; }
+      const state = JSON.stringify(workspaceState());
+      if (window.webkit?.messageHandlers.folio) {
+        window.webkit.messageHandlers.folio.postMessage({ action: 'persist', state });
+        return;
+      }
+      try { localStorage.setItem(STORAGE_KEY, state); dirtyMark.textContent = '— saved locally'; }
+      catch (error) { dirtyMark.textContent = '— NOT SAVED'; setMessage('Browser storage failed. Export your work before closing.'); }
+    }
+
+    function workspaceState() { return { document: editor.value, current, registers, metadata, modes: customModes, preferences }; }
+
+    function setMessage(text) { message.textContent = text; }
+
+    function setEditorState(next) {
+      editorState = next;
+      app.dataset.editorState = next;
+      editorStateLabel.textContent = next;
+      editor.readOnly = next !== 'INSERT';
+      editor.focus();
+      if (next !== 'VISUAL') visualAnchor = editor.selectionStart;
+      updateMeta();
+    }
+
+    function lineInfo(offset = editorState === 'VISUAL' ? visualHead : editor.selectionEnd) {
+      const before = editor.value.slice(0, offset);
+      const line = before.split('\n').length - 1;
+      const start = before.lastIndexOf('\n') + 1;
+      const endIndex = editor.value.indexOf('\n', offset);
+      const end = endIndex < 0 ? editor.value.length : endIndex;
+      return { line, column: offset - start, start, end };
+    }
+
+    function updateMeta() {
+      const info = lineInfo();
+      position.textContent = `${info.line + 1}:${info.column + 1}`;
+      charCount.textContent = `${editor.value.length} CHARS`;
+      readout.innerHTML = `<span>line</span><b>${info.line + 1}</b><span>column</span><b>${info.column + 1}</b><span>selection</span><b>${Math.abs(editor.selectionEnd - editor.selectionStart)}</b><span>register</span><b>${recording || '—'}</b>`;
+      renderGutter(info.line);
+    }
+
+    function renderGutter(activeLine = lineInfo().line) {
+      const count = editor.value.split('\n').length;
+      gutter.innerHTML = Array.from({ length: count }, (_, index) => `<span class="${index === activeLine ? 'active' : ''}">${index + 1}</span>`).join('');
+      gutter.scrollTop = editor.scrollTop;
+    }
+
+    function renderContext(name) {
+      current = name;
+      const context = contexts[name];
+      app.dataset.mathContext = name;
+      mathStateLabel.textContent = `${preferences.automatic ? 'AUTO · ' : ''}${context.label}`;
+      previewMode.textContent = `${context.label} BINDS`;
+      document.querySelectorAll('[data-mode-choice]').forEach(button => button.classList.toggle('active', button.dataset.modeChoice === name));
+      tree.innerHTML = bufferTree.map((item, index) => `<button class="${index ? 'indent ' : ''}${item.includes('●') ? 'active' : ''}">${item}</button>`).join('');
+      keys.replaceChildren(...context.macros.map(([key, action]) => {
+        const row = document.createElement('p'), label = document.createElement('span'), shortcut = document.createElement('kbd');
+        label.textContent = action; shortcut.textContent = key; row.append(label, shortcut); return row;
+      }));
+      assumption.textContent = context.assumption;
+      setMessage(`${context.label} · ${context.macros.map(item => item[0]).join('  ')}`);
+      persist();
+      renderPreview();
+    }
+
+    function cycleMathMode() {
+      const names = Object.keys(contexts);
+      pinMode(names[(names.indexOf(current) + 1) % names.length]);
+    }
+
+    function syncPreviewButton() {
+      const compact = matchMedia('(max-width: 1100px)').matches;
+      app.classList.remove(compact ? 'preview-hidden' : 'preview-only');
+      const showingPreview = compact ? app.classList.contains('preview-only') : !app.classList.contains('preview-hidden');
+      document.querySelector('#preview-button').textContent = compact ? (showingPreview ? 'SOURCE' : 'VIEW') : (showingPreview ? 'HIDE VIEW' : 'VIEW');
+    }
+
+    function togglePreview() {
+      const compact = matchMedia('(max-width: 1100px)').matches;
+      app.classList.remove(compact ? 'preview-hidden' : 'preview-only');
+      if (compact) app.classList.toggle('preview-only');
+      else app.classList.toggle('preview-hidden');
+      const showingPreview = compact ? app.classList.contains('preview-only') : !app.classList.contains('preview-hidden');
+      syncPreviewButton();
+      if (!showingPreview) editor.focus();
+      setMessage(showingPreview ? 'compiled document visible' : 'source editor visible');
+    }
+
+    function findContext(value) {
+      const normalized = value.trim().toLowerCase();
+      return Object.keys(contexts).find(name => contexts[name].aliases.includes(normalized));
+    }
+
+    function showCommand(initial = ':') {
+      commandbar.hidden = false;
+      commandInput.value = initial;
+      commandInput.focus();
+      commandInput.setSelectionRange(initial.length, initial.length);
+      setMessage('COMMAND');
+      updateModeList();
+    }
+
+    function closeCommand() {
+      commandbar.hidden = true;
+      modeList.hidden = true;
+      editor.focus();
+      setMessage(`${contexts[current].label} binds · Ctrl-m cycles mode`);
+    }
+
+    function updateModeList() {
+      const value = commandInput.value.trim();
+      modeList.hidden = !/^:M(?:\s.*)?$/i.test(value);
+    }
+
+    function openHelp(topic = 'overview') {
+      const selected = help[topic] ? topic : 'overview';
+      if (!helpDialog.open) helpSearch.value = '';
+      helpTopics.innerHTML = Object.entries(help).map(([key, value]) => `<button class="${key === selected ? 'active' : ''}" data-help-topic="${key}">${key.toUpperCase()}<br><span>${value.title}</span></button>`).join('');
+      const item = help[selected];
+      helpContent.innerHTML = `<h3>${item.title}</h3><p>${item.text}</p><table class="help-table"><tbody>${item.rows.map(([key, description]) => `<tr><th><kbd>${key}</kbd></th><td>${description}</td></tr>`).join('')}</tbody></table>`;
+      helpTopics.querySelectorAll('[data-help-topic]').forEach(button => button.addEventListener('click', () => openHelp(button.dataset.helpTopic)));
+      filterHelp(helpSearch.value);
+      if (!helpDialog.open) helpDialog.showModal();
+      setMessage(`HELP · ${selected}`);
+    }
+
+    function filterHelp(query) {
+      const normalized = query.trim().toLowerCase();
+      helpTopics.querySelectorAll('[data-help-topic]').forEach(button => {
+        const topic = help[button.dataset.helpTopic];
+        button.hidden = normalized && !`${button.dataset.helpTopic} ${topic.title} ${topic.text} ${topic.rows.flat().join(' ')}`.toLowerCase().includes(normalized);
+      });
+    }
+
+    function syncMetadataFromForm() {
+      metadata = {
+        title: document.querySelector('#meta-title').value.trim() || 'Untitled Assignment',
+        student: document.querySelector('#meta-student').value.trim(),
+        course: document.querySelector('#meta-course').value.trim(),
+        date: document.querySelector('#meta-date').value || today()
+      };
+      persist();
+      buildPrintPaper();
+    }
+
+    function openExport() {
+      document.querySelector('#meta-title').value = metadata.title;
+      document.querySelector('#meta-student').value = metadata.student;
+      document.querySelector('#meta-course').value = metadata.course;
+      document.querySelector('#meta-date').value = metadata.date;
+      if (!exportDialog.open) exportDialog.showModal();
+      setMessage('EXPORT · choose a format');
+    }
+
+    function safeFilename(extension) {
+      const base = metadata.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `folio-${current}`;
+      return `${base}.${extension}`;
+    }
+
+    function downloadFile(content, extension, mime) {
+      if (window.webkit?.messageHandlers.folio) {
+        window.webkit.messageHandlers.folio.postMessage({ action: 'export', content, filename: safeFilename(extension) });
+        return;
+      }
+      const blob = new Blob([content], { type: `${mime};charset=utf-8` });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = safeFilename(extension);
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+      setMessage(`exported ${safeFilename(extension)}`);
+    }
+
+    function yamlValue(value) { return JSON.stringify(String(value)); }
+
+    function toMarkdown() {
+      return `---\ntitle: ${yamlValue(metadata.title)}\nauthor: ${yamlValue(metadata.student)}\ncourse: ${yamlValue(metadata.course)}\ndate: ${yamlValue(metadata.date)}\n---\n\n# ${metadata.title}\n\n${editor.value.trim()}\n`;
+    }
+
+    function latexEscape(value) {
+      const escapes = { '\\': '\\textbackslash{}', '&': '\\&', '%': '\\%', '#': '\\#', '$': '\\$', '{': '\\{', '}': '\\}', '_': '\\_', '~': '\\textasciitilde{}', '^': '\\textasciicircum{}' };
+      return String(value).replace(/[\\&%#$\{\}_~^]/g, character => escapes[character]);
+    }
+
+    function toLatexProse(value) {
+      return String(value).split(/(\$[^$]+\$)/g).map(part => {
+        if (part.startsWith('$') && part.endsWith('$')) return `\\(${part.slice(1, -1)}\\)`;
+        return latexEscape(part).replace(/√\s*([A-Za-z0-9]+)/g, '\\(\\sqrt{$1}\\)');
+      }).join('');
+    }
+
+    function matrixToLatex(line) {
+      return line.replace(/\[([^\[\]]*;[^\[\]]*)\]/g, (_, body) => {
+        const rows = body.split(';').map(row => row.trim().split(/\s+/).join(' & '));
+        return `\\begin{bmatrix}${rows.join(' \\\\ ')}\\end{bmatrix}`;
+      });
+    }
+
+    function toLatexMath(line) {
+      let value = matrixToLatex(line);
+      const replacements = [
+        [/√\s*([A-Za-z0-9]+)/g, '\\sqrt{$1}'], [/∫/g, '\\int'], [/←/g, '\\leftarrow'], [/→/g, '\\to'], [/↔/g, '\\leftrightarrow'],
+        [/−/g, '-'], [/×/g, '\\times '], [/÷/g, '\\div '], [/∞/g, '\\infty'], [/∑/g, '\\sum'], [/π/g, '\\pi'], [/θ/g, '\\theta'],
+        [/≤/g, '\\leq'], [/≥/g, '\\geq'], [/≠/g, '\\neq'], [/∈/g, '\\in'], [/∉/g, '\\notin'], [/ℝ/g, '\\mathbb{R}'], [/ℚ/g, '\\mathbb{Q}'],
+        [/₀/g, '_{0}'], [/₁/g, '_{1}'], [/₂/g, '_{2}'], [/₃/g, '_{3}'], [/₄/g, '_{4}'], [/₅/g, '_{5}'], [/₆/g, '_{6}'], [/₇/g, '_{7}'], [/₈/g, '_{8}'], [/₉/g, '_{9}'],
+        [/⁰/g, '^{0}'], [/¹/g, '^{1}'], [/²/g, '^{2}'], [/³/g, '^{3}'], [/∎/g, '\\qed'], [/\bgcd\b/g, '\\gcd'], [/\blim_/g, '\\lim_']
+      ];
+      replacements.forEach(([pattern, replacement]) => { value = value.replace(pattern, replacement); });
+      value = value.replace(/^(assume|therefore|let|rewrite|proof by)\s+/i, match => `\\text{${match}}`);
+      return value;
+    }
+
+    function toLatex() {
+      let inProof = false;
+      const body = FolioModes.blocks(editor.value).map(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return '';
+        if (trimmed.startsWith('### ')) return `\\subsubsection*{${latexEscape(trimmed.slice(4))}}`;
+        if (trimmed.startsWith('## ')) return `\\subsection*{${latexEscape(trimmed.slice(3))}}`;
+        if (trimmed.startsWith('# ')) return `\\section*{${latexEscape(trimmed.slice(2))}}`;
+        if (trimmed.startsWith('$$')) {
+          if (trimmed.length < 4 || !trimmed.endsWith('$$')) throw Error('Close the display-math delimiters before exporting LaTeX.');
+          return `\\[${trimmed.slice(2, -2)}\\]`;
+        }
+        if (/^\$[^$]+\$$/.test(trimmed)) return `\\[${trimmed.slice(1, -1)}\\]`;
+        if (/^Theorem:/i.test(trimmed)) return `\\begin{theorem}${toLatexProse(trimmed.replace(/^Theorem:\s*/i, ''))}\\end{theorem}`;
+        if (/^Proof:$/i.test(trimmed)) { const prior = inProof ? '\\end{proof}\n' : ''; inProof = true; return prior + '\\begin{proof}'; }
+        if (/^proof by\b/i.test(trimmed)) return `\\noindent\\textit{${latexEscape(trimmed.replace(/^proof/i, 'Proof'))}.}\\par`;
+        if (trimmed === '∎') { if (inProof) { inProof = false; return '\\end{proof}'; } return '\\hfill$\\square$\\par'; }
+        if (/^(assume|therefore|let|rewrite|by)\b/i.test(trimmed) || trimmed.includes('$')) return `\\noindent ${toLatexProse(trimmed)}\\par`;
+        if (!lineKind(trimmed)) return `\\noindent ${toLatexProse(trimmed)}\\par`;
+        return `\\[${toLatexMath(trimmed)}\\]`;
+      }).join('\n') + (inProof ? '\n\\end{proof}' : '');
+      return `\\documentclass[11pt]{article}\n\\usepackage[letterpaper,margin=1in]{geometry}\n\\usepackage{amsmath,amssymb,amsthm}\n\\newtheorem{theorem}{Theorem}\n\\title{${latexEscape(metadata.title)}}\n\\author{${latexEscape(metadata.student)}}\n\\date{${latexEscape(metadata.date)}}\n\\begin{document}\n\\maketitle\n\\noindent\\textbf{Course:} ${latexEscape(metadata.course)}\\par\n\\noindent\\textbf{Math context:} ${latexEscape(contexts[current].label)}\\par\n\\bigskip\n${body}\n\\end{document}\n`;
+    }
+
+    function lineKind(line) {
+      if (/^(assume|therefore|let|proof|rewrite|by)\b/i.test(line.trim())) return 'proof';
+      if (/^\$\$[\s\S]*\$\$$/.test(line.trim()) || /^\$[^$]+\$$/.test(line.trim()) || /[=∫√←→↔\[\]²³₀₁₂₃]/.test(line)) return 'formula';
+      return '';
+    }
+
+    function appendDocument(target, print = false) {
+      FolioModes.blocks(editor.value).forEach(line => {
+        const heading = line.match(/^(#{1,3})\s+(.*)$/);
+        if (heading) {
+          const level = print ? Math.min(3, heading[1].length + 1) : heading[1].length;
+          const element = document.createElement(`h${level}`);
+          element.textContent = heading[2];
+          target.append(element);
+          return;
+        }
+        const paragraph = document.createElement('p');
+        paragraph.className = `${print ? 'paper-line ' : ''}${lineKind(line)}`;
+        paragraph.textContent = line || ' ';
+        target.append(paragraph);
+      });
+    }
+
+    function queueTypeset(target, render = () => {}) {
+      if (!window.MathJax?.startup?.promise) { render(); return Promise.resolve(); }
+      typesetQueue = typesetQueue.then(() => window.MathJax.startup.promise).then(() => {
+        window.MathJax.typesetClear([target]);
+        render();
+        return window.MathJax.typesetPromise([target]);
+      }).catch(() => setMessage('LaTeX error · check delimiters or command syntax'));
+      return typesetQueue;
+    }
+
+    function renderPreview() {
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(() => {
+        queueTypeset(previewBody, () => {
+          previewBody.replaceChildren();
+          appendDocument(previewBody);
+        });
+      }, 80);
+    }
+
+    function buildPrintPaper() {
+      return queueTypeset(printPaper, () => {
+      printPaper.replaceChildren();
+      const title = document.createElement('h1');
+      title.className = 'paper-title';
+      title.textContent = metadata.title;
+      const meta = document.createElement('div');
+      meta.className = 'paper-meta';
+      [['Student', metadata.student || '—'], ['Course', metadata.course || '—'], ['Date', metadata.date]].forEach(([label, value]) => {
+        const span = document.createElement('span'); span.textContent = `${label}: ${value}`; meta.append(span);
+      });
+      const body = document.createElement('div');
+      body.className = 'paper-body';
+      appendDocument(body, true);
+      printPaper.append(title, meta, body);
+      });
+    }
+
+    async function exportFormat(format) {
+      try {
+      if (exportDialog.open) syncMetadataFromForm();
+      else { persist(); buildPrintPaper(); }
+      if (exportDialog.open) exportDialog.close();
+      if (format === 'md') downloadFile(toMarkdown(), 'md', 'text/markdown');
+      else if (format === 'tex') downloadFile(toLatex(), 'tex', 'application/x-tex');
+      else if (format === 'txt') downloadFile(editor.value, 'txt', 'text/plain');
+      else if (format === 'pdf') {
+        await buildPrintPaper(); setMessage('PDF · choose Save as PDF in the print dialog');
+        if (window.webkit?.messageHandlers.folio) window.webkit.messageHandlers.folio.postMessage({ action: 'print' });
+        else window.print();
+      }
+      } catch (error) { setMessage(`Export failed: ${error.message}`); }
+    }
+
+    function applyAssignmentTemplate(force = false) {
+      const untouched = !editor.value.trim() || Object.values(seeds).includes(editor.value) || editor.value === starterDocument || Object.values(assignmentTemplates).includes(editor.value);
+      if (!untouched && !force) { setMessage('buffer has work · use :template! to replace it'); return; }
+      pushHistory();
+      editor.value = assignmentTemplates[current] || '# Problems\n\n## Problem 1\n\n### Given\n\n### Work\n\n### Answer\n';
+      previousText = editor.value;
+      documentText = editor.value;
+      const placeholder = editor.value.indexOf('[');
+      editor.setSelectionRange(placeholder < 0 ? 0 : placeholder, placeholder < 0 ? 0 : placeholder);
+      persist(); renderPreview(); updateMeta();
+      setMessage('Problem Set template loaded · press i to edit');
+    }
+
+    function runCommand(raw) {
+      const command = raw.replace(/^:/, '').trim();
+      if (command === 'modes' || command === 'bindings') { closeCommand(); openModes(); return; }
+      if (command === 'detect') { closeCommand(); requestMode(); return; }
+      const auto = command.match(/^auto(?:\s+(on|off))?$/i);
+      if (auto) { closeCommand(); setAutomatic(auto[1] ? auto[1].toLowerCase() === 'on' : !preferences.automatic); return; }
+      const create = command.match(/^mode\s+create\s+(.+)$/i);
+      if (create) { closeCommand(); requestMode(create[1]); return; }
+      if (command === 'undo' || command === 'redo') { closeCommand(); command === 'undo' ? undo() : redo(); return; }
+      const assistantMatch = command.match(/^(step|hint)(?:\s+([\s\S]*))?$/i);
+      if (assistantMatch) { closeCommand(); openAssistant(assistantMatch[1].toLowerCase(), assistantMatch[2] || ''); return; }
+      const modeMatch = command.match(/^M(?:\s+(.*))?$/i);
+      if (modeMatch) {
+        if (!modeMatch[1]) {
+          showCommand(':M ');
+          renderModeList();
+          modeList.hidden = false;
+          setMessage('Choose a saved mode · :modes manages automatic detection and new modes');
+          return;
+        }
+        const mode = findContext(modeMatch[1]);
+        if (!mode) { setMessage(`Unknown math context: ${modeMatch[1]}`); return; }
+        closeCommand();
+        pinMode(mode);
+        return;
+      }
+      const helpMatch = command.match(/^help(?:\s+(\w+))?$/i);
+      if (helpMatch) { closeCommand(); openHelp((helpMatch[1] || 'overview').toLowerCase()); return; }
+      if (command === 'preview' || command === 'view') { closeCommand(); togglePreview(); return; }
+      if (/^template!?$/i.test(command)) { closeCommand(); applyAssignmentTemplate(command.endsWith('!')); return; }
+      const setMatch = command.match(/^set\s+(title|student|course|date)\s+(.+)$/i);
+      if (setMatch) {
+        metadata[setMatch[1].toLowerCase()] = setMatch[2].trim();
+        persist(); buildPrintPaper(); closeCommand(); setMessage(`${setMatch[1].toLowerCase()} updated`); return;
+      }
+      const exportMatch = command.match(/^export(?:\s+(md|markdown|tex|latex|pdf|txt|text))?$/i);
+      if (exportMatch) {
+        closeCommand();
+        if (!exportMatch[1]) openExport();
+        else exportFormat({ markdown: 'md', latex: 'tex', text: 'txt' }[exportMatch[1].toLowerCase()] || exportMatch[1].toLowerCase());
+        return;
+      }
+      if (command === 'w') { persist(); closeCommand(); setMessage('saved locally'); return; }
+      if (command === 'new' || command === 'reset') { closeCommand(); resetBuffer(); return; }
+      if (command === 'q') {
+        closeCommand();
+        if (window.webkit?.messageHandlers.folio) window.webkit.messageHandlers.folio.postMessage({ action: 'quit' });
+        else setMessage('Folio runs in the browser; close the tab to quit');
+        return;
+      }
+      setMessage(`Not an editor command: ${command}`);
+    }
+
+    function snapshot() { return { text: editor.value, start: editor.selectionStart, end: editor.selectionEnd }; }
+
+    function registerMode(mode) {
+      FolioModes.validate(mode);
+      contexts[mode.id] = {
+        label: mode.title, aliases: [mode.id, mode.title.toLowerCase()], assumption: mode.summary,
+        macros: mode.bindings.map(binding => [`\\ ${binding.key}`, binding.label, () => applyGeneratedBinding(binding)])
+      };
+    }
+
+    function applyGeneratedBinding(binding) {
+      const selected = editor.value.slice(editor.selectionStart, editor.selectionEnd);
+      const expansion = FolioModes.expand(binding, mathBody(selected));
+      const at = editor.selectionStart;
+      replaceRange(at, editor.selectionEnd, expansion.text, at + expansion.cursor);
+      setEditorState('INSERT');
+      setMessage(`${binding.label} · fill in the notation`);
+    }
+
+    function renderModeList() {
+      modeList.replaceChildren(...Object.entries(contexts).map(([id, context], index) => {
+        const button = document.createElement('button');
+        button.className = 'mode-option' + (current === id ? ' active' : '');
+        button.dataset.modeChoice = id;
+        const number = document.createElement('b'), title = document.createElement('b'), summary = document.createElement('span');
+        number.textContent = String(index + 1); title.textContent = context.label; summary.textContent = context.assumption;
+        button.append(number, title, summary); return button;
+      }));
+    }
+
+    function pinMode(id) {
+      cancelModeRequest();
+      preferences.automatic = false;
+      renderContext(id);
+      renderModeList();
+      setModeNotice(`${contexts[id].label} pinned. Automatic detection is off.`);
+    }
+
+    function setAutomatic(on) {
+      cancelModeRequest();
+      preferences.automatic = on;
+      lastModePassage = '';
+      renderContext(current);
+      setModeNotice(on ? 'Automatic modes follow the active section in Normal mode.' : `${contexts[current].label} pinned.`);
+      document.querySelector('#mode-auto').textContent = `AUTOMATIC: ${on ? 'ON' : 'OFF'}`;
+      if (on) scheduleModeDetection();
+    }
+
+    function setModeNotice(text) {
+      modeNotice = text;
+      document.querySelector('#mode-status').textContent = text;
+      setMessage(text);
+    }
+
+    function cancelModeRequest() {
+      clearTimeout(modeTimer);
+      if (modePending) window.webkit?.messageHandlers.folio.postMessage({ action: 'cancelMathMode' });
+      modePending = null;
+      document.querySelector('#mode-create').disabled = false;
+      document.querySelector('#mode-detect').disabled = false;
+    }
+
+    function activePassage() { return FolioModes.passage(editor.value, editor.selectionStart, editor.selectionEnd); }
+    function modeSwitchSafe() { return editorState === 'NORMAL' && !leader && !pending && !recording && !replaying; }
+
+    function scheduleModeDetection() {
+      clearTimeout(modeTimer);
+      if (modePending && (modePending.document !== editor.value || modePending.passage !== activePassage())) cancelModeRequest();
+      if (!preferences.automatic || !window.webkit?.messageHandlers.folio || storageFailure) return;
+      modeTimer = setTimeout(() => {
+        if (!modeSwitchSafe() || document.querySelector('dialog[open]') || modePending || !preferences.model) return;
+        const passage = activePassage();
+        if (passage && passage !== lastModePassage) requestMode('', true);
+      }, 2200);
+    }
+
+    function requestMode(topic = '', automatic = false) {
+      if (!window.webkit?.messageHandlers.folio) { setModeNotice('Mode generation needs the Mac app and local Ollama. Saved modes still work offline.'); return; }
+      if (!preferences.model || !availableModels.includes(preferences.model)) { openModes(); setModeNotice('Choose an installed local model first.'); return; }
+      if (!modeSwitchSafe()) { setModeNotice('Finish the key sequence and return to Normal mode before changing bindings.'); return; }
+      if (!activePassage() && !topic.trim()) { setModeNotice('Write some mathematics or enter a subject to create a mode.'); return; }
+      if (customModes.length >= 64 && topic) { setModeNotice('This workspace has 64 custom modes. Remove an unused mode before creating another.'); return; }
+      cancelModeRequest();
+      const passage = activePassage();
+      modePending = { id: crypto.randomUUID(), document: editor.value, passage, current, automatic, topic };
+      lastModePassage = passage;
+      document.querySelector('#mode-create').disabled = true;
+      document.querySelector('#mode-detect').disabled = true;
+      setModeNotice(topic ? `Creating ${topic} bindings…` : 'Identifying the active mathematical subject…');
+      const catalog = JSON.stringify(Object.entries(contexts).map(([id, context]) => ({ id, title: context.label, summary: context.assumption })));
+      window.webkit.messageHandlers.folio.postMessage({ action: 'mathMode', ...modePending, model: preferences.model, catalog });
+    }
+
+    async function validateModeRendering(mode) {
+      await MathJax.startup.promise;
+      for (const binding of mode.bindings) {
+        const tex = binding.before + 'x' + binding.after;
+        const node = await MathJax.tex2svgPromise(tex, { display: true });
+        if (node.querySelector('[data-mjx-error], [data-mml-node="merror"]')) throw Error(`The generated “${binding.label}” binding contains invalid LaTeX. No mode was installed.`);
+      }
+    }
+
+    async function receiveModeResult(result) {
+      if (result.models) {
+        availableModels = result.models;
+        if (!preferences.model && availableModels.length) { preferences.model = availableModels[0]; persist(); }
+        const select = document.querySelector('#mode-model');
+        select.replaceChildren(...availableModels.map(name => new Option(name, name)));
+        select.value = preferences.model;
+        select.disabled = false;
+        if (!availableModels.includes(preferences.model)) setModeNotice('The selected model is no longer installed. Choose an installed model.');
+        else scheduleModeDetection();
+        return;
+      }
+      if (!result.id) { if (result.error) setModeNotice(result.error); return; }
+      const base = modePending;
+      if (!base || result.id !== base.id) return;
+      if (base.document !== editor.value || base.passage !== activePassage() || base.current !== current || !modeSwitchSafe()) {
+        cancelModeRequest(); setModeNotice('Math context changed during detection. No bindings changed.'); scheduleModeDetection(); return;
+      }
+      if (result.status) { setModeNotice(result.status); return; }
+      try {
+        if (result.error) throw Error(result.error);
+        if (result.mode) {
+          const mode = FolioModes.validate(JSON.parse(result.mode));
+          if (customModes.length >= 64) throw Error('This workspace has reached the 64 custom-mode limit.');
+          if (Object.hasOwn(contexts, mode.id)) throw Error('A mode with this name already exists. Select it from :modes or request a more specific subject.');
+          if (customModes.some(item => item.title.trim().toLowerCase() === mode.title.trim().toLowerCase())) throw Error('A mode with this title already exists. Select it from :modes.');
+          // Serialize with the document renderer; invalid TeX never becomes a keyboard binding.
+          const validation = typesetQueue.then(() => validateModeRendering(mode));
+          typesetQueue = validation.catch(() => {});
+          await validation;
+          if (modePending !== base || base.document !== editor.value || base.passage !== activePassage() || base.current !== current || !modeSwitchSafe()) return;
+          registerMode(mode);
+          customModes.push(mode);
+          inspectedMode = mode.id;
+          renderContext(mode.id);
+          renderModeList();
+          renderModeLibrary();
+          setModeNotice(`Created ${mode.title} · ${mode.bindings.map(binding => '\\' + binding.key).join(' ')} · :bindings to inspect`);
+        } else if (result.decision) {
+          const decision = JSON.parse(result.decision);
+          if (Object.hasOwn(contexts, decision.modeID)) {
+            renderContext(decision.modeID);
+            renderModeList();
+          } else if (decision.modeID !== 'uncertain') {
+            throw Error('The detected mode is not in this workspace.');
+          }
+          setModeNotice(`${contexts[current].label} · ${decision.reason}`);
+        }
+      } catch (error) { setModeNotice(error.message); }
+      finally {
+        if (modePending === base) {
+          modePending = null;
+          document.querySelector('#mode-create').disabled = false;
+          document.querySelector('#mode-detect').disabled = false;
+        }
+      }
+    }
+
+    function openModes() {
+      inspectedMode = current;
+      renderModeLibrary();
+      document.querySelector('#mode-auto').textContent = `AUTOMATIC: ${preferences.automatic ? 'ON' : 'OFF'}`;
+      document.querySelector('#mode-status').textContent = modeNotice;
+      const dialog = document.querySelector('#modes-dialog');
+      if (!dialog.open) dialog.showModal();
+      if (window.webkit?.messageHandlers.folio) window.webkit.messageHandlers.folio.postMessage({ action: 'models', target: 'modes' });
+      else {
+        document.querySelector('#mode-model').replaceChildren(new Option('Available in the Mac app', ''));
+        for (const id of ['mode-auto', 'mode-detect', 'mode-topic', 'mode-create']) document.getElementById(id).disabled = true;
+        setModeNotice('Mode generation requires the Mac app and local Ollama. Saved notation keys work offline.');
+      }
+    }
+
+    function renderModeLibrary() {
+      const list = document.querySelector('#mode-library-list');
+      list.replaceChildren(...Object.entries(contexts).map(([id, context]) => {
+        const button = document.createElement('button');
+        button.textContent = context.label + (id === current ? ' · active' : '');
+        button.classList.toggle('active', id === inspectedMode);
+        button.addEventListener('click', () => { inspectedMode = id; renderModeLibrary(); });
+        return button;
+      }));
+      const context = contexts[inspectedMode] || contexts[current];
+      const details = document.querySelector('#mode-details');
+      const title = document.createElement('h3'), summary = document.createElement('p'), use = document.createElement('button');
+      title.textContent = context.label; summary.textContent = context.assumption;
+      use.textContent = 'USE & PIN MODE';
+      use.addEventListener('click', () => { pinMode(inspectedMode); document.querySelector('#modes-dialog').close(); });
+      details.replaceChildren(title, summary, use);
+      const custom = customModes.find(mode => mode.id === inspectedMode);
+      for (const [key, label] of context.macros) {
+        const row = document.createElement('div'), heading = document.createElement('strong');
+        row.className = 'mode-binding'; heading.textContent = `${key} — ${label}`; row.append(heading);
+        const binding = custom?.bindings.find(item => key === '\\ ' + item.key);
+        if (binding) { const source = document.createElement('code'); source.textContent = '$' + binding.before + '⟦cursor⟧' + binding.after + '$'; row.append(source); }
+        details.append(row);
+      }
+      if (custom) {
+        const remove = document.createElement('button'); remove.textContent = 'REMOVE THIS CUSTOM MODE';
+        remove.addEventListener('click', () => {
+          if (!confirm(`Remove the saved ${custom.title} bindings? Your document will not change.`)) return;
+          cancelModeRequest();
+          customModes = customModes.filter(mode => mode.id !== custom.id);
+          delete contexts[custom.id];
+          if (current === custom.id) pinMode('linalg');
+          inspectedMode = current; persist(); renderModeList(); renderModeLibrary();
+        });
+        details.append(remove);
+      }
+    }
+
+    const assistantDialog = document.querySelector('#assistant-dialog');
+    const assistantModel = document.querySelector('#assistant-model');
+    const assistantRequest = document.querySelector('#assistant-request');
+    const assistantStatus = document.querySelector('#assistant-status');
+    const assistantSend = document.querySelector('#assistant-send');
+    const assistantAccept = document.querySelector('#assistant-accept');
+    const assistantLatex = document.querySelector('#assistant-latex');
+    const assistantPreview = document.querySelector('#assistant-preview');
+    let assistantIntent = 'step';
+    let assistantPending = null;
+    let assistantProposal = null;
+
+    function openAssistant(intent, request) {
+      if (!window.webkit?.messageHandlers.folio) { setMessage('The learning assistant is available in the Mac app'); return; }
+      cancelModeRequest();
+      assistantIntent = intent;
+      assistantRequest.value = request;
+      assistantStatus.textContent = 'Connecting to local Ollama…';
+      assistantLatex.textContent = '';
+      queueTypeset(assistantPreview, () => assistantPreview.replaceChildren());
+      assistantAccept.hidden = true;
+      assistantProposal = null;
+      assistantSend.disabled = true;
+      assistantModel.disabled = true;
+      assistantModel.replaceChildren(new Option('Loading models…', ''));
+      assistantSend.textContent = intent === 'hint' ? 'ASK FOR A HINT' : 'PROPOSE STEP';
+      if (!assistantDialog.open) assistantDialog.showModal();
+      assistantRequest.focus();
+      window.webkit.messageHandlers.folio.postMessage({ action: 'models' });
+    }
+
+    async function receiveAssistantResult(result) {
+      if (!assistantDialog.open) return;
+      if (result.models) {
+        assistantModel.replaceChildren(...result.models.map(name => new Option(name, name)));
+        if (preferences.model && result.models.includes(preferences.model)) assistantModel.value = preferences.model;
+        assistantModel.disabled = false;
+        assistantSend.disabled = !!assistantPending;
+        assistantStatus.textContent = 'Local model ready. Your document stays on this Mac.';
+        return;
+      }
+      if (result.id && result.id !== assistantPending?.id) return;
+      if (result.error) {
+        assistantStatus.textContent = result.error;
+        if (!result.id) {
+          assistantModel.disabled = true;
+          assistantModel.replaceChildren(new Option('No model available', ''));
+        }
+        if (result.id) assistantPending = null;
+        assistantSend.disabled = assistantModel.disabled;
+        return;
+      }
+      if (!assistantPending || !result.proposal) return;
+      const base = assistantPending;
+      try {
+        const proposal = JSON.parse(result.proposal);
+        if (!['step', 'hint', 'clarify', 'mode'].includes(proposal.kind) || !contexts[proposal.mode] || typeof proposal.latex !== 'string' || typeof proposal.explanation !== 'string') throw Error('Invalid proposal');
+        if (proposal.kind === 'step') {
+          const tex = FolioModes.mathBody(proposal.latex);
+          const validation = typesetQueue.then(async () => {
+            await MathJax.startup.promise;
+            const node = await MathJax.tex2svgPromise(tex, { display: true });
+            if (node.querySelector('[data-mjx-error], [data-mml-node="merror"]')) throw Error('The proposal contains invalid LaTeX. Nothing was added.');
+          });
+          typesetQueue = validation.catch(() => {});
+          await validation;
+        }
+        if (base !== assistantPending || !assistantDialog.open) return;
+        assistantProposal = { ...proposal, base };
+        assistantPending = null;
+        assistantStatus.textContent = `${proposal.explanation}${proposal.mode !== current ? ` Proposed mode: ${contexts[proposal.mode].label}.` : ''}`;
+        assistantLatex.textContent = proposal.latex;
+        queueTypeset(assistantPreview, () => { assistantPreview.textContent = proposal.latex; });
+        assistantAccept.hidden = !['step', 'mode'].includes(proposal.kind);
+        assistantAccept.textContent = proposal.kind === 'mode' ? 'ACCEPT MODE CHANGE' : 'ACCEPT STEP';
+      } catch (error) {
+        if (base !== assistantPending || !assistantDialog.open) return;
+        assistantPending = null;
+        assistantStatus.textContent = error.message;
+      }
+      assistantSend.disabled = false;
+    }
+
+    assistantSend.addEventListener('click', () => {
+      const request = assistantRequest.value.trim();
+      if (!request || assistantModel.disabled || assistantPending) return;
+      assistantProposal = null;
+      assistantAccept.hidden = true;
+      assistantLatex.textContent = '';
+      queueTypeset(assistantPreview, () => assistantPreview.replaceChildren());
+      assistantPending = { id: crypto.randomUUID(), document: editor.value, mode: current, at: lineInfo().end };
+      assistantSend.disabled = true;
+      assistantStatus.textContent = 'Preparing your requested step…';
+      window.webkit.messageHandlers.folio.postMessage({ action: 'assistant', ...assistantPending, request, intent: assistantIntent, model: assistantModel.value, selection: editor.value.slice(editor.selectionStart, editor.selectionEnd) });
+    });
+
+    assistantAccept.addEventListener('click', () => {
+      if (!assistantProposal) return;
+      const proposal = assistantProposal;
+      if (editor.value !== proposal.base.document || current !== proposal.base.mode) {
+        assistantStatus.textContent = 'The document or mode changed. Request a fresh step before accepting.';
+        assistantAccept.hidden = true;
+        return;
+      }
+      if (proposal.kind === 'step') {
+        const at = proposal.base.at;
+        const separator = at > 0 && editor.value[at - 1] !== '\n' ? '\n' : '';
+        replaceRange(at, at, separator + proposal.latex);
+      }
+      if (proposal.kind === 'mode' || proposal.mode !== current) pinMode(proposal.mode);
+      assistantDialog.close();
+      setEditorState('NORMAL');
+      setMessage(proposal.kind === 'mode' ? 'Math mode changed · document unchanged' : 'Your step added · u undoes the text change');
+    });
+
+    assistantDialog.addEventListener('close', () => {
+      if (assistantPending) window.webkit.messageHandlers.folio.postMessage({ action: 'cancelAssistant' });
+      assistantPending = null;
+      assistantProposal = null;
+      editor.focus();
+    });
+
+    function pushHistory() {
+      history.undo.push(snapshot());
+      if (history.undo.length > 100) history.undo.shift();
+      history.redo = [];
+    }
+
+    function restore(state) {
+      editor.value = state.text;
+      editor.setSelectionRange(state.start, state.end);
+      previousText = editor.value;
+      documentText = editor.value;
+      persist();
+      renderPreview();
+      updateMeta();
+    }
+
+    function undo() {
+      if (!history.undo.length) { setMessage('already at oldest change'); return; }
+      history.redo.push(snapshot());
+      restore(history.undo.pop());
+      setMessage('undo');
+    }
+
+    function redo() {
+      if (!history.redo.length) { setMessage('already at newest change'); return; }
+      history.undo.push(snapshot());
+      restore(history.redo.pop());
+      setMessage('redo');
+    }
+
+    function replaceRange(start, end, replacement, caret = start + replacement.length) {
+      pushHistory();
+      editor.value = editor.value.slice(0, start) + replacement + editor.value.slice(end);
+      editor.setSelectionRange(caret, caret);
+      previousText = editor.value;
+      documentText = editor.value;
+      dirtyMark.textContent = '— modified';
+      persist();
+      renderPreview();
+      updateMeta();
+    }
+
+    function insertTemplate(template, message = `${contexts[current].label} macro inserted`) {
+      const marker = template.indexOf('|');
+      const clean = template.replace('|', '');
+      const caret = editor.selectionStart + (marker < 0 ? clean.length : marker);
+      replaceRange(editor.selectionStart, editor.selectionEnd, clean, caret);
+      setEditorState('INSERT');
+      setMessage(message);
+    }
+
+    function previousContentLine() {
+      const lines = editor.value.slice(0, lineInfo().end).split('\n');
+      return lines.reverse().find(line => line.trim() && !/^#{1,6}\s/.test(line.trim()))?.trim() || '';
+    }
+
+    function mathBody(line) {
+      return line.trim().replace(/^\$\$?/, '').replace(/\$\$?$/, '').trim();
+    }
+
+    function appendTemplate(template, message) {
+      const at = lineInfo().end;
+      const separator = at > 0 && editor.value[at - 1] !== '\n' ? '\n' : '';
+      editor.setSelectionRange(at, at);
+      insertTemplate(separator + template, message);
+    }
+
+    function duplicatePreviousLine(message = 'prior line copied') {
+      const line = previousContentLine();
+      if (!line) { setMessage('No prior line to copy'); return; }
+      appendTemplate(`${line}|`, message);
+    }
+
+    function continuePreviousLine() {
+      const line = previousContentLine();
+      if (!line) { setMessage('No prior expression to continue'); return; }
+      appendTemplate(`$${mathBody(line)} = |$`, 'prior expression continued');
+    }
+
+    function transformPreviousLine(operation) {
+      const line = previousContentLine();
+      if (!line) { setMessage('No prior expression to transform'); return; }
+      const expression = mathBody(line);
+      const template = operation === 'differentiate'
+        ? `$$\\frac{d}{dx}\\left(${expression}\\right) = |$$`
+        : `$$\\int \\left(${expression}\\right)\\,dx = | + C$$`;
+      appendTemplate(template, `${operation} prior expression`);
+    }
+
+    function continueProofStep() {
+      const line = previousContentLine();
+      if (!line) { setMessage('No prior proof step to continue'); return; }
+      appendTemplate(`$${mathBody(line)} \\qquad \\text{by }|$`, 'proof step copied; enter justification');
+    }
+
+    function buildInferenceRule() {
+      const line = previousContentLine();
+      if (!line) { setMessage('No prior proof step for an inference rule'); return; }
+      appendTemplate(`$$\\frac{${mathBody(line)}}{[next statement]}\\quad\\text{by }|$$`, 'inference rule created; enter method');
+    }
+
+    function buildContradiction() {
+      const line = previousContentLine();
+      if (!line) { setMessage('No prior proof step for a contradiction'); return; }
+      appendTemplate(`$${mathBody(line)} \\implies \\bot \\qquad \\text{contradiction from }|$`, 'contradiction created; enter references');
+    }
+
+    function repeatLastMatrix(withOperation) {
+      const source = editor.value.slice(0, lineInfo().end);
+      const matrices = [...source.matchAll(/\\begin\{([pbBvV]?matrix)\}[\s\S]*?\\end\{\1\}/g)];
+      const matrix = matrices.at(-1)?.[0];
+      if (!matrix) { setMessage('No earlier LaTeX matrix to copy'); return; }
+      if (withOperation) {
+        appendTemplate(`$$\\xrightarrow{R_|}\n${matrix}$$`, 'matrix copied; enter the row operation');
+        return;
+      }
+      const beginEnd = matrix.indexOf('}') + 1;
+      const editableCopy = matrix.slice(0, beginEnd) + '|' + matrix.slice(beginEnd);
+      appendTemplate(`$$${editableCopy}$$`, 'last matrix copied');
+    }
+
+    function wrapLastMatrix(operation) {
+      const source = editor.value.slice(0, lineInfo().end);
+      const matrices = [...source.matchAll(/\\begin\{([pbBvV]?matrix)\}[\s\S]*?\\end\{\1\}/g)];
+      const matrix = matrices.at(-1)?.[0];
+      if (!matrix) { setMessage('No earlier LaTeX matrix to transform'); return; }
+      const operator = operation === 'rref' ? '\\operatorname{rref}' : '\\det';
+      appendTemplate(`$$${operator}\\left(${matrix}\\right) = |$$`, `${operation.toUpperCase()} expression created`);
+    }
+
+    function expandSnippet() {
+      const caret = editor.selectionStart;
+      const match = editor.value.slice(0, caret).match(/([a-z0-9]+)$/i);
+      const key = match?.[1].toLowerCase();
+      const template = key && (modeSnippets[current]?.[key] || commonSnippets[key]);
+      if (!template) return false;
+      editor.setSelectionRange(caret - key.length, caret);
+      insertTemplate(template, `${key} expanded`);
+      return true;
+    }
+
+    function moveHorizontal(delta, extend = false) {
+      const info = lineInfo();
+      const head = editorState === 'VISUAL' ? visualHead : editor.selectionEnd;
+      const next = Math.max(info.start, Math.min(info.end, head + delta));
+      setCaret(next, extend);
+    }
+
+    function moveVertical(delta, extend = false) {
+      const info = lineInfo();
+      const lines = editor.value.split('\n');
+      const targetLine = Math.max(0, Math.min(lines.length - 1, info.line + delta));
+      let target = 0;
+      for (let index = 0; index < targetLine; index += 1) target += lines[index].length + 1;
+      target += Math.min(info.column, lines[targetLine].length);
+      setCaret(target, extend);
+    }
+
+    function setCaret(offset, extend = false) {
+      if (extend || editorState === 'VISUAL') {
+        visualHead = offset;
+        editor.setSelectionRange(Math.min(visualAnchor, offset), Math.max(visualAnchor, offset), offset < visualAnchor ? 'backward' : 'forward');
+      }
+      else editor.setSelectionRange(offset, offset);
+      updateMeta();
+    }
+
+    function deleteLine() {
+      const info = lineInfo();
+      const end = info.end < editor.value.length ? info.end + 1 : info.end;
+      clipboard = editor.value.slice(info.start, end);
+      clipboardLinewise = true;
+      replaceRange(info.start, end, '', Math.min(info.start, editor.value.length));
+      setMessage('line deleted');
+    }
+
+    function yankLine() {
+      const info = lineInfo();
+      const end = info.end < editor.value.length ? info.end + 1 : info.end;
+      clipboard = editor.value.slice(info.start, end);
+      clipboardLinewise = true;
+      setMessage('line yanked');
+    }
+
+    function paste() {
+      if (!clipboard) { setMessage('register is empty'); return; }
+      const info = lineInfo();
+      const at = clipboardLinewise ? Math.min(info.end + 1, editor.value.length) : editor.selectionEnd;
+      const prefix = clipboardLinewise && at > 0 && editor.value[at - 1] !== '\n' ? '\n' : '';
+      const suffix = clipboardLinewise && at < editor.value.length && !clipboard.endsWith('\n') ? '\n' : '';
+      replaceRange(at, at, prefix + clipboard + suffix, at + prefix.length);
+      setMessage('pasted');
+    }
+
+    function openLine(below) {
+      const info = lineInfo();
+      const at = below ? info.end : info.start;
+      replaceRange(at, at, '\n', below ? at + 1 : at);
+      setEditorState('INSERT');
+    }
+
+    function applyMathMacro(key) {
+      const macro = contexts[current].macros.find(item => item[0].toLowerCase() === `\\ ${key.toLowerCase()}`);
+      if (!macro) { setMessage(`No \\ ${key} macro in ${contexts[current].label}`); return; }
+      macro[2]();
+    }
+
+    function playRegister(name) {
+      const keys = registers[name];
+      if (!keys?.length) { setMessage(`macro @${name} is empty`); return; }
+      if (activeRegisters.has(name)) { playbackError = `Stopped recursive macro @${name}`; setMessage(playbackError); return; }
+      const outer = !replaying;
+      if (outer) { replayBudget = 1000; playbackError = ''; }
+      replaying = true;
+      activeRegisters.add(name);
+      try {
+        for (const key of keys) {
+          if (playbackError) break;
+          if (--replayBudget < 0) { playbackError = 'Stopped macro after 1000 keys'; break; }
+          handleNormalKey(key);
+        }
+      } finally { activeRegisters.delete(name); replaying = !outer; }
+      setMessage(playbackError || `played macro @${name}`);
+    }
+
+    function handleNormalKey(key, ctrl = false) {
+      if (recording && !replaying && key !== 'q') recordedKeys.push(key);
+      if (ctrl && key.toLowerCase() === 'r') { redo(); return; }
+      if (leader) { leader = false; applyMathMacro(key); return; }
+      if (pending === 'q') { recording = key.toLowerCase(); recordedKeys = []; pending = ''; setMessage(`recording @${recording}`); return; }
+      if (pending === '@') { const register = key.toLowerCase(); pending = ''; playRegister(register); return; }
+      if (pending === 'd' && key === 'd') { pending = ''; deleteLine(); return; }
+      if (pending === 'y' && key === 'y') { pending = ''; yankLine(); return; }
+      if (pending === 'g' && key === 'g') { pending = ''; setCaret(0); return; }
+      pending = '';
+      const info = lineInfo();
+      if (key === '\\') { leader = true; setMessage(`${contexts[current].label} macro · ${contexts[current].macros.map(item => item[0]).join('  ')}`); }
+      else if (key === 'i') setEditorState('INSERT');
+      else if (key === 'a') { setCaret(Math.min(info.end, editor.selectionEnd + 1)); setEditorState('INSERT'); }
+      else if (key === 'I') { setCaret(info.start); setEditorState('INSERT'); }
+      else if (key === 'A') { setCaret(info.end); setEditorState('INSERT'); }
+      else if (key === 'o') openLine(true);
+      else if (key === 'O') openLine(false);
+      else if (key === 'h') moveHorizontal(-1);
+      else if (key === 'l') moveHorizontal(1);
+      else if (key === 'j') moveVertical(1);
+      else if (key === 'k') moveVertical(-1);
+      else if (key === '0') setCaret(info.start);
+      else if (key === '$') setCaret(info.end);
+      else if (key === 'G') setCaret(editor.value.length);
+      else if (key === 'g' || key === 'd' || key === 'y' || key === '@') pending = key;
+      else if (key === 'w') { const match = editor.value.slice(editor.selectionEnd + 1).match(/\b\w/); setCaret(match ? editor.selectionEnd + 1 + match.index : editor.value.length); }
+      else if (key === 'b') { const text = editor.value.slice(0, Math.max(0, editor.selectionEnd - 1)); const matches = [...text.matchAll(/\b\w/g)]; setCaret(matches.length ? matches.at(-1).index : 0); }
+      else if (key === 'x' && editor.selectionEnd < editor.value.length) replaceRange(editor.selectionEnd, editor.selectionEnd + 1, '', editor.selectionEnd);
+      else if (key === 'p') paste();
+      else if (key === 'u') undo();
+      else if (key === 'v') { visualAnchor = editor.selectionEnd; visualHead = visualAnchor; setEditorState('VISUAL'); setMessage('VISUAL · h/j/k/l select · y/d/c operate'); }
+      else if (key === 'q') {
+        if (recording) { registers[recording] = [...recordedKeys]; setMessage(`recorded @${recording}`); recording = ''; recordedKeys = []; persist(); }
+        else pending = 'q';
+      }
+    }
+
+    function handleVisualKey(key) {
+      if (key === 'h') moveHorizontal(-1, true);
+      else if (key === 'l') moveHorizontal(1, true);
+      else if (key === 'j') moveVertical(1, true);
+      else if (key === 'k') moveVertical(-1, true);
+      else if (key === 'y') { clipboard = editor.value.slice(editor.selectionStart, editor.selectionEnd); clipboardLinewise = false; const at = editor.selectionEnd; setEditorState('NORMAL'); setCaret(at); setMessage('selection yanked'); }
+      else if (key === 'd' || key === 'c') { const start = editor.selectionStart; replaceRange(start, editor.selectionEnd, '', start); setEditorState(key === 'c' ? 'INSERT' : 'NORMAL'); }
+    }
+
+    function resetBuffer() {
+      pushHistory();
+      editor.value = '';
+      editor.setSelectionRange(0, 0);
+      previousText = editor.value;
+      documentText = editor.value;
+      persist();
+      renderPreview();
+      updateMeta();
+      setEditorState('NORMAL');
+      setMessage('file cleared');
+    }
+
+    editor.addEventListener('keydown', event => {
+      if (event.metaKey && event.key.toLowerCase() === 'z') { event.preventDefault(); event.shiftKey ? redo() : undo(); return; }
+      if (event.metaKey && window.webkit?.messageHandlers.folio) return;
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') { event.preventDefault(); persist(); setMessage('saved locally'); return; }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'm') { event.preventDefault(); cycleMathMode(); return; }
+      if (event.metaKey || event.altKey) return;
+      if (event.key === 'Escape') { event.preventDefault(); setEditorState('NORMAL'); pending = ''; leader = false; setMessage(`${contexts[current].label} · NORMAL`); return; }
+      if (editorState === 'INSERT') {
+        if (event.key === 'Tab') {
+          event.preventDefault();
+          if (expandSnippet()) return;
+          editor.setRangeText('  ', editor.selectionStart, editor.selectionEnd, 'end');
+          editor.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: '  ' }));
+        }
+        return;
+      }
+      event.preventDefault();
+      if (event.key === ':') { showCommand(':'); return; }
+      if (editorState === 'VISUAL') handleVisualKey(event.key);
+      else handleNormalKey(event.key, event.ctrlKey || event.metaKey);
+    });
+
+    editor.addEventListener('input', () => {
+      if (editor.value !== previousText) {
+        history.undo.push({ text: previousText, start: editor.selectionStart, end: editor.selectionStart });
+        if (history.undo.length > 100) history.undo.shift();
+        history.redo = [];
+        previousText = editor.value;
+        documentText = editor.value;
+        dirtyMark.textContent = '— modified';
+        persist();
+        renderPreview();
+      }
+      updateMeta();
+    });
+    editor.addEventListener('click', () => { updateMeta(); scheduleModeDetection(); });
+    editor.addEventListener('keyup', () => { updateMeta(); scheduleModeDetection(); });
+    editor.addEventListener('input', scheduleModeDetection);
+    editor.addEventListener('scroll', () => { gutter.scrollTop = editor.scrollTop; });
+
+    commandInput.addEventListener('input', updateModeList);
+    commandInput.addEventListener('keydown', event => {
+      if (event.key === 'Escape') { event.preventDefault(); closeCommand(); }
+      else if (event.key === 'Enter') { event.preventDefault(); runCommand(commandInput.value); }
+    });
+    modeList.addEventListener('click', event => { const button = event.target.closest('[data-mode-choice]'); if (button) { closeCommand(); pinMode(button.dataset.modeChoice); } });
+    mathStateLabel.addEventListener('click', openModes);
+    document.querySelector('#mode-auto').addEventListener('click', () => setAutomatic(!preferences.automatic));
+    document.querySelector('#mode-detect').addEventListener('click', () => requestMode());
+    document.querySelector('#mode-create').addEventListener('click', () => {
+      const topic = document.querySelector('#mode-topic').value.trim();
+      if (!topic) { setModeNotice('Enter the subject or notation for the new mode.'); return; }
+      requestMode(topic);
+    });
+    document.querySelector('#mode-model').addEventListener('change', event => {
+      cancelModeRequest(); preferences.model = event.target.value; lastModePassage = ''; persist();
+      setModeNotice(`Using ${preferences.model} locally.`); scheduleModeDetection();
+    });
+    document.querySelector('#recovery-export').addEventListener('click', () => {
+      const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY) || '';
+      downloadFile(raw, 'recovery.json', 'application/json');
+    });
+    document.querySelector('#recovery-reset').addEventListener('click', () => {
+      if (!confirm('Keep an untouched recovery copy in this browser and start a new empty workspace?')) return;
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY) || '';
+        localStorage.setItem(`folio-recovery-${Date.now()}`, raw);
+        storageFailure = ''; editor.value = ''; persist();
+        document.querySelector('#recovery-dialog').close();
+        setMessage('Empty workspace started. Original data retained under folio-recovery in browser storage.');
+      } catch (error) { setMessage('Could not create the recovery copy. Original data remains untouched.'); }
+    });
+    document.querySelector('#modes-dialog').addEventListener('close', () => { editor.focus(); scheduleModeDetection(); });
+    document.querySelector('#help-button').addEventListener('click', () => openHelp('overview'));
+    document.querySelector('#preview-button').addEventListener('click', togglePreview);
+    helpSearch.addEventListener('input', () => filterHelp(helpSearch.value));
+    document.querySelector('#export-button').addEventListener('click', openExport);
+    document.querySelector('#export-side').addEventListener('click', openExport);
+    document.querySelectorAll('[data-export]').forEach(button => button.addEventListener('click', () => exportFormat(button.dataset.export)));
+    document.querySelectorAll('[data-close-dialog]').forEach(button => button.addEventListener('click', () => document.querySelector(`#${button.dataset.closeDialog}`).close()));
+    document.querySelectorAll('#export-dialog input').forEach(input => input.addEventListener('change', syncMetadataFromForm));
+    document.querySelector('#save-button').addEventListener('click', () => { persist(); setMessage('saved locally'); });
+    document.querySelector('#mode-button').addEventListener('click', cycleMathMode);
+    document.querySelector('#template-button').addEventListener('click', () => applyAssignmentTemplate(false));
+    document.querySelector('#new-button').addEventListener('click', resetBuffer);
+    window.addEventListener('afterprint', () => setMessage('PDF print view closed'));
+    window.addEventListener('resize', syncPreviewButton);
+
+    editor.value = documentText;
+    previousText = editor.value;
+    renderContext(current);
+    renderModeList();
+    renderPreview();
+    buildPrintPaper();
+    syncPreviewButton();
+    updateMeta();
+    editor.focus();
+    window.Folio = {
+      modeResult: receiveModeResult,
+      assistantResult: receiveAssistantResult,
+      command: runCommand,
+      state: workspaceState,
+      saved: () => { dirtyMark.textContent = '— saved on Mac'; },
+      message: setMessage,
+      importState(state) {
+        cancelModeRequest();
+        validateWorkspace(state);
+        const incoming = (state.modes || []).filter(mode => !customModes.some(item => item.id === mode.id));
+        if (customModes.length + incoming.length > 64) throw Error('Import would exceed the 64-mode library limit.');
+        const merged = [...customModes, ...incoming];
+        if (new Set(merged.map(mode => mode.title.trim().toLowerCase())).size !== merged.length) throw Error('An imported mode name conflicts with the saved library.');
+        for (const mode of state.modes || []) {
+          const existing = customModes.find(item => item.id === mode.id);
+          if (existing && !FolioModes.equal(existing, mode)) throw Error('An imported mode conflicts with a saved mode.');
+        }
+        pushHistory();
+        editor.value = state.document;
+        documentText = state.document;
+        previousText = state.document;
+        if (state.metadata) metadata = state.metadata;
+        if (state.registers) registers = state.registers;
+        if (state.preferences) preferences = state.preferences;
+        for (const mode of state.modes || []) {
+          const existing = customModes.find(item => item.id === mode.id);
+          if (!existing) { customModes.push(mode); registerMode(mode); }
+        }
+        editor.setSelectionRange(0, 0);
+        renderContext(contexts[state.current] ? state.current : current);
+        renderModeList();
+        updateMeta();
+        setEditorState('NORMAL');
+        setMessage('Opened · u restores the previous text');
+      }
+    };
+    if (window.webkit?.messageHandlers.folio) {
+      document.documentElement.classList.add('native');
+      app.classList.add('preview-hidden');
+      syncPreviewButton();
+      setMessage('i to write · :help for commands · :preview for LaTeX');
+      window.webkit.messageHandlers.folio.postMessage({ action: 'ready' });
+      if (!window.FolioTesting) window.webkit.messageHandlers.folio.postMessage({ action: 'models', target: 'modes' });
+    }
+    if (storageFailure) {
+      document.querySelector('#recovery-message').textContent = storageFailure;
+      document.querySelector('#recovery-dialog').showModal();
+      setMessage(storageFailure);
+    }
+  </script>
+</body>
+</html>

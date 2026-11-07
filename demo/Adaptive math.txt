@@ -1,0 +1,21 @@
+# Adaptive math notebook
+
+Use Normal mode (Escape), move the cursor into a section, and enable :auto on.
+Folio detects the active section, not every subject in this notebook at once.
+Inspect :bindings before using a generated key. No answers are supplied here.
+
+## Quaternion rotations
+$q = a + bi + cj + dk$
+Work with quaternion conjugation, norms, and noncommutative rotation composition.
+
+## Qubits
+$|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$
+Represent bra-ket inner products and apply quantum gates to this qubit.
+
+## Complex analysis
+Compute residues of meromorphic functions and integrate along closed contours
+in the complex plane.
+
+## Back to calculus
+$f(x) = x^3$
+Differentiate this scalar polynomial. Request only the step you choose.

@@ -1,0 +1,47 @@
+/* Native menus replace the browser workbench chrome. */
+.assistant-content { padding: 18px; }
+.assistant-content label, .assistant-content select, .assistant-content textarea { display: block; width: 100%; }
+.assistant-content label { margin: 12px 0 6px; }
+.assistant-content select, .assistant-content textarea { font: inherit; color: inherit; background: var(--panel); border: 1px solid var(--rule); padding: 8px; }
+.assistant-content button { padding: 10px; border: 1px solid var(--rule); margin-top: 12px; }
+.assistant-content pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.assistant-note { color: var(--muted); font-size: 12px; }
+.status .math-state { padding: 0 12px; max-width: 240px; overflow: hidden; text-overflow: ellipsis; align-self: stretch; font-weight: 700; }
+.mode-settings { padding: 16px; border-bottom: 1px solid var(--rule); }
+.mode-settings > button, .mode-details button, #mode-details > button { border: 1px solid var(--rule); padding: 8px 12px; }
+.mode-settings label { display: block; margin: 12px 0 5px; color: var(--muted); }
+.mode-settings select, .mode-settings input { min-width: 0; width: 100%; padding: 8px; background: var(--panel); color: var(--ink); border: 1px solid var(--rule); font: inherit; }
+.mode-create { display: flex; gap: 8px; }
+.mode-create button { padding: 8px 12px; border: 1px solid var(--rule); }
+.mode-library { display: grid; grid-template-columns: 180px minmax(0, 1fr); }
+#mode-library-list { border-right: 1px solid var(--rule); }
+#mode-library-list button { display: block; width: 100%; padding: 12px; text-align: left; white-space: normal; border-bottom: 1px solid var(--rule); }
+#mode-library-list .active { background: var(--panel-2); }
+#mode-details { padding: 16px; min-width: 0; }
+#mode-details h3 { margin: 0 0 8px; }
+.mode-binding { padding: 12px 0; border-bottom: 1px solid var(--rule); }
+.mode-binding strong { display: block; font-weight: 500; }
+.mode-binding code { display: block; margin-top: 6px; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--muted); }
+.mode-note { padding: 0 16px 12px; color: var(--muted); font-size: 12px; }
+.mode-list { max-height: 50vh; overflow: auto; }
+.mode-option { grid-template-columns: 36px minmax(100px, 1fr) minmax(100px, 2fr); }
+.mode-option b, .mode-option span { white-space: normal; overflow-wrap: anywhere; }
+@media (max-width: 550px) { .mode-library { grid-template-columns: 1fr; } #mode-library-list { border-right: 0; } }
+.native .app { grid-template-rows: minmax(0, 1fr) 28px; }
+.native .top, .native .rail, .native .inspect { display: none; }
+.native .work { grid-template-columns: minmax(0, 1fr); }
+.native .mode-list { left: 0; right: 0; }
+.native .editor-pane { border-right: 0; }
+.native .gutter { background: var(--bg); border: 0; }
+.native .status { background: var(--panel); color: var(--ink); font-weight: 400; }
+.native .status b { background: var(--panel-2); }
+.native .status .math-state { background: var(--panel); color: var(--muted); }
+@media (prefers-color-scheme: dark) {
+  .native {
+    color-scheme: dark;
+    --bg: #191919; --panel: #212121; --panel-2: #303030;
+    --ink: #e2e2df; --muted: #a1a19b; --dim: #85857f;
+    --rule: #41413d; --rule-strong: #666660; --line-subtle: #30302c;
+    --assumption-bg: #292927; --assumption-rule: #55554f;
+  }
+}
