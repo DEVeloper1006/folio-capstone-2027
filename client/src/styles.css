@@ -1,0 +1,108 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f6f5f2;
+  --text: #1c1b19;
+  --muted: #5e5a54;
+  --surface: #ffffff;
+  --line: #d9d5ce;
+  --accent: #1f4b3a;
+  --accent-text: #ffffff;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141311;
+    --text: #f4f1ea;
+    --muted: #b7b1a6;
+    --surface: #211f1c;
+    --line: #3a3631;
+    --accent: #8fcead;
+    --accent-text: #14241c;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+main {
+  width: min(36rem, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 3rem 0 4rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(2.5rem, 8vw, 4rem);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+h2 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.counter {
+  margin-top: 2rem;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface);
+}
+
+.count {
+  margin: 0.75rem 0 1rem;
+  font-size: clamp(2.5rem, 10vw, 4rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+button {
+  min-height: 2.75rem;
+  padding: 0.65rem 1rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@media (max-width: 40rem) {
+  main {
+    padding-top: 2rem;
+  }
+
+  button {
+    width: 100%;
+  }
+}
+
+@media (min-width: 60rem) {
+  main {
+    padding-top: 5rem;
+  }
+}
