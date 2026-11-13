@@ -1,29 +1,14 @@
-:root {
-  color-scheme: light dark;
-  --bg: #f6f5f2;
-  --text: #1c1b19;
-  --muted: #5e5a54;
-  --surface: #ffffff;
-  --line: #d9d5ce;
-  --accent: #1f4b3a;
-  --accent-text: #ffffff;
-  font-family:
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    sans-serif;
-}
+/**
+ * Style the notebook cells, movement guide, and MathLive selection highlights.
+ * Contains page layout, cell outlines, hidden editor controls, and responsive spacing.
+ * @file
+ */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #141311;
-    --text: #f4f1ea;
-    --muted: #b7b1a6;
-    --surface: #211f1c;
-    --line: #3a3631;
-    --accent: #8fcead;
-    --accent-text: #14241c;
-  }
+:root {
+  color-scheme: light;
+  color: #252525;
+  background: #fff;
+  font-family: system-ui, sans-serif;
 }
 
 * {
@@ -33,76 +18,133 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--bg);
-  color: var(--text);
 }
 
-main {
-  width: min(36rem, calc(100% - 2rem));
+.notebook {
+  max-width: 760px;
   margin: 0 auto;
-  padding: 3rem 0 4rem;
+  padding: 88px 40px 120px;
 }
 
-h1 {
+.notebook-intro {
+  margin: 0 0 28px 34px;
+  color: #666;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.notebook-intro h1 {
   margin: 0;
-  font-size: clamp(2.5rem, 8vw, 4rem);
-  line-height: 1;
-  letter-spacing: -0.04em;
+  color: #252525;
+  font-size: 20px;
+  font-weight: 500;
 }
 
-h2 {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.85rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.counter {
-  margin-top: 2rem;
-  padding: 1.25rem;
-  border: 1px solid var(--line);
-  border-radius: 1rem;
-  background: var(--surface);
-}
-
-.count {
-  margin: 0.75rem 0 1rem;
-  font-size: clamp(2.5rem, 10vw, 4rem);
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-
-button {
-  min-height: 2.75rem;
-  padding: 0.65rem 1rem;
-  border: 0;
-  border-radius: 999px;
-  background: var(--accent);
-  color: var(--accent-text);
-  font: inherit;
-  font-weight: 650;
+.notebook-intro summary {
   cursor: pointer;
 }
 
-button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
+.movement-keys {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 10px 16px;
 }
 
-@media (max-width: 40rem) {
-  main {
-    padding-top: 2rem;
-  }
-
-  button {
-    width: 100%;
-  }
+.movement-keys dt {
+  color: #252525;
 }
 
-@media (min-width: 60rem) {
-  main {
-    padding-top: 5rem;
+.movement-keys dd {
+  margin: 0;
+}
+
+.cell-content {
+  min-width: 0;
+}
+
+.cell-title {
+  margin: 12px 0 8px;
+  color: #777;
+  font-size: 12px;
+}
+
+.cell {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: start;
+  padding: 5px 0;
+}
+
+.cell-number {
+  padding: 44px 9px 0 0;
+  color: #999;
+  font-size: 10px;
+  text-align: right;
+  opacity: 1;
+}
+
+.cell:hover .cell-number,
+.cell:focus-within .cell-number {
+  opacity: 1;
+}
+
+.cell-input {
+  min-width: 0;
+  min-height: 54px;
+  padding: 2px 0;
+}
+
+math-field {
+  --selection-background-color: #bfdbfe;
+  --selection-color: #1e3a8a;
+  --contains-highlight-background-color: #dbeafe;
+  --contains-highlight-color: #1d4ed8;
+  display: block;
+  width: 100%;
+  min-height: 50px;
+  padding: 7px 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  outline: 1px solid #000;
+  outline-offset: 1px;
+  background: transparent;
+  font-size: 21px;
+}
+
+math-field:focus-within {
+  outline: 1px solid #000;
+  outline-offset: 1px;
+}
+
+math-field::part(virtual-keyboard-toggle),
+math-field::part(menu-toggle) {
+  display: none;
+}
+
+.add-cell {
+  margin: 12px 0 0 34px;
+  padding: 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #888;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.add-cell:hover {
+  background: #f6f6f6;
+  color: #252525;
+}
+
+.add-cell:focus-visible {
+  outline: 2px solid #7279a8;
+  outline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+  .notebook {
+    padding: 76px 22px 120px;
   }
 }

@@ -17,6 +17,7 @@
   "dependencies": {
     "@tanstack/react-router": "1.170.46",
     "@tanstack/react-start": "1.169.4",
+    "mathlive": "^0.111.4",
     "nitro": "3.0.260610-beta",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
@@ -29,7 +30,9 @@
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^10.14.0",
+    "eslint-plugin-jsdoc": "^65.4.5",
     "prettier": "^3.8.1",
+    "prettier-plugin-jsdoc": "^1.8.1",
     "typescript": "^6.0.2",
     "vite": "^8.0.0"
   },

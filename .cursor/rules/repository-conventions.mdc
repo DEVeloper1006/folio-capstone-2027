@@ -1,0 +1,10 @@
+---
+description: Folio source documentation, formatting, navigation architecture, and working conventions.
+alwaysApply: true
+---
+
+# Repository conventions
+
+Read and follow @AGENTS.md before changing this repository. It is the canonical source for file-purpose headers, documentation on every function, Explain Engineering wording, formatter and lint usage, navigation rule placement, and the current instruction not to add tests.
+
+When editing behavior, update its documentation in the same change. Do not replace the repository's conventions with generic defaults.

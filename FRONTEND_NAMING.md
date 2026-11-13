@@ -1,0 +1,33 @@
+# Frontend naming patterns
+
+- Domain first: name the concept, then its specific responsibility.
+- `camelCase`: variables, functions, hook results, and object properties.
+- `PascalCase`: components, interfaces, and type aliases.
+- `kebab-case`: handwritten filenames, including `latex-cell.tsx` and `use-mathlive.ts`.
+- `LatexCell`: the complete cell component exposed to its parent.
+- `LatexCellView`: presentation extracted from cell behavior; receives data and callbacks.
+- `LatexEditor`: an editable formula component independent of notebook cells.
+- `useMathLive`: manages the MathLive integration and browser lifecycle.
+- `useLatexCell`: coordinates cell behavior when multiple responsibilities need composition.
+- `useLatexCellState`: owns cell state and updates, when extracted.
+- `LatexCellState`: describes state data; never names a hook or component.
+- `LatexCellProps`: describes the public inputs accepted by `LatexCell`.
+- `UseMathLiveOptions`: describes configuration accepted by `useMathLive`.
+- `createLatexCellStore`: constructs a state store, if one becomes necessary.
+- `useLatexCellStore`: subscribes to an existing store; does not imply shared hook state.
+- `cellId`, `cellIndex`: distinguish stable identity from current list position.
+- `latex`, `initialLatex`: distinguish current content from initialization-only content.
+- `selectedCells`, `activeCell`: name collections plurally and individual values singularly.
+- `editorHostRef`: identifies both the referenced element and React ref container.
+- `mathfield`, `mountedMathfield`: distinguish a local instance from its retained cleanup reference.
+- `isDisposed`, `hasSelection`, `canUndo`: make boolean conditions read as predicates.
+- `setLatex`: replaces state; `updateCell`: applies a domain change.
+- `onLatexChange`: callback prop announcing an event to the caller.
+- `handleLatexChange`: local handler responding to that event.
+- `reportLatexChange`: emits current content through the caller's callback.
+- `createEditor`, `mountEditor`, `unmountEditor`: distinguish construction, attachment, and lifecycle cleanup.
+- `removeNavigationListeners`: names the exact work performed by a cleanup callback.
+- `parseLatex`, `buildStructure`: distinguish interpreting input from constructing derived data.
+- `cursorOffset`, `durationMs`: include coordinate meaning or units when ambiguity matters.
+- `data`, `value`, `manager`: replace vague names when a domain concept fits.
+- Extraction names describe existing responsibilities; do not create abstractions solely for symmetry.
