@@ -4,8 +4,8 @@
  * @file
  */
 
-import { expressionCommands } from './expression-commands'
-import type { ExpressionCommandGroup } from './expression-commands'
+import { expressionCommands } from './expression-commands.ts'
+import type { ExpressionCommandGroup } from './expression-commands.ts'
 
 /** Describe the current search text; future context can be added as explicit fields. */
 export interface CommandSearchRequest {

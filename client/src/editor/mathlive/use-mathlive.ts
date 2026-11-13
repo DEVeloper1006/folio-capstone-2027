@@ -17,6 +17,13 @@ interface UseMathLiveOptions {
   onEditorKeyDown?: (mathfield: MathfieldElement, event: KeyboardEvent) => boolean
 }
 
+/** Drop MathLive’s virtual-keyboard shortcut so the field keeps the remaining bindings. */
+export function withoutVirtualKeyboardToggle(keybindings: MathfieldElement['keybindings']) {
+  /** Exclude MathLive’s virtual-keyboard toggle from the available key bindings. */
+  const isAllowedKeybinding = ({ command }: MathfieldElement['keybindings'][number]) => command !== 'toggleVirtualKeyboard'
+  return keybindings.filter(isAllowedKeybinding)
+}
+
 /** Return the host ref for one MathLive field and manage its browser lifecycle. Use the initial LaTeX once; report edits without replacing the active field. */
 export function useMathLive({ cellId, initialLatex, onLatexChange, onEditorKeyDown }: UseMathLiveOptions) {
   const editorHostRef = useRef<HTMLDivElement>(null)
@@ -53,10 +60,7 @@ export function useMathLive({ cellId, initialLatex, onLatexChange, onEditorKeyDo
       mathfield.mathVirtualKeyboardPolicy = 'manual'
       mathfield.menuItems = []
 
-      /** Exclude MathLive’s virtual-keyboard toggle from the available key bindings. */
-      const isAllowedKeybinding = ({ command }: MathfieldElement['keybindings'][number]) => command !== 'toggleVirtualKeyboard'
-
-      mathfield.keybindings = mathfield.keybindings.filter(isAllowedKeybinding)
+      mathfield.keybindings = withoutVirtualKeyboardToggle(mathfield.keybindings)
       /** Give cell commands the first opportunity to consume a key before mathematical navigation. */
       function handleEditorKeyDown(event: KeyboardEvent) {
         return editorKeyDownRef.current?.(mathfield, event) ?? false

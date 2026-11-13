@@ -7,9 +7,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
 import type { MathfieldElement } from 'mathlive'
-import { searchExpressionCommands } from './expression-command-search'
-import type { CommandMatch, SearchExpressionCommands } from './expression-command-search'
-import type { ExpressionCommand, ExpressionCommandGroup } from './expression-commands'
+import { searchExpressionCommands } from './expression-command-search.ts'
+import type { CommandMatch, SearchExpressionCommands } from './expression-command-search.ts'
+import type { ExpressionCommand, ExpressionCommandGroup } from './expression-commands.ts'
 
 /** Retain the editor and insertion range while the menu's text input owns focus. */
 interface CommandSession {

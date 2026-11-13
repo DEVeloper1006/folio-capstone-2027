@@ -1,5 +1,5 @@
 /**
- * Describe the existing navigation-transition regression checks. Contains nested-fraction fixtures and assertions for rule dispatch, selection anchors, growth history, and keyboard decoding.
+ * Check the navigation area. Contains nested-fraction fixtures and assertions for rule dispatch, selection anchors, growth history, and keyboard decoding.
  *
  * @file
  */

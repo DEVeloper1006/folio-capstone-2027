@@ -61,7 +61,7 @@ The app uses SSR and browser hydration, without React Server Components. Load th
 | ESLint + `eslint-plugin-jsdoc`     | Check code quality and required documentation | `pnpm lint`                         |
 | TypeScript                         | Check types                                   | `pnpm typecheck`                    |
 | Vite / TanStack Start              | Verify the production build                   | `pnpm build`                        |
-| Node's built-in test runner        | Run existing navigation tests                 | `node --test src/editor/**/*.test.ts` |
+| Node's built-in test runner        | Run the one test file in each editor area except samples | `node --test src/editor/**/*.test.ts` |
 
 Formatting uses a 300-character wrap width for code and JSDoc, two spaces, LF line endings, single quotes, no semicolons, and trailing commas. Cursor workspace settings enable Prettier on save and ESLint fixes; install the recommended Prettier and ESLint extensions.
 

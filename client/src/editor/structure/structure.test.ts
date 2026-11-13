@@ -1,5 +1,5 @@
 /**
- * Describe the existing structural-navigation regression checks. Contains recorded MathLive snapshots and assertions for term jumps, nesting, selection growth, and empty slots.
+ * Check the structure area. Contains recorded MathLive snapshots and assertions for term jumps, nesting, selection growth, and empty slots.
  *
  * @file
  */
