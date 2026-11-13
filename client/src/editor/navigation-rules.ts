@@ -515,14 +515,34 @@ function rootEnd(context: ActionContext) {
   return context.extend ? extendSelection(context, { anchor, focus: end }) : end
 }
 
-/** Exit the current region to the right; unhandled root-level Tab retains native focus traversal. */
-function tabForward(context: ActionContext) {
-  const branch = branchAt(context.structure, context.position)
-  return branch && exitRegion(context.structure, branch, 1)
+/** Select the next unfilled placeholder in serialization order, excluding the currently selected one. Return undefined when ordinary region navigation should continue. */
+function placeholderDestination(context: ActionContext, direction: -1 | 1): NavigationState | undefined {
+  const { anchor, focus } = context.state.selection
+  const boundary = direction === 1 ? Math.max(anchor, focus) : Math.min(anchor, focus)
+  /** Collect direct nodes once per editable region. */
+  function directNodes(branch: Branch) {
+    return branch.nodes
+  }
+  /** Find unfilled placeholders ahead of or behind the current selection. */
+  function inDirection(node: StructureNode) {
+    return node.kind === 'placeholder' && (direction === 1 ? node.start >= boundary : node.end <= boundary)
+  }
+  /** Prefer the nearest eligible placeholder in the requested direction. */
+  function byOffset(left: StructureNode, right: StructureNode) {
+    return direction * (left.end - right.end)
+  }
+  const destination = context.structure.branches.flatMap(directNodes).filter(inDirection).sort(byOffset).at(0)
+  return destination ? { selection: { anchor: destination.start, focus: destination.end }, history: [] } : undefined
 }
 
-/** Exit the current region to the left; unhandled root-level Shift-Tab retains native focus traversal. */
+/** Select the next placeholder before exiting the current region; unhandled root-level Tab retains native focus traversal. */
+function tabForward(context: ActionContext) {
+  const branch = branchAt(context.structure, context.position)
+  return placeholderDestination(context, 1) ?? (branch && exitRegion(context.structure, branch, 1))
+}
+
+/** Select the previous placeholder before exiting the current region; unhandled root-level Shift-Tab retains native focus traversal. */
 function tabBackward(context: ActionContext) {
   const branch = branchAt(context.structure, context.position)
-  return branch && exitRegion(context.structure, branch, -1)
+  return placeholderDestination(context, -1) ?? (branch && exitRegion(context.structure, branch, -1))
 }

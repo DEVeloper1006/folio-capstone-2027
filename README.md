@@ -53,6 +53,19 @@ Keyboard navigation adapts [DesQuill's movement and selection behavior](https://
 
 This extends the existing modules without adding dependencies or importing DesQuill's runtime. MathLive still handles typing, undo, and mouse selection. It uses the documented [`getElementInfo()` and selection API](https://mathlive.io/mathfield/api/), rather than accessing MathLive's private model. Matrix row navigation falls back to MathLive when cell coordinates cannot be recovered reliably. Integrands and operator bodies remain ordinary rows rather than semantic arguments; this is not full Desmos interaction parity.
 
+## Expression commands
+
+Type `/` in an empty editable region or over a selected placeholder to open the local expression menu. Slash after existing math keeps MathLive's fraction entry. The query stays in the menu and never enters the formula; Escape, Space on an empty query, or leaving the menu cancels without editing the expression. Spaces inside queries are supported.
+
+Use Up/Down to select, Right to browse one level of variants, Left to return, and Enter to insert. Parents and children are independently searchable: `int` ranks Integral first, while `contour integral` directly selects that variant. Mouse selection and variant buttons are also available. Insertion expands a LaTeX template into editable math and selects its first placeholder; Tab/Shift-Tab selects remaining unfilled placeholders before ordinary region navigation resumes. MathLive retains its normal undo behavior.
+
+- `client/src/editor/expression-commands.ts` owns the local catalog, aliases, and templates. The initial groups cover fractions, radicals, big operators, and integrals. These are insertion templates, not persistent macro references.
+- `client/src/editor/expression-command-search.ts` exposes an asynchronous request/result contract with deterministic keyword search. Search is local; no network calls, persistence, or extra dependencies are introduced.
+- `client/src/editor/use-expression-commands.ts` owns each cell's command session and ignores stale search responses. The provider can be replaced without changing the menu.
+- `client/src/components/expression-command-menu.tsx` renders the query, results, and variants beneath the active cell.
+
+MathLive's public [insertion API](https://mathlive.io/mathfield/api/#mathfieldelementinsert) handles expansion and placeholder selection. Existing mathematical movement rules remain in `navigation-rules.ts`; the command menu owns navigation only while its search input is focused.
+
 ## Production
 
 ```bash

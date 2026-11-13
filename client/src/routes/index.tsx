@@ -80,7 +80,9 @@ function NotebookPage() {
             <dt>Shift + arrows</dt>
             <dd>← / → select complete structures when crossing their boundaries; reversing returns inside. ↑ / ↓ select toward a region’s beginning / end, then expand outward.</dd>
             <dt>Tab / Shift + Tab</dt>
-            <dd>Exit a region forward / backward. Matrices and piecewise expressions visit their neighboring cells.</dd>
+            <dd>Visit unfilled placeholders forward / backward, then exit a region. Matrices and piecewise expressions visit their neighboring cells.</dd>
+            <dt>/ in an empty region</dt>
+            <dd>Search expression templates. ↑ / ↓ select, → shows variants, ← returns, Enter inserts, and Escape cancels. Slash after existing math still creates a fraction.</dd>
             <dt>Home / End</dt>
             <dd>Move to the current region’s beginning / end. Hold Shift to select; Control + Home / End targets the whole expression.</dd>
             <dt>Shift + Option + ← / →</dt>

@@ -1,5 +1,5 @@
 /**
- * Connect a React host element to an editable MathLive field. Contains browser-only loading, field configuration, change reporting, and cleanup.
+ * Connect a React host element to an editable MathLive field. Contains browser-only loading, field configuration, command-key delegation, change reporting, and cleanup.
  *
  * @file
  */
@@ -14,12 +14,20 @@ interface UseMathLiveOptions {
   cellId: number
   initialLatex: string
   onLatexChange: (cellId: number, latex: string) => void
+  onEditorKeyDown?: (mathfield: MathfieldElement, event: KeyboardEvent) => boolean
 }
 
 /** Return the host ref for one MathLive field and manage its browser lifecycle. Use the initial LaTeX once; report edits without replacing the active field. */
-export function useMathLive({ cellId, initialLatex, onLatexChange }: UseMathLiveOptions) {
+export function useMathLive({ cellId, initialLatex, onLatexChange, onEditorKeyDown }: UseMathLiveOptions) {
   const editorHostRef = useRef<HTMLDivElement>(null)
   const initialLatexRef = useRef(initialLatex)
+  const editorKeyDownRef = useRef(onEditorKeyDown)
+
+  /** Update command delegation without rebuilding the active MathLive field when local menu state changes. */
+  function updateKeyHandler() {
+    editorKeyDownRef.current = onEditorKeyDown
+  }
+  useEffect(updateKeyHandler, [onEditorKeyDown])
 
   /** Load the browser-only editor after mounting and remove it when this React cell unmounts. */
   const mountEditor = () => {
@@ -49,7 +57,11 @@ export function useMathLive({ cellId, initialLatex, onLatexChange }: UseMathLive
       const isAllowedKeybinding = ({ command }: MathfieldElement['keybindings'][number]) => command !== 'toggleVirtualKeyboard'
 
       mathfield.keybindings = mathfield.keybindings.filter(isAllowedKeybinding)
-      removeNavigationListeners = installNavigation(mathfield)
+      /** Give cell commands the first opportunity to consume a key before mathematical navigation. */
+      function handleEditorKeyDown(event: KeyboardEvent) {
+        return editorKeyDownRef.current?.(mathfield, event) ?? false
+      }
+      removeNavigationListeners = installNavigation(mathfield, handleEditorKeyDown)
     }
 
     // MathLive's editable field requires the browser DOM.

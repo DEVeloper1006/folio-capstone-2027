@@ -24,8 +24,8 @@ function applySelection(mathfield: MathfieldElement, selection: CursorSelection)
   }
 }
 
-/** Connect one MathLive field to the navigation rules, cache structure while its LaTeX is unchanged, and return a listener cleanup function. */
-export function installNavigation(mathfield: MathfieldElement) {
+/** Connect one MathLive field to navigation, allowing a cell command to consume a key first. Cache unchanged structure and return a listener cleanup function. */
+export function installNavigation(mathfield: MathfieldElement, beforeKeyDown?: (event: KeyboardEvent) => boolean) {
   let cachedLatex: string | undefined
   let cachedStructure: ReturnType<typeof buildStructure>
   let navigationState = createNavigationState(readSelection(mathfield))
@@ -62,6 +62,12 @@ export function installNavigation(mathfield: MathfieldElement) {
 
   /** Decode the key, apply a matching navigation transition, and prevent MathLive from handling the same event twice. Unhandled keys retain MathLive’s behavior. */
   const handleKeyDown = (event: KeyboardEvent) => {
+    if (beforeKeyDown?.(event)) {
+      resetSelectionHistory()
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      return
+    }
     if (['Alt', 'Shift', 'Control', 'Meta'].includes(event.key)) return
     const navigationAction = getNavigationAction(event)
     if (!navigationAction || mathfield.mode === 'latex') {

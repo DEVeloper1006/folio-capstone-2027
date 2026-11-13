@@ -1,6 +1,6 @@
 /**
- * Style the notebook cells, movement guide, and MathLive selection highlights.
- * Contains page layout, cell outlines, hidden editor controls, and responsive spacing.
+ * Style the notebook cells, expression-command menu, movement guide, and MathLive selection highlights.
+ * Contains page layout, cell outlines, search results, hidden editor controls, and responsive spacing.
  * @file
  */
 
@@ -92,6 +92,102 @@ body {
   min-width: 0;
   min-height: 54px;
   padding: 2px 0;
+}
+
+.cell-editor {
+  position: relative;
+}
+
+.command-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 10;
+  width: min(100%, 390px);
+  padding: 6px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 24px #0002;
+  font-size: 13px;
+}
+
+.command-search,
+.command-result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.command-search {
+  padding: 5px 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.command-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 0;
+  border: 0;
+  outline: 0;
+  font: inherit;
+}
+
+.command-menu button {
+  padding: 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.command-menu button:focus-visible {
+  outline: 2px solid #7279a8;
+}
+
+.command-results {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.command-result.is-active,
+.command-menu button:hover {
+  background: #eff6ff;
+}
+
+.command-result > button:first-child {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.command-symbol {
+  width: 32px;
+  flex-shrink: 0;
+  font-family: Georgia, serif;
+  font-size: 22px;
+  text-align: center;
+}
+
+.command-result small {
+  display: block;
+  margin-top: 2px;
+  color: #777;
+  font-size: 11px;
+}
+
+.command-menu p {
+  margin: 8px;
+  color: #777;
+}
+
+.command-help {
+  font-size: 11px;
 }
 
 math-field {
