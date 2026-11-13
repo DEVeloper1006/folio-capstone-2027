@@ -8,7 +8,7 @@ import type { MathfieldElement } from 'mathlive'
 import { getNavigationAction } from './navigation-actions.ts'
 import type { CursorSelection } from './navigation-actions.ts'
 import { createNavigationState, applyNavigationAction } from './navigation-transition.ts'
-import { buildStructure } from './structure.ts'
+import { buildStructure } from '../structure/structure.ts'
 
 /** Read MathLive’s first selection range as a fixed anchor and moving focus, preserving backward selection direction. */
 function readSelection(mathfield: MathfieldElement): CursorSelection {

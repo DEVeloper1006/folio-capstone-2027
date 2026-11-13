@@ -26,7 +26,7 @@ pnpm typecheck
 pnpm lint
 pnpm format:check
 pnpm format
-node --test src/editor/*.test.ts
+node --test src/editor/**/*.test.ts
 ```
 
 The tests use Node's native TypeScript support.
@@ -35,13 +35,13 @@ The tests use Node's native TypeScript support.
 
 These interactions are experimental, not final product requirements.
 
-1. `client/src/editor/navigation-actions.ts` converts keyboard events into named actions.
-2. `client/src/editor/structure.ts` identifies layout nodes and editable regions using MathLive's public metadata. It classifies fractions, scripts, operator limits, roots, and matrix/cases cells.
-3. `client/src/editor/navigation-rules.ts` contains all custom movement and selection rules, including structural arrows, region boundaries, term jumps, and selection growth/shrinking.
-4. `client/src/editor/navigation-transition.ts` applies rule results and retains the original selection anchor and vertical return positions between related actions.
-5. `client/src/editor/navigation.ts` reads the field, dispatches actions, and writes the visible selection through MathLive's public API. Pointer input, formula edits, and blur reset navigation history.
+1. `client/src/editor/navigation/navigation-actions.ts` converts keyboard events into named actions.
+2. `client/src/editor/structure/structure.ts` identifies layout nodes and editable regions using MathLive's public metadata. It classifies fractions, scripts, operator limits, roots, and matrix/cases cells.
+3. `client/src/editor/navigation/navigation-rules.ts` contains all custom movement and selection rules, including structural arrows, region boundaries, term jumps, and selection growth/shrinking.
+4. `client/src/editor/navigation/navigation-transition.ts` applies rule results and retains the original selection anchor and vertical return positions between related actions.
+5. `client/src/editor/navigation/navigation.ts` reads the field, dispatches actions, and writes the visible selection through MathLive's public API. Pointer input, formula edits, and blur reset navigation history.
 
-Selection growth uses `client/src/editor/selection-spans.ts` to recover syntactic units within each editable region: complete function calls, scripted bases, arithmetic expressions, logical clauses, and quantified bodies. For example, Shift-Option-Up inside `R(y)` grows through `y`, `R(y)`, its negation, the conjunction, and the enclosing quantified expression. Shift-Option-Down restores the exact previous ranges, including the original cursor or backward selection. At a boundary, growth prefers the expression ahead in the current region. These ranges are separate from term-jump spans, so Option-Left/Right keeps its existing behavior.
+`client/src/editor/index.ts` is the public entry used by cells and the notebook page. Selection growth uses `client/src/editor/structure/selection-spans.ts` to recover syntactic units within each editable region: complete function calls, scripted bases, arithmetic expressions, logical clauses, and quantified bodies. For example, Shift-Option-Up inside `R(y)` grows through `y`, `R(y)`, its negation, the conjunction, and the enclosing quantified expression. Shift-Option-Down restores the exact previous ranges, including the original cursor or backward selection. At a boundary, growth prefers the expression ahead in the current region. These ranges are separate from term-jump spans, so Option-Left/Right keeps its existing behavior.
 
 This is syntax-based selection rather than mathematical evaluation. It preserves incomplete input and uses layout regions and balanced delimiters as boundaries. Conventional operator precedence and common quantifier declarations are supported; ambiguous notation is not assigned a mathematical meaning or rewritten.
 
@@ -63,10 +63,10 @@ Type `/` in an empty editable region or over a selected placeholder to open the 
 
 Use Up/Down to select, Right to browse one level of variants, Left to return, and Enter to insert. Parents and children are independently searchable: `int` ranks Integral first, while `contour integral` directly selects that variant. Mouse selection and variant buttons are also available. Insertion expands a LaTeX template into editable math and selects its first placeholder; Tab/Shift-Tab selects remaining unfilled placeholders before ordinary region navigation resumes. MathLive retains its normal undo behavior.
 
-- `client/src/editor/expression-commands.ts` owns the local catalog, aliases, and templates. The initial groups cover fractions, radicals, big operators, and integrals. These are insertion templates, not persistent macro references.
-- `client/src/editor/expression-command-search.ts` exposes an asynchronous request/result contract with deterministic keyword search. Search is local; no network calls, persistence, or extra dependencies are introduced.
-- `client/src/editor/use-expression-commands.ts` owns each cell's command session and ignores stale search responses. The provider can be replaced without changing the menu.
-- `client/src/components/expression-command-menu.tsx` renders the query, results, and variants beneath the active cell.
+- `client/src/editor/commands/expression-commands.ts` owns the local catalog, aliases, and templates. The initial groups cover fractions, radicals, big operators, and integrals. These are insertion templates, not persistent macro references.
+- `client/src/editor/commands/expression-command-search.ts` exposes an asynchronous request/result contract with deterministic keyword search. Search is local; no network calls, persistence, or extra dependencies are introduced.
+- `client/src/editor/commands/use-expression-commands.ts` owns each cell's command session and ignores stale search responses. The provider can be replaced without changing the menu.
+- `client/src/components/expression-command-menu-view.tsx` renders the query, results, and variants beneath the active cell. It does not own the command session.
 
 MathLive's public [insertion API](https://mathlive.io/mathfield/api/#mathfieldelementinsert) handles expansion and placeholder selection. Existing mathematical movement rules remain in `navigation-rules.ts`; the command menu owns navigation only while its search input is focused.
 

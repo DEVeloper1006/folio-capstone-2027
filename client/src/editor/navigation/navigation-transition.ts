@@ -7,7 +7,7 @@
 import type { CursorSelection, NavigationAction } from './navigation-actions.ts'
 import { navigationRules, resolveRule } from './navigation-rules.ts'
 import type { NavigationRule, NavigationState } from './navigation-rules.ts'
-import type { Structure } from './structure.ts'
+import type { Structure } from '../structure/structure.ts'
 
 /** Provide the structure and cursor geometry needed for a transition. An optional rule list replaces the default registry; unavailable horizontal coordinates are reported as undefined. */
 export interface NavigationContext {

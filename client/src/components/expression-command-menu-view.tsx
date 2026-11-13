@@ -6,16 +6,15 @@
 
 import { useEffect, useId, useRef } from 'react'
 import type { ChangeEvent, FocusEvent, MouseEvent } from 'react'
-import type { useExpressionCommands } from '#/editor/use-expression-commands'
-import type { CommandMatch } from '#/editor/expression-command-search'
+import type { CommandMatch, useExpressionCommands } from '#/editor/index.ts'
 
 /** Receive the local command session and its handlers without owning search or MathLive integration. */
-interface ExpressionCommandMenuProps {
+interface ExpressionCommandMenuViewProps {
   menu: ReturnType<typeof useExpressionCommands>
 }
 
 /** Render a focused search box with arrow-key selection and independently insertable variants. Dismiss on focus leaving the menu without stealing focus back. */
-export function ExpressionCommandMenu({ menu }: ExpressionCommandMenuProps) {
+export function ExpressionCommandMenuView({ menu }: ExpressionCommandMenuViewProps) {
   const listId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const activeResultRef = useRef<HTMLButtonElement>(null)

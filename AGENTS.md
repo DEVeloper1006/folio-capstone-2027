@@ -20,7 +20,7 @@ This file defines the conventions for changes to Folio. Apply them to new code a
 - Use the repository's local Prettier version for formatting. Use `prettier-plugin-jsdoc` to wrap documentation comments and ESLint for code-quality and JSDoc checks. Keep one formatter responsible for each language.
 - Format on save in Cursor. Use a 300-character wrap width for code and JSDoc, two spaces, LF line endings, single quotes in JavaScript/TypeScript, no semicolons, and trailing commas as configured in `client/prettier.config.js`.
 - Keep TypeScript strict. Prefer named functions and exports, explicit domain names, and small functions with one clear responsibility. Do not add `any`, suppression comments, or abstractions merely to silence a check.
-- Keep all custom movement and selection rules in `client/src/editor/navigation-rules.ts`. Keyboard decoding, structure extraction, and MathLive event handling stay separate.
+- Keep all custom movement and selection rules in `client/src/editor/navigation/navigation-rules.ts`. Keyboard decoding, structure extraction, and MathLive event handling stay in their own files under `client/src/editor/`. Import the editor from `client/src/editor/index.ts`.
 - Use current official documentation when changing version-sensitive package APIs or editor configuration.
 
 ## Scope and verification

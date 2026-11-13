@@ -4,9 +4,8 @@
  * @file
  */
 
-import { useMathLive } from '#/editor/use-mathlive'
-import { useExpressionCommands } from '#/editor/use-expression-commands'
-import { ExpressionCommandMenu } from './expression-command-menu'
+import { useExpressionCommands, useMathLive } from '#/editor/index.ts'
+import { ExpressionCommandMenuView } from './expression-command-menu-view'
 
 /** Supply the cell's identity, starting LaTeX, and notebook edit callback to the MathLive lifecycle hook. */
 interface LatexCellProps {
@@ -28,7 +27,7 @@ export function LatexCell({ cellId, initialLatex, onLatexChange }: LatexCellProp
   return (
     <div className="cell-editor">
       <div className="cell-input" ref={editorHostRef} />
-      {commands.isOpen && <ExpressionCommandMenu menu={commands} />}
+      {commands.isOpen && <ExpressionCommandMenuView menu={commands} />}
     </div>
   )
 }

@@ -5,8 +5,8 @@
  */
 
 import type { CursorSelection, NavigationActionName } from './navigation-actions.ts'
-import { branchAt, contains, sameSpan, nodeBranches, nodeParentBranch } from './structure.ts'
-import type { Branch, NodeKind, Span, Structure, StructureNode } from './structure.ts'
+import { branchAt, contains, sameSpan, nodeBranches, nodeParentBranch } from '../structure/structure.ts'
+import type { Branch, NodeKind, Span, Structure, StructureNode } from '../structure/structure.ts'
 
 /**
  * Retain the visible selection and history between navigation actions. The logical selection preserves nested endpoints behind a whole-construct highlight; vertical positions map region-start offsets to remembered cursor offsets. Growth history is reused only while lastGrowth matches the visible

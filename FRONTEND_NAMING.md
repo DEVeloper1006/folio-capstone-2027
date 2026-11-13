@@ -4,7 +4,8 @@
 - `camelCase`: variables, functions, hook results, and object properties.
 - `PascalCase`: components, interfaces, and type aliases.
 - `kebab-case`: handwritten filenames, including `latex-cell.tsx` and `use-mathlive.ts`.
-- `LatexCell`: the complete cell component exposed to its parent.
+- `LatexCell`: the complete cell component exposed to its parent. It may own hooks and domain state.
+- `View` suffix: a component that renders props and callbacks and does not own the domain state. Local ids, refs, and effects used only to focus, scroll, or wire the DOM stay in the view. Example: `ExpressionCommandMenuView` renders a command session it does not own.
 - `LatexCellView`: presentation extracted from cell behavior; receives data and callbacks.
 - `LatexEditor`: an editable formula component independent of notebook cells.
 - `useMathLive`: manages the MathLive integration and browser lifecycle.

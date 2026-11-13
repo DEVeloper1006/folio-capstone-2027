@@ -9,7 +9,7 @@ import { test } from 'node:test'
 import { getNavigationAction } from './navigation-actions.ts'
 import { fractionEndUpRule } from './navigation-rules.ts'
 import { createNavigationState, applyNavigationAction } from './navigation-transition.ts'
-import { buildStructure } from './structure.ts'
+import { buildStructure } from '../structure/structure.ts'
 import type { NavigationContext } from './navigation-transition.ts'
 
 const entries: Array<[number, string]> = [

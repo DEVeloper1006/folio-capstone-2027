@@ -7,7 +7,7 @@
 import { useEffect, useRef } from 'react'
 import type * as MathLive from 'mathlive'
 import type { MathfieldElement } from 'mathlive'
-import { installNavigation } from './navigation'
+import { installNavigation } from '../navigation/navigation.ts'
 
 /** Identify the notebook cell, supply its initial formula, and report subsequent LaTeX edits. The initial value seeds the field once; parent updates do not replace the active formula. */
 interface UseMathLiveOptions {

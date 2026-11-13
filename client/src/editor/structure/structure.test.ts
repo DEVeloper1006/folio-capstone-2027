@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { branchAt, buildStructure } from './structure.ts'
-import { enclosing, enter, jump, leave } from './navigation-rules.ts'
+import { enclosing, enter, jump, leave } from '../navigation/navigation-rules.ts'
 import type { ElementSnapshot, Span } from './structure.ts'
 
 /** Convert recorded MathLive depth and LaTeX pairs into element snapshots for the existing navigation fixtures. */

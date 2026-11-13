@@ -7,5 +7,15 @@
   },
   "files.readonlyInclude": {
     "**/routeTree.gen.ts": true
-  }
+  },
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "prettier.requireConfig": true,
+  "prettier.configPath": "client/prettier.config.js",
+  "prettier.ignorePath": "client/.prettierignore",
+  "eslint.workingDirectories": ["./client"],
+  "eslint.format.enable": false
 }

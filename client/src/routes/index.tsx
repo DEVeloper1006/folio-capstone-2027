@@ -7,7 +7,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useCallback, useState } from 'react'
 import { LatexCell } from '#/components/latex-cell'
-import { sampleExpressions } from '#/editor/sample-expressions'
+import { sampleExpressions } from '#/editor/index.ts'
 
 export const Route = createFileRoute('/')({ component: NotebookPage })
 

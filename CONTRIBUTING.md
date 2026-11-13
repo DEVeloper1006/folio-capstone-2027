@@ -28,18 +28,18 @@ The optional [editor comparison](editor-comparison/README.md) runs separately on
 
 - `src/routes/`: page components and the document shell.
 - `src/components/`: React UI components, including the MathLive cell wrapper.
-- `src/editor/`: expression structure, keyboard actions, navigation rules, and sample expressions.
+- `src/editor/`: public editor entry in `index.ts`, with `navigation/`, `structure/`, `commands/`, `mathlive/`, and `samples/` underneath.
 - `src/styles.css`: application styles.
 
 Use small functions with named exports and keep React components focused on rendering and lifecycle work. Use the existing `#/` alias for imports from `src/` and relative paths within a module.
 
-Keep all custom movement and selection behavior in `src/editor/navigation-rules.ts`. Keyboard decoding, structure extraction, transition handling, and MathLive event handling have separate files. Unhandled actions fall back to MathLive; see the [navigation overview](README.md#navigation-experiment).
+Keep all custom movement and selection behavior in `src/editor/navigation/navigation-rules.ts`. Keyboard decoding, structure extraction, transition handling, and MathLive event handling have separate files in `navigation/`, `structure/`, and `mathlive/`. Unhandled actions fall back to MathLive; see the [navigation overview](README.md#navigation-experiment).
 
 Navigation keeps the logical selection anchor separate from MathLive's visible range so reversing a whole-structure selection can return inside it. Vertical moves retain previous region positions until another interaction resets them. Keep these transitions in the existing editor modules and use MathLive's public element metadata and selection API; the React cell wrapper only installs and cleans up the integration.
 
-`selection-spans.ts` groups direct layout nodes into syntactic selection candidates without evaluating or rewriting the formula. Keep these ranges separate from term-jump spans in `structure.ts`; selection growth and shrinking remain rules in `navigation-rules.ts`. Preserve complete calls, scripts, delimiter boundaries, and quantifier scopes, while retaining exact shrink history.
+`structure/selection-spans.ts` groups direct layout nodes into syntactic selection candidates without evaluating or rewriting the formula. Keep these ranges separate from term-jump spans in `structure/structure.ts`; selection growth and shrinking remain rules in `navigation/navigation-rules.ts`. Preserve complete calls, scripts, delimiter boundaries, and quantifier scopes, while retaining exact shrink history.
 
-Expression commands use a local definition catalog, a replaceable asynchronous search function, a cell-local hook, and a presentation component. Keep aliases and one-level variants in `expression-commands.ts`, ranking in `expression-command-search.ts`, and insertion sessions in `use-expression-commands.ts`. The menu edits only its own query until a command is accepted. Do not put search queries into the formula or rebuild MathLive when menu state changes. See [expression commands](README.md#expression-commands) for triggers and keyboard behavior.
+Expression commands use a local definition catalog, a replaceable asynchronous search function, a cell-local hook, and a presentation component. Keep aliases and one-level variants in `commands/expression-commands.ts`, ranking in `commands/expression-command-search.ts`, and insertion sessions in `commands/use-expression-commands.ts`. The menu edits only its own query until a command is accepted. Do not put search queries into the formula or rebuild MathLive when menu state changes. See [expression commands](README.md#expression-commands) for triggers and keyboard behavior.
 
 The app uses SSR and browser hydration, without React Server Components. Load the editable MathLive implementation in the browser, as the existing cell wrapper does. Clean up editor instances and listeners when their component unmounts.
 
@@ -61,7 +61,7 @@ The app uses SSR and browser hydration, without React Server Components. Load th
 | ESLint + `eslint-plugin-jsdoc`     | Check code quality and required documentation | `pnpm lint`                         |
 | TypeScript                         | Check types                                   | `pnpm typecheck`                    |
 | Vite / TanStack Start              | Verify the production build                   | `pnpm build`                        |
-| Node's built-in test runner        | Run existing navigation tests                 | `node --test src/editor/*.test.ts`  |
+| Node's built-in test runner        | Run existing navigation tests                 | `node --test src/editor/**/*.test.ts` |
 
 Formatting uses a 300-character wrap width for code and JSDoc, two spaces, LF line endings, single quotes, no semicolons, and trailing commas. Cursor workspace settings enable Prettier on save and ESLint fixes; install the recommended Prettier and ESLint extensions.
 
