@@ -41,6 +41,10 @@ These interactions are experimental, not final product requirements.
 4. `client/src/editor/navigation-transition.ts` applies rule results and retains the original selection anchor and vertical return positions between related actions.
 5. `client/src/editor/navigation.ts` reads the field, dispatches actions, and writes the visible selection through MathLive's public API. Pointer input, formula edits, and blur reset navigation history.
 
+Selection growth uses `client/src/editor/selection-spans.ts` to recover syntactic units within each editable region: complete function calls, scripted bases, arithmetic expressions, logical clauses, and quantified bodies. For example, Shift-Option-Up inside `R(y)` grows through `y`, `R(y)`, its negation, the conjunction, and the enclosing quantified expression. Shift-Option-Down restores the exact previous ranges, including the original cursor or backward selection. At a boundary, growth prefers the expression ahead in the current region. These ranges are separate from term-jump spans, so Option-Left/Right keeps its existing behavior.
+
+This is syntax-based selection rather than mathematical evaluation. It preserves incomplete input and uses layout regions and balanced delimiters as boundaries. Conventional operator precedence and common quantifier declarations are supported; ambiguous notation is not assigned a mathematical meaning or rewritten.
+
 Rules run in registration order and target the nearest matching node. Returning `undefined` defers to another rule. Unhandled actions fall back to MathLive. Add new node-specific behavior to the rule registry rather than the DOM key handler.
 
 Keyboard navigation adapts [DesQuill's movement and selection behavior](https://github.com/desmosinc/mathquill), using its visual-arrow policy (`leftRightIntoCmdGoes: 'up'`):

@@ -1,8 +1,10 @@
 /**
- * Recover editable layout structure from MathLive element metadata. Contains span and node types, branch ownership, fraction and script roles, matrix-cell coordinates, and structural queries.
+ * Recover editable layout structure from MathLive element metadata. Contains span and node types, branch ownership, fraction and script roles, matrix-cell coordinates, syntactic selection ranges, and structural queries.
  *
  * @file
  */
+
+import { selectionSpans } from './selection-spans.ts'
 
 /** Bound a region by MathLive cursor offsets, including both boundary positions. These offsets describe the editor layout, not character indices in the LaTeX source. */
 export interface Span {
@@ -147,13 +149,10 @@ export function buildStructure(elementSnapshots: ElementSnapshot[]): Structure {
   /** Discard empty spans that cannot enlarge a selection. */
   const isNonemptySpan = (span: Span) => span.end > span.start
 
-  /** Include each branch’s term spans as possible selection-growth destinations. */
-  const getTermSpans = (branch: Branch) => branch.terms
+  /** Recover expression boundaries separately from term-jump separators so calls, logical clauses, and quantifier scopes remain intact. */
+  const getSelectionSpans = (branch: Branch) => selectionSpans(branch.nodes)
 
-  /** Exclude standalone operators and spacing commands from selectable expression spans. */
-  const isSelectableNode = (node: StructureNode) => !termSeparatorPattern.test(node.latex) && !spacingCommandPattern.test(node.latex)
-
-  const spans = [...nodes.filter(isSelectableNode), ...branches, ...branches.flatMap(getTermSpans)].filter(isNonemptySpan).sort(compareSpanWidth).filter(isUniqueSpan)
+  const spans = [...branches.flatMap(getSelectionSpans), ...branches].filter(isNonemptySpan).sort(compareSpanWidth).filter(isUniqueSpan)
 
   return { branches, spans }
 }

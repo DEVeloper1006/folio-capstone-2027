@@ -88,7 +88,7 @@ function NotebookPage() {
             <dt>Shift + Option + ← / →</dt>
             <dd>Extend the selection by complete terms.</dd>
             <dt>Shift + Option + ↑ / ↓</dt>
-            <dd>Grow to an enclosing expression / restore the smaller selection.</dd>
+            <dd>Grow through a symbol, function call, clause, and enclosing expression / restore the exact previous selection.</dd>
           </dl>
           <p>Movement follows DesQuill’s visual-arrow policy, extended to matrix and piecewise rows. Mouse dragging uses MathLive’s native selection. Integrands and operator bodies remain ordinary rows rather than semantic arguments.</p>
         </details>

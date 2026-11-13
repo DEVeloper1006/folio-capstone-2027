@@ -270,8 +270,17 @@ export function enter(structure: Structure, cursorOffset: number) {
   return structure.branches.find(isNodeSlot)?.start ?? cursorOffset
 }
 
-/** Return the smallest structural span that contains and strictly enlarges the current selection. */
+/** Return the smallest complete subexpression that enlarges the selection. At a cursor boundary, prefer the expression ahead within the deepest editable region before considering the expression behind it. */
 export function enclosing(structure: Structure, selection: Span): Span | undefined {
+  if (selection.start === selection.end) {
+    const branch = branchAt(structure, selection.start)
+    /** Prefer a symbol or expression beginning at the cursor in its own region, rather than one ending there in a neighbor. */
+    function beginsAtCursor(span: Span) {
+      return span.start === selection.start && span.end > selection.end && (!branch || contains(branch, span))
+    }
+    const forward = structure.spans.find(beginsAtCursor)
+    if (forward) return forward
+  }
   /** Keep enclosing spans that add at least one cursor position to the selection. */
   const enlargesSelection = (span: Span) => contains(span, selection) && !sameSpan(span, selection)
 
