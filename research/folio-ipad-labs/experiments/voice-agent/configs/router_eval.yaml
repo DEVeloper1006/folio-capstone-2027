@@ -1,0 +1,148 @@
+# Router eval: sends each utterance (plus an optional fixture screen) to Jev with the same
+# question schema as VoiceAgent/Brain/IntentRouter.swift::classify and scores the typed answers.
+#
+# Keep `intents` and `keys` in sync with IntentOption and KeyChord in the Swift sources, and the
+# text-payload candidate logic in eval_router.py in sync with Brain/TextPayload.swift.
+
+model: typesafe/jev-1.13
+endpoint: https://openrouter.ai/api/alpha/decisions
+output_file: results/voice-agent/router_eval_{timestamp}.json
+timeout_s: 15
+
+intents:
+  OPEN_APP: "Launch an app or open a well-known website"
+  CLICK: "Click one specific control that is listed in the element table"
+  TYPE_TEXT: "Type the user's words into a text field that is on screen now"
+  PRESS_KEY: "Press one key or keyboard shortcut"
+  SCROLL_UP: "Scroll the content up"
+  SCROLL_DOWN: "Scroll the content down"
+  TASK: "A goal that needs several UI steps (e.g. compose and send a message, fill a form, open an app and then do something in it)"
+  CHAT: "A question or conversation that needs a spoken answer, not a Mac action"
+  WAIT: "The user asked to wait or hold on"
+  DONE: "Nothing to do: the user cancelled, said thanks, or the request is already satisfied"
+  BLOCKED: "A Mac action that can't or shouldn't be done (e.g. needs a password, destructive, impossible here)"
+  VOLUME_UP: "Turn the system volume up"
+  VOLUME_DOWN: "Turn the system volume down"
+  TOGGLE_MUTE: "Mute or unmute system audio"
+  TOGGLE_DND: "Turn Do Not Disturb / Focus on or off"
+  BRIGHTNESS_UP: "Make the screen brighter"
+  BRIGHTNESS_DOWN: "Make the screen dimmer"
+
+keys:
+  RETURN: "Return / Enter: submit or confirm"
+  ESCAPE: "Escape: cancel or dismiss"
+  TAB: "Tab: move to next field"
+  DELETE: "Delete / Backspace"
+  SPACE: "Space bar"
+  UP: "Up arrow"
+  DOWN: "Down arrow"
+  LEFT: "Left arrow"
+  RIGHT: "Right arrow"
+  CMD_C: "Cmd+C copy"
+  CMD_V: "Cmd+V paste"
+  CMD_A: "Cmd+A select all"
+  CMD_Z: "Cmd+Z undo"
+  CMD_N: "Cmd+N new window/document/message"
+  CMD_T: "Cmd+T new tab"
+  CMD_W: "Cmd+W close window or tab"
+  CMD_F: "Cmd+F find"
+  CMD_S: "Cmd+S save"
+  CMD_L: "Cmd+L focus browser address bar"
+  CMD_SPACE: "Cmd+Space open Spotlight"
+
+# Stand-in for the AppCatalog the app builds from /Applications at runtime.
+apps: [Safari, Google Chrome, Mail, Messages, Notes, Calendar, Music, Finder, Slack, Xcode, System Settings, Terminal]
+
+# Mirror of AppCatalog.websites: offered to Jev as "app" options when no installed app shares the name.
+websites:
+  YouTube: []
+  Gmail: []
+  X: [twitter]
+  Reddit: []
+  Spotify: []
+  Slack: []
+  Notion: []
+  GitHub: []
+  Netflix: []
+  ChatGPT: []
+  Claude: []
+
+# Fixture element tables standing in for a live AX crawl: [role, label, identifier?, actions].
+# Rendered the same way as ElementTable.serialize(); index = position in the list.
+screens:
+  safari:
+    app: Safari
+    window: Google
+    elements:
+      - [AXButton, Back, null, [AXPress]]
+      - [AXButton, Forward, null, [AXPress]]
+      - [AXTextField, Search or enter website name, WEB_BROWSER_ADDRESS_AND_SEARCH_FIELD, [AXConfirm]]
+      - [AXButton, New Tab, NewTabButton, [AXPress]]
+      - [AXLink, Gmail, null, [AXPress]]
+      - [AXButton, Google Search, null, [AXPress]]
+  form:
+    app: Google Chrome
+    window: Contact us
+    elements:
+      - [AXTextField, Name, null, [AXConfirm]]
+      - [AXTextField, Email, null, [AXConfirm]]
+      - [AXTextArea, Message, null, []]
+      - [AXCheckBox, Subscribe to newsletter, null, [AXPress]]
+      - [AXButton, Submit, submit-btn, [AXPress]]
+      - [AXButton, Cancel, null, [AXPress]]
+  notes:
+    app: Notes
+    window: Notes
+    elements:
+      - [AXButton, New Note, null, [AXPress]]
+      - [AXSearchField, Search, null, [AXConfirm]]
+      - [AXTextArea, Note body, null, []]
+      - [AXButton, Share, null, [AXPress]]
+
+# `expect` fields are optional; only present fields are scored.
+# Scored questions: intent, key, app, target_index, text_payload.
+cases:
+  - {text: "open safari", expect: {intent: OPEN_APP, app: Safari}}
+  - {text: "launch chrome", expect: {intent: OPEN_APP, app: Google Chrome}}
+  - {text: "bring up my notes", expect: {intent: OPEN_APP, app: Notes}}
+  - {text: "switch to slack", expect: {intent: OPEN_APP, app: Slack}}
+  - {text: "turn the volume up", expect: {intent: VOLUME_UP}}
+  - {text: "it's too loud", expect: {intent: VOLUME_DOWN}}
+  - {text: "mute", expect: {intent: TOGGLE_MUTE}}
+  - {text: "turn on do not disturb", expect: {intent: TOGGLE_DND}}
+  - {text: "scroll down", screen: safari, expect: {intent: SCROLL_DOWN}}
+  - {text: "go back up to the top", screen: safari, expect: {intent: SCROLL_UP}}
+  - {text: "close this tab", screen: safari, expect: {intent: PRESS_KEY, key: CMD_W}}
+  - {text: "new tab", screen: safari, expect: {intent: PRESS_KEY, key: CMD_T}}
+  - {text: "undo that", expect: {intent: PRESS_KEY, key: CMD_Z}}
+  - {text: "save", expect: {intent: PRESS_KEY, key: CMD_S}}
+  - {text: "hit enter", expect: {intent: PRESS_KEY, key: RETURN}}
+  - {text: "click the submit button", screen: form, expect: {intent: CLICK, target_index: "4"}}
+  - {text: "check the newsletter box", screen: form, expect: {intent: CLICK, target_index: "3"}}
+  - {text: "click the gmail link", screen: safari, expect: {intent: CLICK, target_index: "4"}}
+  - {text: "open youtube", expect: {intent: OPEN_APP, app: YouTube}}
+  - {text: "go to reddit", expect: {intent: OPEN_APP, app: Reddit}}
+  - {text: "open twitter", expect: {intent: OPEN_APP, app: X}}
+  - {text: "open gmail", expect: {intent: OPEN_APP, app: Gmail}}
+  - {text: "pull up github", expect: {intent: OPEN_APP, app: GitHub}}
+  - {text: "make the screen brighter", expect: {intent: BRIGHTNESS_UP}}
+  - {text: "dim the display", expect: {intent: BRIGHTNESS_DOWN}}
+  - {text: "go back", screen: safari, expect: {intent: CLICK, target_index: "0"}}
+  - {text: "type hello world", screen: notes, expect: {intent: TYPE_TEXT, text_payload: hello world}}
+  - {text: "put dev@example.com in the email field", screen: form, expect: {intent: TYPE_TEXT, target_index: "1"}}
+  - {text: "write \"meeting moved to 4pm\" in the note", screen: notes, expect: {intent: TYPE_TEXT, text_payload: meeting moved to 4pm, target_index: "2"}}
+  - {text: "send a message to Alex in Messages saying I'm running late", expect: {intent: TASK}}
+  - {text: "reply to the last email with thanks", expect: {intent: TASK}}
+  - {text: "search google for the derivative of x squared", expect: {intent: TASK}}
+  - {text: "create a new note called shopping list", expect: {intent: TASK}}
+  - {text: "add a calendar event tomorrow at 3pm for office hours", expect: {intent: TASK}}
+  - {text: "turn on dark mode in system settings", expect: {intent: TASK}}
+  - {text: "never mind", expect: {intent: DONE}}
+  - {text: "hold on a sec", expect: {intent: WAIT}}
+  - {text: "delete everything in my home folder", expect: {intent: BLOCKED}}
+  - {text: "what's the integral of sin x", expect: {intent: CHAT}}
+  - {text: "explain the chain rule like I'm five", expect: {intent: CHAT}}
+  - {text: "how are you doing today", expect: {intent: CHAT}}
+  - {text: "what's 17 times 23", expect: {intent: CHAT}}
+  - {text: "who proved Fermat's last theorem", expect: {intent: CHAT}}
+  - {text: "tell me a joke", expect: {intent: CHAT}}

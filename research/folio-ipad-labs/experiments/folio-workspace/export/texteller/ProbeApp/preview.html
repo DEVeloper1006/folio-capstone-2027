@@ -1,0 +1,14 @@
+<!doctype html>
+<html><head><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; font-src 'none'">
+<style>body{margin:12px;color:#202020;background:white;font-size:23px}#math{overflow-x:auto;padding:12px}</style>
+<script>window.MathJax={svg:{fontCache:'local'},options:{enableMenu:false},startup:{typeset:false}};</script>
+<script src="tex-svg.js"></script></head><body><div id="math"></div>
+<script>
+window.renderLatex=async function(latex){
+  await MathJax.startup.promise;
+  const host=document.getElementById('math');
+  host.replaceChildren(await MathJax.tex2svgPromise(latex,{display:true}));
+  return host.querySelector('svg') !== null;
+};
+</script></body></html>

@@ -1,0 +1,26 @@
+# pix2tex baseline eval. Paths are relative to the repo root.
+model: pix2tex
+# mathwriting | folder
+dataset: mathwriting
+
+# --- dataset: mathwriting ---
+root: data/mathwriting-2024
+# test = final benchmark (7,644); valid = tuning (15,674)
+split: test
+# Passed to shared/utils/rasterize.render_ink.
+render:
+  height: 128
+  stroke_width: 3
+
+# --- dataset: folder (ignored for mathwriting) ---
+image_dir: data/test_images
+# JSON {"img.png": "latex"} or TSV "img.png<TAB>latex". If null, sidecar
+# <stem>.tex / <stem>.txt files next to each image are used.
+labels: null
+
+# --- common ---
+output: results/hme-recognition/
+# Crop to ink + downscale (256x1024) before inference.
+preprocess: false
+# Max samples to evaluate (null = all).
+limit: null

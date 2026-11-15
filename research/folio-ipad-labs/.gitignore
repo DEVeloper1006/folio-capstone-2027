@@ -1,0 +1,66 @@
+# ===== Agent Files (hidden from public repo) =====
+.reports/
+CLAUDE.md
+AGENTS.md
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+
+# ===== Model Weights =====
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.onnx
+*.mlmodel
+*.mlpackage
+*.tflite
+
+# ===== Data =====
+/data/*
+!/data/.gitkeep
+*.tar.gz
+*.zip
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+
+# ===== Notebooks =====
+.ipynb_checkpoints/
+
+# ===== macOS =====
+.DS_Store
+*.swp
+*.swo
+
+# ===== IDE =====
+.idea/
+.vscode/
+*.code-workspace
+
+# ===== Results (track structure, not outputs) =====
+results/**/*.json
+results/**/*.csv
+results/**/*.log
+!results/**/.gitkeep
+
+# ===== Misc =====
+*.log
+.env
+.envrc
+# ===== Third-party clones (re-created by setup scripts) =====
+experiments/hme-recognition/uni-mumer/
+
+# Reproducible on-device feasibility outputs (models, tensors, builds, timings).
+results/on-device-texteller/
+experiments/folio-workspace/export/texteller/ProbeApp/Generated/
