@@ -24,6 +24,10 @@ Open <http://localhost:3000>. Run the remaining commands from `client/`.
 
 The optional [editor comparison](editor-comparison/README.md) runs separately on <http://127.0.0.1:3011/>. From `editor-comparison/`, run `npm install`, `npm run setup`, then `npm run dev`. It has its own dependencies and build; it compares native library defaults, labeled Folio and DesQuill configurations, Guppy's standard-LaTeX adapter, and three source-preview workflows. It includes fifty notation examples, custom input, and an optional source fallback for unsupported native imports. Changing its columns does not change the main app's editor. Run `npm run typecheck` and `npm run build` there to check comparison changes.
 
+## iPad app and research
+
+The [iPad guide](ipad/README.md) covers `ipad/app/`, Xcode builds and staging validated local recognition assets. Research prototypes live in `research/folio-ipad-labs/` and have separate dependencies; they do not replace `client/`. Preserve imported baseline tests; the pause on adding or extending tests still applies. Run platform builds from their own folders and keep model exports, notebook data and local backups out of Git.
+
 ## Code patterns
 
 - `src/routes/`: page components and the document shell.
@@ -55,12 +59,12 @@ The app uses SSR and browser hydration, without React Server Components. Load th
 
 ## Tools and checks
 
-| Tool                               | Purpose                                       | Command                             |
-| ---------------------------------- | --------------------------------------------- | ----------------------------------- |
-| Prettier + `prettier-plugin-jsdoc` | Format code and documentation                 | `pnpm format` / `pnpm format:check` |
-| ESLint + `eslint-plugin-jsdoc`     | Check code quality and required documentation | `pnpm lint`                         |
-| TypeScript                         | Check types                                   | `pnpm typecheck`                    |
-| Vite / TanStack Start              | Verify the production build                   | `pnpm build`                        |
+| Tool                               | Purpose                                                  | Command                               |
+| ---------------------------------- | -------------------------------------------------------- | ------------------------------------- |
+| Prettier + `prettier-plugin-jsdoc` | Format code and documentation                            | `pnpm format` / `pnpm format:check`   |
+| ESLint + `eslint-plugin-jsdoc`     | Check code quality and required documentation            | `pnpm lint`                           |
+| TypeScript                         | Check types                                              | `pnpm typecheck`                      |
+| Vite / TanStack Start              | Verify the production build                              | `pnpm build`                          |
 | Node's built-in test runner        | Run the one test file in each editor area except samples | `node --test src/editor/**/*.test.ts` |
 
 Formatting uses a 300-character wrap width for code and JSDoc, two spaces, LF line endings, single quotes, no semicolons, and trailing commas. Cursor workspace settings enable Prettier on save and ESLint fixes; install the recommended Prettier and ESLint extensions.

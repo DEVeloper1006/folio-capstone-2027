@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+if [[ ! -x .venv-local-ocr/bin/python ]]; then
+  printf 'Run ./scripts/setup-local-ocr first.\n' >&2
+  exit 1
+fi
+export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_HUB_DISABLE_TELEMETRY=1
+bind_host=127.0.0.1
+if [[ "${FOLIO_OCR_LAN:-0}" == "1" ]]; then
+  connection_token="${FOLIO_OCR_TOKEN:-}"
+  if [[ ${#connection_token} -lt 24 || -z "${FOLIO_OCR_ALLOWED_HOSTS:-}" ]]; then
+    printf 'LAN mode requires FOLIO_OCR_TOKEN (24+ characters) and FOLIO_OCR_ALLOWED_HOSTS (Mac IP or hostname).\n' >&2
+    exit 1
+  fi
+  bind_host=0.0.0.0
+fi
+exec .venv-local-ocr/bin/python -m uvicorn server.local_ocr:app --host "$bind_host" --port 8002

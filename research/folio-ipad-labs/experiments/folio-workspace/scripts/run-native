@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+if [[ ! -f node_modules/katex/dist/katex.min.js ]]; then
+  printf 'Run npm install first to install the bundled math renderer.\n' >&2
+  exit 1
+fi
+# Start the offline worker if it is not already available.
+if ! curl --max-time 2 -fsS http://127.0.0.1:8002/health >/dev/null 2>&1; then
+  if [[ ! -x .venv-local-ocr/bin/python ]]; then
+    printf 'Run ./scripts/setup-local-ocr once before launching local recognition.\n' >&2
+    exit 1
+  fi
+  mkdir -p artifacts
+  nohup ./scripts/start-local-ocr > artifacts/local-ocr.log 2>&1 < /dev/null &
+  ready=false
+  for attempt in {1..30}; do
+    if curl --max-time 1 -fsS http://127.0.0.1:8002/health >/dev/null 2>&1; then ready=true; break; fi
+    sleep 1
+  done
+  if [[ "$ready" != true ]]; then
+    printf 'Local model did not start. Check artifacts/local-ocr.log.\n' >&2
+    exit 1
+  fi
+fi
+# Do not silently reuse a worker running another model profile.
+curl --max-time 2 -fsS http://127.0.0.1:8002/health | .venv-local-ocr/bin/python -c '
+import json, os, sys
+actual = json.load(sys.stdin).get("profile", "base")
+expected = os.environ.get("FOLIO_OCR_PROFILE", "grade12")
+if actual != expected:
+    sys.exit(f"Worker profile is {actual}, requested {expected}. Stop the existing worker and restart ./scripts/start-local-ocr with the desired FOLIO_OCR_PROFILE.")
+'
+math=native/Sources/FolioNative/Resources/Math
+mkdir -p "$math"
+cp node_modules/katex/dist/katex.min.js node_modules/katex/dist/katex.min.css "$math/"
+cp -R node_modules/katex/dist/fonts "$math/"
+cp node_modules/katex/LICENSE "$math/LICENSE"
+cp native/Renderer/math.html "$math/math.html"
+(cd native && swift build --product FolioNative)
+app="$PWD/artifacts/Folio.app"
+mkdir -p "$app/Contents/MacOS"
+cp native/.build/debug/FolioNative "$app/Contents/MacOS/FolioNative.new"
+mv "$app/Contents/MacOS/FolioNative.new" "$app/Contents/MacOS/FolioNative"
+cp -R native/.build/debug/FolioNative_FolioNative.bundle "$app/"
+/usr/bin/python3 - "$app/Contents/Info.plist" <<'PY'
+import plistlib, sys
+with open(sys.argv[1], 'wb') as f:
+    plistlib.dump({'CFBundleExecutable':'FolioNative','CFBundleIdentifier':'dev.folio.shadow.mac','CFBundleName':'Folio','CFBundlePackageType':'APPL','CFBundleVersion':'1','LSMinimumSystemVersion':'14.0','NSHighResolutionCapable':True}, f)
+PY
+if [[ "${FOLIO_NATIVE_NO_OPEN:-0}" != 1 ]]; then
+  open "$app"
+fi

@@ -2,6 +2,10 @@
 
 TanStack Start application in `client/` with a MathLive editor. The home page starts with 20 editable expressions for trying cursor movement. State is kept in memory; refreshing restores the examples.
 
+## iPad app and research
+
+The native SwiftUI/PencilKit app lives in `ipad/app/`; the related experiments live in `research/folio-ipad-labs/`. See [ipad/README.md](ipad/README.md) for Xcode setup, recognition assets, folder responsibilities and branch workflow. The web app remains in `client/`.
+
 ## Installation
 
 ```bash
