@@ -24,6 +24,10 @@ Open <http://localhost:3000>. Run the remaining commands from `client/`.
 
 The optional [editor comparison](editor-comparison/README.md) runs separately on <http://127.0.0.1:3011/>. From `editor-comparison/`, run `npm install`, `npm run setup`, then `npm run dev`. It has its own dependencies and build; it compares native library defaults, labeled Folio and DesQuill configurations, Guppy's standard-LaTeX adapter, and three source-preview workflows. It includes fifty notation examples, custom input, and an optional source fallback for unsupported native imports. Changing its columns does not change the main app's editor. Run `npm run typecheck` and `npm run build` there to check comparison changes.
 
+## iPad integration preparation
+
+The [iPad integration guide](ipad/README.md) records the proposed native-app/research folders and run commands after source import. The current preparation adds documentation only. Keep the existing client paths and package manager intact; do not merge the separate Mac experiment or import application code as part of a documentation-only change. Repository rules, including the pause on new test development, still apply.
+
 ## Code patterns
 
 - `src/routes/`: page components and the document shell.
