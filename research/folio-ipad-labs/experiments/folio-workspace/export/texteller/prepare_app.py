@@ -10,11 +10,19 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[3]
 
 
+def default_ipad_source() -> Path:
+    """Locate imported iPad source, with a fallback for the original sibling checkout."""
+    imported = REPO.parents[1] / "ipad/app"
+    return imported if imported.is_dir() else REPO.parent / "ink-pad"
+
+
 def main() -> None:
+    """Stage existing exports and bundled math assets, then generate the probe project."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=REPO / "results/on-device-texteller")
     parser.add_argument("--precision", choices=["fp16", "fp32"], default="fp16")
     parser.add_argument("--team")
+    parser.add_argument("--ipad-source", type=Path, default=default_ipad_source(), help="Native app source root containing inkpad/")
     args = parser.parse_args()
     app = HERE / "ProbeApp"
     generated = app / "Generated"
@@ -38,7 +46,7 @@ def main() -> None:
         rows.append({"id": row["id"], "image": row["image"], "tensor": row["tensor"],
                      "groundTruth": row["ground_truth"], "referenceLatex": row["latex"], "tokens": row["tokens"]})
     shutil.copy2(args.output / "fixtures/tokenizer-table.json", fixtures / "tokenizer-table.json")
-    math_assets = REPO.parent / "ink-pad/inkpad/inkpad/Resources"
+    math_assets = args.ipad_source / "inkpad/inkpad/Resources"
     for name in ["tex-svg.js", "LICENSE-MathJax.txt"]:
         if not (math_assets / name).exists():
             raise SystemExit(f"Missing existing bundled MathJax asset: {math_assets / name}")
@@ -48,7 +56,7 @@ def main() -> None:
         "adapter": reference["adapter"], "fixtures": rows}, indent=2))
     team = args.team
     if not team:
-        existing = REPO.parent / "ink-pad/inkpad/inkpad.xcodeproj/project.pbxproj"
+        existing = args.ipad_source / "inkpad/inkpad.xcodeproj/project.pbxproj"
         match = re.search(r"DEVELOPMENT_TEAM = ([A-Z0-9]+);", existing.read_text()) if existing.exists() else None
         team = match.group(1) if match else ""
     project = app / "TextellerProbe.xcodeproj"

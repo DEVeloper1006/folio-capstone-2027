@@ -7,8 +7,16 @@ from pathlib import Path
 import shutil
 
 ROOT = Path(__file__).resolve().parents[1]
+
+def default_artifacts() -> Path:
+    """Locate monorepo exports, falling back to the original sibling-repository layout."""
+    monorepo_labs = ROOT.parents[1] / "research/folio-ipad-labs"
+    labs = monorepo_labs if monorepo_labs.is_dir() else ROOT.parent / "folio-ipad-labs"
+    return labs / "results/on-device-texteller"
+
+
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("--artifacts", type=Path, default=ROOT.parent / "folio-ipad-labs/results/on-device-texteller")
+parser.add_argument("--artifacts", type=Path, default=default_artifacts())
 args = parser.parse_args()
 source = args.artifacts.resolve()
 reference = json.loads((source / "reference.json").read_text())

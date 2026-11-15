@@ -1,17 +1,17 @@
 # Folio iPad
 
-Integration guide for the native SwiftUI/PencilKit app currently developed in the separate `ink-pad` repository.
+Run and structure guide for the native SwiftUI/PencilKit app imported from `ink-pad`.
 
-**Status:** this branch adds documentation only. The native app and recognition research have not been imported yet. The existing web app remains in `client/`.
+**Status:** native source is in `ipad/app/`, and research source is in `research/folio-ipad-labs/`. The existing web app remains in `client/`. The apps do not yet share notebook persistence or synchronization.
 
-## Proposed repository layout
+## Repository layout
 
 ```text
 folio-capstone-2027/
 ├── client/                       # Existing TanStack Start / MathLive web app
 ├── ipad/
 │   ├── README.md                 # This guide
-│   └── app/                      # Planned: intact ink-pad source import
+│   └── app/                      # ink-pad source import with history
 │       ├── inkpad/
 │       │   ├── inkpad.xcodeproj
 │       │   ├── inkpad/            # SwiftUI, PencilKit, local math and recognition
@@ -22,7 +22,7 @@ folio-capstone-2027/
 │       ├── design/
 │       └── schemas/
 ├── research/
-│   └── folio-ipad-labs/           # Planned: intact research source import
+│   └── folio-ipad-labs/           # Research source import with history
 ├── shared/
 │   └── contracts/                # Future: notebook, recognition and command formats
 └── .mac/                         # Existing source documents; preserve in place
@@ -32,7 +32,7 @@ The existing `aryaans-experimentation` branch also contains a `macos/` app and `
 
 The old labs browser/Mac workspace stays under `research/folio-ipad-labs/experiments/folio-workspace/` initially. It is a reference prototype, not a replacement for this repository's current `client/`. The labs `shared/` folder contains Python research helpers; it is separate from the proposed cross-platform `shared/contracts/`.
 
-## Run the existing web app now
+## Run the web app
 
 From the repository root, with Node.js and pnpm installed:
 
@@ -44,7 +44,7 @@ pnpm dev
 
 Open http://localhost:3000. Node/pnpm versions are not pinned in this repository yet. See the root README and CONTRIBUTING guide for the existing checks and production commands. The current playground keeps edits in memory and resets them on refresh.
 
-## Run the iPad app after importing its source
+## Run the iPad app
 
 Use a Mac with Xcode and the iOS 26.2 SDK or newer; the current app deployment target is iOS 26.2.
 
@@ -63,11 +63,11 @@ xcodebuild -project ipad/app/inkpad/inkpad.xcodeproj \
   -scheme inkpad -destination 'generic/platform=iOS Simulator' build
 ```
 
-The app includes Pencil input, recognition review, LaTeX rendering and local computation. Symbolic computation does not require the Python/SymPy server or a Mac recognition endpoint. Native app details will live in `ipad/app/docs/` after import.
+The app includes Pencil input, recognition review, LaTeX rendering and local computation. Symbolic computation does not require the Python/SymPy server or a Mac recognition endpoint. Native app details live in `ipad/app/docs/`.
 
 ### Handwriting recognition assets
 
-The validated Core ML models are generated local resources and are not ordinary Git source. Obtain the existing validated export artifacts, then run this command after source import:
+The validated Core ML models are generated local resources and are not ordinary Git source. Obtain the existing validated export artifacts, then run:
 
 ```bash
 python3 ipad/app/scripts/prepare-local-recognition.py \
@@ -76,19 +76,32 @@ python3 ipad/app/scripts/prepare-local-recognition.py \
 
 The script verifies the recorded model/adapter and package hashes, then stages the encoder, decoder and tokenizer under `ipad/app/inkpad/inkpad/Resources/LocalTexTeller/`. It does not download or convert models. Rebuild the app afterward. A source checkout without these assets is not a ready-to-use local handwriting-recognition installation.
 
-The script currently defaults to the old sibling-repository layout, so pass `--artifacts` explicitly after migration. Model conversion/training requirements remain with the research project.
+The script defaults to `research/folio-ipad-labs/results/on-device-texteller/` in this layout and retains the old sibling layout as a fallback. Pass `--artifacts` when exports live elsewhere. Model conversion/training requirements remain with the research project. The standalone research probe also locates `ipad/app/` automatically; `prepare_app.py --ipad-source` overrides it.
 
 ## Branches and import sequence
 
-- Keep `main` as the shared integration branch. Keep platform code in folders, rather than maintaining permanent iPad and PC branches.
-- This local preparation branch is `chore/ipad-monorepo-setup`; it contains this guide and links from the root documentation.
-- Import the checkpointed iPad source in a focused `chore/import-ipad` branch from the latest `main`. Preserve its existing history, for example with a non-squashed subtree import at `ipad/app/`. Keep the Xcode layout intact first.
-- Import research source separately at `research/folio-ipad-labs/`, preserving its history and fixing explicit cross-repository paths. Do not introduce nested `.git` directories.
-- Use short-lived branches such as `feat/ipad/recognition-review`, `feat/client/notebook-save` and `feat/shared/document-format`, then review through pull requests.
-- Preserve the original repositories, signed working app and notebook backups until the relocated builds and model staging have been verified.
+The migration has ordered checkpoints: `chore/ipad-monorepo-setup` for documentation, `chore/import-ipad` for the native source, `chore/import-research` for the experiments, then `chore/folio-monorepo-integration` for path fixes and verification. Source imports are non-squashed subtrees, preserving source ancestry and a commit of the current working files. Publish the final integration branch for review only after its relocated builds pass. Keep `main` and `aryaans-experimentation` unchanged.
 
-Before importing, checkpoint the latest local changes: many working iPad features currently exist as modified or untracked files and would be missed by importing only the old committed branch. Preserve existing test history; coordinate its import with the repository's current pause on new test development rather than discarding tests or adding new ones during this documentation change.
+After integration, use short-lived branches such as `feat/ipad/recognition-review`, `feat/client/notebook-save` and `feat/shared/document-format`. Platform folders provide organization without permanent platform branches. Review the separate Mac experiment independently.
 
-This repository is public. Keep personal handwriting/notebook data, database backups, `.reports/`, model weights, virtual environments, installed dependencies and generated builds outside committed source. Preserve each imported project's ignore rules and model provenance/license files.
+Original repositories and their working files remain untouched. Local Git bundles and file inventories are stored outside this repository, in the original labs `.reports/monorepo-migration/` directory. Keep them, signed app backups and notebook backups until the migration is accepted. Roll back before merge by closing the PR and returning to `main`; if already merged, revert the PR merge through a separate reviewed change. Do not reset shared history.
 
-A monorepo provides one place to develop the apps; it does not itself add notebook synchronization or a shared runtime. Define portable document/command contracts before extracting shared implementation code.
+## Source and asset boundaries
+
+This repository is public. Keep personal handwriting/notebooks, database backups, `.reports/`, large model exports, virtual environments, installed dependencies and generated builds outside committed source. The existing research history deliberately contains the small Grade 12 LoRA adapter (3,061,656 bytes); its provenance files remain beside it. Older iPad history contains previously committed build-cache files, but the imported current tree excludes them. Source history is preserved without rewriting those old commits.
+
+Imported documentation describes earlier checkpoints and may use the original sibling paths or historical capability counts. Use this guide for current top-level paths and each app's current source for behavior. Research and baseline tests are imported unchanged; no tests are added or extended by this migration.
+
+A monorepo provides one place to develop the apps; it does not itself add notebook synchronization or a shared runtime. Define portable document/command contracts before extracting shared implementation code. `shared/contracts/` is a future location, not an implemented package.
+
+## Migration verification
+
+Verified before opening the migration PR with Xcode 26.2 (17C52):
+
+- Debug builds passed for generic iOS Simulator and generic iOS device targets, with code signing disabled. The existing validated fp16 exports were staged locally and compiled; both compiled models, the tokenizer and manifest are present in the built app.
+- The existing `client/` production build and TypeScript check passed using Node 25.6.1 and pnpm 10.32.1 with the frozen lockfile. The lockfile and client source are unchanged.
+- All 173 native and 166 research checkpoint files were compared by SHA-256. Only the two documented cross-project path scripts differ. Both original source HEADs remain ancestors of the integration branch. `client/`, `.mac/`, `editor-comparison/` and repository rules remain unchanged.
+- No nested Git repositories or submodules were introduced. Generated model assets remain ignored. Source and reachable-history scans found no matches for the credential patterns checked; this is not a comprehensive security audit.
+- Updated Markdown passed the repository's local formatter and the migration edits passed `git diff --check`.
+
+Build warnings remain: an existing canvas smoke helper uses deprecated `coordinateSpace`; Xcode skips optional App Intents metadata; the web build reports chunk-size/module-directive warnings. Neither build failed. This migration did not run new model inference, install on a physical iPad, validate Pencil gestures again, or execute every research prototype. Prior device validation remains evidence for the original app checkpoint, not a new device test of the relocated checkout.
