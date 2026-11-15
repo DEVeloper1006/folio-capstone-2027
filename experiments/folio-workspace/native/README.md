@@ -50,7 +50,7 @@ The service tests use a fake recognizer to test validation and HTTP behavior wit
 
 Install full Xcode and XcodeGen. From `native/`, run `xcodegen generate`, open `FolioShadow.xcodeproj`, choose your signing team, and build for iPad. Run the Mac setup/build first to populate the bundled KaTeX resources.
 
-The TexTeller worker currently runs on Mac, not on-device on iPad. Its loopback-only endpoint is deliberately not exposed to the network. On-device Core ML conversion, iPad local-model integration, and Pencil latency measurements remain future work. The native document format is not yet compatible with browser `.folio` documents.
+The TexTeller worker currently runs on Mac, not on-device on iPad. Its endpoint remains loopback-only by default. The separate Ink Pad app now has a live rendered-math/LaTeX preview and an optional token-protected LAN connection to this worker; see [the physical-iPad test guide](../../../../ink-pad/docs/recognition-test.md). Set `FOLIO_OCR_LAN=1`, `FOLIO_OCR_ALLOWED_HOSTS` to the Mac IP/hostname, and `FOLIO_OCR_TOKEN` to a random token of at least 24 characters before running `./scripts/start-local-ocr`. LAN mode requires the token for every request, including localhost health checks; stop existing Mac-prototype launchers before using it. On-device Core ML conversion and Pencil latency measurements remain future work. The native document format is not yet compatible with browser `.folio` documents.
 
 ## Storage
 

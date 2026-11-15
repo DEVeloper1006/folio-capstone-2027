@@ -5,6 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 import tempfile
+import os
 import unittest
 from unittest.mock import patch
 from PIL import Image, ImageDraw
@@ -135,6 +136,26 @@ class AdapterTests(unittest.TestCase):
             self.assertEqual(engine.adapter_id, "test")
             self.assertEqual(load.call_args.kwargs, {"local_files_only": True, "is_trainable": False})
             self.assertEqual(load.call_args.args[1], str((self.root / "adapter").resolve()))
+
+
+class LANTests(unittest.TestCase):
+    def test_lan_requires_token_and_explicit_hosts(self):
+        with patch.dict(os.environ, {"FOLIO_OCR_LAN": "1", "FOLIO_OCR_TOKEN": "", "FOLIO_OCR_ALLOWED_HOSTS": ""}):
+            with self.assertRaises(RuntimeError), TestClient(local_ocr.app):
+                pass
+
+    def test_lan_authentication_and_host_checks(self):
+        token = "test-connection-token-123456789"
+        with patch.object(local_ocr, "Recognizer", FakeRecognizer), patch.dict(os.environ, {
+            "FOLIO_OCR_LAN": "1", "FOLIO_OCR_TOKEN": token, "FOLIO_OCR_ALLOWED_HOSTS": "192.168.1.20,mac.local"
+        }), TestClient(local_ocr.app, base_url="http://192.168.1.20:8002") as client:
+            self.assertEqual(client.get("/health").status_code, 401)
+            self.assertEqual(client.get("/health", headers={"authorization": "Bearer wrong"}).status_code, 401)
+            headers = {"authorization": "Bearer " + token}
+            self.assertEqual(client.get("/health", headers=headers).status_code, 200)
+            self.assertEqual(client.post("/recognize", headers=headers, json={"image": png(), "mode": "math"}).status_code, 200)
+            self.assertEqual(client.get("/health", headers={**headers, "host": "evil.example"}).status_code, 403)
+            self.assertEqual(client.get("/health", headers={**headers, "origin": "https://example.com"}).status_code, 403)
 
 
 if __name__ == "__main__":

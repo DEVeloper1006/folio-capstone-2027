@@ -60,3 +60,7 @@ results/**/*.log
 .envrc
 # ===== Third-party clones (re-created by setup scripts) =====
 experiments/hme-recognition/uni-mumer/
+
+# Reproducible on-device feasibility outputs (models, tensors, builds, timings).
+results/on-device-texteller/
+experiments/folio-workspace/export/texteller/ProbeApp/Generated/

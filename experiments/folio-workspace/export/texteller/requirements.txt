@@ -1,0 +1,9 @@
+# Isolated from .venv-local-ocr: Core ML Tools 9 supports PyTorch 2.7.
+coremltools==9.0
+torch==2.7.1
+transformers==4.44.2
+peft==0.13.2
+numpy==1.26.4
+Pillow==11.3.0
+fastapi==0.115.12
+httpx==0.28.1

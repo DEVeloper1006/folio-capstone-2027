@@ -11,6 +11,8 @@ import os
 from pathlib import Path
 import time
 import re
+import secrets
+from urllib.parse import urlsplit
 from typing import Literal
 
 import numpy as np
@@ -135,6 +137,14 @@ class Recognizer:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    lan = os.environ.get("FOLIO_OCR_LAN") == "1"
+    token = os.environ.get("FOLIO_OCR_TOKEN", "")
+    hosts = {host.strip().lower() for host in os.environ.get("FOLIO_OCR_ALLOWED_HOSTS", "").split(",") if host.strip()}
+    if lan and (len(token) < 24 or not hosts or "*" in hosts):
+        raise RuntimeError("LAN mode requires FOLIO_OCR_TOKEN (24+ characters) and explicit FOLIO_OCR_ALLOWED_HOSTS")
+    app.state.lan = lan
+    app.state.token = token
+    app.state.allowed_hosts = (hosts if lan else set()) | {"127.0.0.1", "localhost"}
     app.state.recognizer = await asyncio.to_thread(Recognizer, profile=os.environ.get("FOLIO_OCR_PROFILE", "grade12"))
     app.state.busy = False
     yield
@@ -146,16 +156,24 @@ app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None)
 @app.middleware("http")
 async def local_only(request: Request, call_next):
     # Native clients send no Origin. Reject websites and DNS rebinding hosts.
-    if request.headers.get("origin") or request.headers.get("host", "").split(":")[0] not in {"127.0.0.1", "localhost"}:
+    try:
+        host = urlsplit("//" + request.headers.get("host", "")).hostname
+    except ValueError:
+        return JSONResponse({"detail": "Invalid host"}, status_code=403)
+    if request.headers.get("origin") or host not in request.app.state.allowed_hosts:
         return JSONResponse({"detail": "Local native clients only"}, status_code=403)
+    if request.app.state.lan:
+        supplied = request.headers.get("authorization", "")
+        if not secrets.compare_digest(supplied.encode(), ("Bearer " + request.app.state.token).encode()):
+            return JSONResponse({"detail": "Connection token required"}, status_code=401)
     if request.method == "POST":
-        total = 0
+        body = bytearray()
         async for chunk in request.stream():
-            total += len(chunk)
-            if total > 3_500_000:
+            body.extend(chunk)
+            if len(body) > 3_500_000:
                 return JSONResponse({"detail": "Image is too large"}, status_code=413)
             # Body replay is required by FastAPI after middleware consumption.
-            request._body = getattr(request, "_body", b"") + chunk
+        request._body = bytes(body)
     return await call_next(request)
 
 
