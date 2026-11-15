@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>Send handwritten expression images to your Mac recognition server when Mac TexTeller is selected.</string>
+#if DEBUG_RECOGNITION_HTTP
+    <key>NSAppTransportSecurity</key>
+    <dict><key>NSAllowsArbitraryLoads</key><true/></dict>
+#endif
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Folio uses the microphone for the voice assistant feature to help you work through math problems hands-free.</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Caveat-Variable.ttf</string>
+	</array>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.folio.stroke-lab</string>
+			<key>UTTypeDescription</key>
+			<string>Folio annotated handwriting page</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>com.apple.package</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>folioink</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+</dict>
+</plist>

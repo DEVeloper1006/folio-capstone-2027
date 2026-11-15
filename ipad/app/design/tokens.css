@@ -1,0 +1,32 @@
+/* Hallmark · genre: technical terminal · tone: strict · anchor: graphite on paper · macrostructure: adaptive workbench · contrast: pass (40–41) · nav: product chrome · footer: status line · honest: pass (46) · chrome: pass (47) · tokens: pass (48) · responsive: pass (49) · mobile: pass (34, 49, 50–57) */
+:root {
+  color-scheme: light;
+  --bg: #f4f1e8;
+  --panel: #ece8de;
+  --panel-2: #e3dfd4;
+  --rule: #cbc6ba;
+  --rule-strong: #98938a;
+  --ink: #1c1c1a;
+  --muted: #65625d;
+  --dim: #8d8981;
+  --font: "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+  --font-hand: "Bradley Hand", "Segoe Print", cursive;
+  --font-print: Georgia, "Times New Roman", serif;
+  --line-subtle: #d8d3c8;
+  --ok-rule: #88847c;
+  --warn-rule: #77736b;
+  --error-rule: #343432;
+  --assumption-rule: #aaa59b;
+  --assumption-bg: #e7e3d9;
+  --canvas-bg: #f4f1e8;
+  --canvas-grid: #ded9ce;
+  --selection-wash: rgba(28, 28, 26, .035);
+  --shadow: rgba(28, 28, 26, .22);
+  --backdrop: rgba(28, 28, 26, .45);
+  --status-ink: #f4f1e8;
+  --status-mode-bg: #11110f;
+  --status-command: #d6d1c6;
+  --print-paper: #ffffff;
+  --print-ink: #111111;
+  --print-rule: #777777;
+}
