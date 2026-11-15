@@ -4,13 +4,16 @@ import PencilKit
 
 struct NotebookView: View {
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.undoManager) private var undoManager
+    @Environment(\.scenePhase) private var scenePhase
     let notebook: Notebook
 
     @State private var currentPageIndex = 0
+    @State private var notebookWidth:CGFloat=1024
     @State private var viewModel: CanvasViewModel
     @State private var stepTracker = StepTrackingCoordinator()
-    @State private var stepTrackingTask: Task<Void, Never>?
+    @State private var recognitionScheduler = ExpressionRecognitionScheduler()
+    @State private var inlineTarget: InlineExpressionTarget?
+    @AppStorage("recognition.automaticallyRecognize") private var automaticRecognition = true
     @State private var showPageSidebar = false
     @State private var showBranches = false
     @State private var showChat = false
@@ -22,7 +25,22 @@ struct NotebookView: View {
     @State private var contradictionStepIndex: Int? = nil
     @State private var confidenceValues: [UUID: Int] = [:]
     @State private var showTypeset = false
+    @State private var showRecognitionSettings = false
+    @State private var recognitionConnection = RecognitionConnection.load()
+    @State private var recognitionRevision = UUID()
+    // Installed drawing callbacks outlive the View value that captured them.
+    // Read shared State, not the launch-time Environment scenePhase snapshot.
+    @State private var recognitionIsActive = false
+    private var isRecognizing: Bool { recognitionScheduler.isRunning }
+    private var shouldRecognizeAutomatically: Bool {
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--polynomial-ui-test") && !ProcessInfo.processInfo.arguments.contains("--inline-ui-test") { return false }
+#endif
+        return automaticRecognition
+    }
+    @State private var recognitionNotice = ""
     @State private var showCommandPalette = false
+    @State private var showWorkbench = false
     @State private var showExport = false
     @State private var showHelp = false
     @State private var showMacroTray = false
@@ -60,7 +78,7 @@ struct NotebookView: View {
     private var mockBadges: [StepBadge] {
         guard let page = currentPage else { return [] }
         let threads = page.chatThreads
-        return page.steps.filter(\.isActive).sorted { $0.sortIndex < $1.sortIndex }.map { step in
+        return page.steps.filter { $0.isActive && $0.source != .manual }.sorted { $0.sortIndex < $1.sortIndex }.map { step in
             let hasThread = threads.contains {
                 $0.anchorStepID == step.stableID || ($0.anchorStepID == nil && $0.anchorStepIndex == step.sortIndex)
             }
@@ -74,7 +92,7 @@ struct NotebookView: View {
 
     private var mockGhostLines: [GhostTypesetLine] {
         guard let page = currentPage else { return [] }
-        return page.steps.filter(\.isActive).sorted { $0.sortIndex < $1.sortIndex }.compactMap { step in
+        return page.steps.filter { $0.isActive && $0.source != .manual }.sorted { $0.sortIndex < $1.sortIndex }.compactMap { step in
             guard !step.ghostLaTeX.isEmpty else { return nil }
             return GhostTypesetLine(latex: step.ghostLaTeX, yPosition: step.yPosition + 36)
         }
@@ -136,12 +154,30 @@ struct NotebookView: View {
 
     var body: some View {
         GeometryReader { geo in
-            ZStack {
-                canvasArea(geo: geo)
-                overlays(geo: geo)
+            HStack(spacing: 0) {
+                GeometryReader { canvasGeo in
+                    ZStack {
+                        canvasArea(geo: canvasGeo)
+                        overlays(geo: canvasGeo)
+                    }
+                }
+                if showTypeset && geo.size.width >= 900 {
+                    Divider()
+                    recognitionPreview.frame(width: 360)
+                }
+            }
+            .onAppear { notebookWidth=geo.size.width }
+            .onChange(of:geo.size.width) { _,width in notebookWidth=width }
+            .sheet(isPresented: Binding(get: { showTypeset && geo.size.width < 900 }, set: { if !$0 { showTypeset = false } })) {
+                recognitionPreview.presentationDetents([.medium, .large]).presentationBackgroundInteraction(.enabled)
             }
         }
         .ignoresSafeArea(edges: .bottom)
+        .overlay(alignment: .topLeading) {
+            if let tool = viewModel.settingsTool {
+                CanvasToolOptions(viewModel: viewModel, tool: tool).padding(.leading, 48).padding(.top, 48)
+            }
+        }
         .overlay(alignment: .top) {
             SessionModeControl(mode: $viewModel.sessionMode)
                 .padding(.top, 8)
@@ -227,8 +263,52 @@ struct NotebookView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbarContent }
-        .onAppear { setupSave() }
-        .onDisappear { viewModel.save() }
+        .onAppear { recognitionIsActive = scenePhase == .active;setupSave(); viewModel.pageHeight = canvasContentHeight }
+        .onChange(of: canvasContentHeight) { _, height in viewModel.pageHeight = height }
+        .alert("Could not save canvas change", isPresented: Binding(get: { !viewModel.canvasError.isEmpty }, set: { if !$0 { viewModel.canvasError = "" } })) {
+            Button("OK") { viewModel.canvasError = "" }
+        } message: { Text(viewModel.canvasError) }
+        .onDisappear {
+            viewModel.save()
+            cancelRecognition()
+            viewModel.onDrawingChanged = nil
+        }
+        .onChange(of: scenePhase) { _, phase in
+            recognitionIsActive = phase == .active
+            if phase != .active { cancelRecognition(); viewModel.save() }
+            else if shouldRecognizeAutomatically { scheduleRecognition() }
+        }
+        .onChange(of: viewModel.mathMode) { _, mode in
+            currentPage?.mathMode = mode
+            cancelRecognition()
+        }
+        .onChange(of: automaticRecognition) { _, enabled in
+            if enabled { scheduleRecognition() } else { cancelRecognition() }
+        }
+        .sheet(item: $inlineTarget) { target in
+            if let step=currentPage?.steps.first(where: { $0.stableID==target.id && $0.isActive }) {
+                InlineExpressionInspector(step:step,alternatives:stepTracker.alternatives[step.stableID] ?? [],busy:isRecognizing,
+                    onAccept:acceptExpression,onRetry:{ scheduleRecognition(force:true) },
+                    onInsert:{ id in try await insertResult(id);inlineTarget=nil },onRemove:{ result in
+                        try CanvasResultStore.removeResult(result,context:modelContext,history:viewModel.history,onError:{viewModel.canvasError=$0})
+                    })
+            } else { Text("This row changed or was removed. Close this panel and review the current ink.").padding() }
+        }
+        .sheet(isPresented: $showRecognitionSettings) {
+            RecognitionSettingsView(connection: recognitionConnection) { connection in
+                recognitionConnection = connection
+                cancelRecognition()
+                stepTracker = makeStepTracker()
+                recognitionNotice = "Provider saved. Tap Recognize when ready."
+            }
+        }
+        .sheet(isPresented: $showWorkbench) {
+            if let page=currentPage {
+                ComputationWorkbenchView(page:page,onInsert:{ result in try await insertResult(result) },onRemove:{ result in
+                    try CanvasResultStore.removeResult(result,context:modelContext,history:viewModel.history,onError:{viewModel.canvasError=$0})
+                })
+            }
+        }
         .sheet(isPresented: $showExport) {
             ExportSheetView { format in
                 handleExport(format)
@@ -292,9 +372,10 @@ struct NotebookView: View {
     @ViewBuilder
     private func canvasArea(geo: GeometryProxy) -> some View {
         ZStack {
-            PageBackgroundView(style: viewModel.backgroundStyle, pageSize: CGSize(width: geo.size.width, height: max(geo.size.height, 2048)))
+            CanvasPaperBackground(style: viewModel.backgroundStyle, viewport: viewModel.viewport)
             CanvasView(viewModel: viewModel)
-        }
+            if let page = currentPage { CanvasResultLayer(page: page, viewModel: viewModel) }
+        }.frame(width: geo.size.width, height: geo.size.height).clipped()
     }
 
     // MARK: - Overlays
@@ -304,7 +385,7 @@ struct NotebookView: View {
         let showOverlays = viewModel.sessionMode.showsBadges
 
         StepGutterView(
-            badges: mockBadges, visible: showOverlays, scrollOffset: scrollOffset,
+            badges: mockBadges.filter { badge in currentPage?.steps.first(where:{$0.stableID==badge.id})?.source != .inferred }, visible: showOverlays, scrollOffset: scrollOffset,
             onOpenThread: { stepID in
                 let stepIndex = currentPage?.steps.first { $0.stableID == stepID }?.sortIndex ?? 0
                 chatAnchor = .step(stepIndex)
@@ -316,9 +397,20 @@ struct NotebookView: View {
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
-        GhostTypesetView(lines: mockGhostLines, visible: viewModel.showTypeset, scrollOffset: scrollOffset)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .allowsHitTesting(false)
+        if let page=currentPage {
+            ExpressionIndicatorLayer(steps:page.steps.filter { $0.isActive && $0.source == .inferred }.sorted { $0.sortIndex < $1.sortIndex },
+                viewport:viewModel.viewport,available:geo.size,isRecognizing:isRecognizing,
+                obstacles:page.steps.flatMap(\.computationResults).filter{$0.isPlacedOnCanvas && !$0.isRemoved}.map(\.canvasRect),
+                onAccept:{ snapshot in
+                    guard let step=page.steps.first(where:{$0.stableID==snapshot.id}),snapshot.matches(step) else {
+                        recognitionNotice="This row changed. Review its current preview first.";return
+                    }
+                    acceptExpression(step,latex:snapshot.latex)
+                },onOpen:{ id in
+                    viewModel.settingsTool=nil;inlineTarget=InlineExpressionTarget(id:id)
+                })
+                .frame(width:geo.size.width,height:geo.size.height)
+        }
 
         AnnotationLayerView(
             annotations: mockAnnotations,
@@ -366,7 +458,8 @@ struct NotebookView: View {
     private var toolbarContent: some ToolbarContent {
         ToolbarItemGroup(placement: .topBarLeading) {
             Text(notebook.name)
-                .font(FolioTheme.uiFont(size: 16, weight: .semibold))
+                .font(FolioTheme.uiFont(size: 16, weight: .semibold)).lineLimit(1)
+                .frame(maxWidth:notebookWidth<1000 ? 70:180)
         }
 
         ToolbarItemGroup(placement: .principal) {
@@ -374,6 +467,7 @@ struct NotebookView: View {
         }
 
         ToolbarItemGroup(placement: .topBarTrailing) {
+            if notebookWidth>=1000 {
             Button {
                 viewModel.cycleMathMode()
             } label: {
@@ -385,12 +479,37 @@ struct NotebookView: View {
                     .background(Capsule().fill(FolioTheme.ink))
             }
 
+            }
+
             Button {
-                viewModel.showTypeset.toggle()
+                showTypeset.toggle()
             } label: {
                 Image(systemName: "textformat")
-                    .foregroundStyle(viewModel.showTypeset ? FolioTheme.accent : FolioTheme.muted)
+                    .foregroundStyle(showTypeset ? FolioTheme.accent : FolioTheme.muted)
             }
+
+            Button {
+                restartRecognition()
+            } label: {
+                Label(isRecognizing ? "Recognizing…" : "Recognize", systemImage: "pencil.and.outline")
+            }.disabled(isRecognizing).accessibilityIdentifier("recognizeNotebook")
+
+            Button { viewModel.save();showWorkbench=true } label: {
+                Label("Compute",systemImage:"function")
+            }.accessibilityIdentifier("openMathWorkbench")
+
+            if notebookWidth<1000 {
+                Menu {
+                    Button("Math mode: \(viewModel.mathMode.label)",systemImage:"function") { viewModel.cycleMathMode() }
+                    Button("Recognition settings",systemImage:"network") { showRecognitionSettings=true }
+                    Button("Export",systemImage:"square.and.arrow.up") { showExport=true }
+                    Button("Commands",systemImage:"command") { showCommandPalette.toggle() }
+                } label: { Image(systemName:"ellipsis.circle") }
+                    .accessibilityLabel("More notebook actions").accessibilityIdentifier("notebookMoreActions")
+            } else {
+            Button { showRecognitionSettings = true } label: {
+                Image(systemName: "network")
+            }.accessibilityLabel("Handwriting recognition settings")
 
             Button { showExport = true } label: {
                 Image(systemName: "square.and.arrow.up")
@@ -399,31 +518,126 @@ struct NotebookView: View {
             Button { showCommandPalette.toggle() } label: {
                 Image(systemName: "command")
             }
+            }
         }
     }
 
     // MARK: - Actions
 
+    private var recognitionPreview: some View {
+        RecognitionPreviewView(
+            steps: (currentPage?.steps ?? []).filter { $0.isActive && $0.source != .manual }.sorted { $0.sortIndex < $1.sortIndex },
+            alternatives: stepTracker.alternatives, durations: stepTracker.durations,
+            provider: recognitionConnection.provider, isRecognizing: isRecognizing, notice: recognitionNotice,
+            automaticRecognition:$automaticRecognition,
+            onSettings: { showRecognitionSettings = true },
+            onRecognize: { restartRecognition() }, onCancel: { cancelRecognition() },
+            onAccept: { step, latex in acceptExpression(step, latex: latex) }, onClose: { showTypeset = false },
+            onInsertResult: { result in try await insertResult(result) },
+            onRemoveResult: { result in
+                try CanvasResultStore.removeResult(result, context: modelContext, history: viewModel.history,
+                    onError: { viewModel.canvasError = $0 })
+            }
+        )
+    }
+
+    private var canvasContentHeight: CGFloat {
+        let resultBottom = (currentPage?.steps ?? []).flatMap(\.computationResults)
+            .filter { $0.isPlacedOnCanvas && !$0.isRemoved }.map { $0.canvasRect.maxY + 80 }.max() ?? 0
+        return CanvasViewModel.contentHeight(drawing: viewModel.drawing, resultBottom: resultBottom)
+    }
+
+    private func insertResult(_ resultID: UUID) async throws {
+        let descriptor=FetchDescriptor<ComputationResult>(predicate:#Predicate { $0.stableID == resultID })
+        guard let result=try modelContext.fetch(descriptor).first else {
+            throw PolynomialError.invalid("This result is no longer available.")
+        }
+        guard result.source?.page === currentPage, result.isCurrent else {
+            throw PolynomialError.invalid("This result is outdated. Review the current source and compute again.")
+        }
+        if !result.isPlacedOnCanvas {
+            let image: Data
+            if let cached = result.canvasPreviewPNG, result.canvasPreviewVersion == CanvasResultLayout.previewVersion { image = cached }
+            else { image = try await ResultImageRenderer.render(result.outputLatex) }
+            try Task.checkCancellation()
+            try CanvasResultStore.insert(result, preview: image, context: modelContext, history: viewModel.history,
+                onError: { viewModel.canvasError = $0 })
+        }
+        if result.isPlacedOnCanvas && result.canvasPreviewVersion != CanvasResultLayout.previewVersion {
+            let image=try await ResultImageRenderer.render(result.outputLatex)
+            try Task.checkCancellation();try CanvasResultStore.refreshPreview(result,preview:image,context:modelContext)
+        }
+        viewModel.selectedResultID = result.stableID
+        viewModel.pageHeight = canvasContentHeight
+        showTypeset = false
+        viewModel.requestFocus(result.canvasRect.insetBy(dx: -16, dy: -16))
+    }
+
     private func setupSave() {
-        let context = modelContext
+        stepTracker = makeStepTracker()
         viewModel.onSave = { data, background in
             if let page = currentPage {
                 page.drawingData = data
                 page.background = background
                 notebook.lastEditedAt = Date()
-                try? context.save()
-                stepTrackingTask?.cancel()
-                stepTrackingTask = Task { @MainActor in
-                    try? await Task.sleep(for: .seconds(1.25))
-                    guard !Task.isCancelled else { return }
-                    await stepTracker.process(
-                        drawingData: data,
-                        page: page,
-                        context: context
-                    )
-                }
+                try? modelContext.save()
             }
         }
+        viewModel.onDrawingChanged = { data in
+            cancelRecognition()
+            currentPage?.drawingData = data
+            let fingerprints = Set(SpatialInkSegmenter().regions(in: data).map(\.fingerprint))
+            for step in currentPage?.steps ?? [] where step.source == .inferred && step.isActive {
+                if !fingerprints.contains(step.strokeFingerprint) {
+                    step.recognitionState = .collecting
+                    step.invalidateAcceptance()
+                }
+                if (try? PKDrawing(data: data).strokes.isEmpty) == true { step.isActive = false }
+            }
+            if shouldRecognizeAutomatically { scheduleRecognition() }
+        }
+    }
+
+    private func makeStepTracker()->StepTrackingCoordinator {
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--inline-ui-test") { return StepTrackingCoordinator(recognizer:InlineRecognitionFixture()) }
+#endif
+        return StepTrackingCoordinator(recognizer:recognitionConnection.service())
+    }
+
+    private func cancelRecognition() {
+        recognitionRevision=UUID();recognitionScheduler.cancel()
+    }
+
+    private func restartRecognition() {
+        showTypeset=true;scheduleRecognition(force:true)
+    }
+
+    private func scheduleRecognition(force:Bool=false) {
+        cancelRecognition()
+        guard let page=currentPage else { return }
+        viewModel.save()
+        guard let data=page.drawingData,(try? PKDrawing(data:data).strokes.isEmpty)==false else { return }
+        recognitionNotice=""
+        let revision=recognitionRevision
+        recognitionScheduler.schedule(delay:force ? .zero:.milliseconds(650)) {
+            guard revision==recognitionRevision,currentPage === page,recognitionIsActive else { return }
+            await stepTracker.process(drawingData:data,page:page,context:modelContext,force:force)
+        }
+    }
+
+    private func acceptExpression(_ step: Step, latex: String) {
+        guard let page = currentPage else { return }
+        do {
+            let sample = try ExpressionReviewService.accept(step, latex: latex, page: page, context: modelContext)
+            recognitionNotice = "Expression saved with its original ink."
+            if let sample {
+                Task {
+                    do { _ = try await RecognitionBenchmarkStore.shared.save(sample) }
+                    catch { recognitionNotice = "Expression saved; benchmark example could not be saved: " + error.localizedDescription }
+                }
+            }
+        } catch { recognitionNotice = error.localizedDescription }
     }
 
     private func addPage() {
@@ -457,16 +671,21 @@ struct NotebookView: View {
     }
 
     private func handleExport(_ format: ExportFormat) {
-        let size = CGSize(width: 768, height: 1024)
+        let size = CGSize(width: 1024, height: canvasContentHeight)
+        let results = (currentPage?.steps ?? []).flatMap(\.computationResults)
+            .filter { $0.isPlacedOnCanvas && !$0.isRemoved }.compactMap { result -> CanvasExportItem? in
+                guard let image = result.canvasPreviewPNG else { return nil }
+                return CanvasExportItem(rect: result.canvasRect, png: image, isCurrent: result.isCurrent)
+            }
         switch format {
         case .png:
-            guard let data = ExportService.renderPNG(drawing: viewModel.drawing, background: viewModel.backgroundStyle, size: size) else { return }
+            guard let data = ExportService.renderPNG(drawing: viewModel.drawing, background: viewModel.backgroundStyle, size: size, results: results) else { return }
             let url = FileManager.default.temporaryDirectory.appendingPathComponent("Folio-Page.png")
             try? data.write(to: url)
             exportedFileURL = url
             showShareSheet = true
         case .pdf:
-            let data = ExportService.renderPDF(drawing: viewModel.drawing, background: viewModel.backgroundStyle, size: size)
+            let data = ExportService.renderPDF(drawing: viewModel.drawing, background: viewModel.backgroundStyle, size: size, results: results)
             let url = FileManager.default.temporaryDirectory.appendingPathComponent("Folio-Page.pdf")
             try? data.write(to: url)
             exportedFileURL = url

@@ -1,0 +1,10 @@
+{
+  "name": "nerdamer",
+  "version": "2.0.1",
+  "license": "Apache-2.0",
+  "source": "https://registry.npmjs.org/nerdamer/-/nerdamer-2.0.1.tgz",
+  "packageIntegrity": "sha512-rN0PBn50zZ4xqQ5x7dW9L/W5uieFhpxUyd6q0QiL0vmiY9rzn0qvWv29n9jMLA35WfVPf7XBVLbN5XYpjkCCTg==",
+  "bundleSHA256": "f90572c1bdf4f370a455009ad927bb16313d5298d4443006ff8eb8bf378a2a78",
+  "docs": "https://nerdamer.com/docs/api/calculus/",
+  "note": "Pinned published bundle; no package scripts were executed. decimal.js notices retained."
+}

@@ -9,6 +9,8 @@ final class StepRevision {
     var recognizedText: String
     var latex: String
     var statusRaw: String
+    var isUserAccepted: Bool = false
+    var recognitionProviderRaw: String = ""
     var createdAt: Date
     var step: Step?
 

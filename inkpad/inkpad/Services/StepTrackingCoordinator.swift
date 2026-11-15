@@ -8,7 +8,10 @@ protocol StepTracking {
 }
 
 @MainActor
+@Observable
 final class StepTrackingCoordinator: StepTracking {
+    private(set) var alternatives: [UUID: [String]] = [:]
+    private(set) var durations: [UUID: Int] = [:]
     private let segmenter: any InkSegmenting
     private let recognizer: any RecognitionService
     private let mathEngine: any MathEngine
@@ -27,6 +30,11 @@ final class StepTrackingCoordinator: StepTracking {
     }
 
     func process(drawingData: Data, page: Page, context: ModelContext) async {
+        await process(drawingData: drawingData, page: page, context: context, force: false)
+    }
+
+    func process(drawingData: Data, page: Page, context: ModelContext, force: Bool) async {
+        let processingMode = page.mathMode
         let drawingFingerprint = SpatialInkSegmenter.drawingFingerprint(drawingData)
         let regions = segmenter.regions(in: drawingData)
         var availableSteps = page.steps.filter { $0.source == .inferred }
@@ -65,6 +73,7 @@ final class StepTrackingCoordinator: StepTracking {
             let inkChanged = step.strokeFingerprint != region.fingerprint
             let hasLegacyPlaceholder = step.recognizedText.hasPrefix("Handwritten step (")
             if inkChanged {
+                step.invalidateAcceptance()
                 step.inkData = region.inkData
                 step.bounds = region.bounds
                 step.strokeFingerprint = region.fingerprint
@@ -72,7 +81,9 @@ final class StepTrackingCoordinator: StepTracking {
                 step.recognitionState = groupingIsAmbiguous ? .ambiguous : .recognizing
                 step.updatedAt = Date()
                 changedSteps.append((step, groupingIsAmbiguous))
-            } else if hasLegacyPlaceholder {
+            } else if step.isAccepted {
+                continue
+            } else if force || step.recognitionProviderRaw != recognizer.identifier || hasLegacyPlaceholder || [.collecting, .recognizing, .failed].contains(step.recognitionState) {
                 step.recognitionState = groupingIsAmbiguous ? .ambiguous : .recognizing
                 step.updatedAt = Date()
                 changedSteps.append((step, groupingIsAmbiguous))
@@ -81,6 +92,7 @@ final class StepTrackingCoordinator: StepTracking {
 
         for step in availableSteps where !matchedStepIDs.contains(step.stableID) {
             step.isActive = false
+            step.invalidateAcceptance()
             step.updatedAt = Date()
         }
 
@@ -88,7 +100,7 @@ final class StepTrackingCoordinator: StepTracking {
         try? context.save()
 
         for (step, groupingIsAmbiguous) in changedSteps {
-            guard !Task.isCancelled, currentDrawingMatches(drawingFingerprint, page: page) else { return }
+            guard !Task.isCancelled, currentDrawingMatches(drawingFingerprint, page: page) && page.mathMode == processingMode else { return }
             guard !groupingIsAmbiguous, let inkData = step.inkData else {
                 step.label = "Review step grouping"
                 step.explanation = "This ink overlaps more than one existing step."
@@ -102,40 +114,49 @@ final class StepTrackingCoordinator: StepTracking {
 
             do {
                 let result = try await recognizer.recognize(inkData: inkData, mode: page.mathMode)
-                guard !Task.isCancelled, currentDrawingMatches(drawingFingerprint, page: page) else { return }
+                guard !Task.isCancelled, currentDrawingMatches(drawingFingerprint, page: page) && page.mathMode == processingMode else { return }
 #if DEBUG
                 await RecognitionDebugRecorder.shared.record(context: debugContext, result: result)
 #endif
-                step.recognitionConfidence = result.confidence
+                guard !Task.isCancelled, currentDrawingMatches(drawingFingerprint, page: page), page.mathMode == processingMode else { return }
+                alternatives[step.stableID] = result.candidates.map(\.text)
+                durations[step.stableID] = result.durationMilliseconds
+                step.recognitionProviderRaw = recognizer.identifier
+                step.recognitionMilliseconds = result.durationMilliseconds
+                step.recognitionConfidence = result.confidence ?? 0
                 if result.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     step.recognitionState = .failed
                     step.status = .unchecked
                     step.label = "No math recognized"
-                    step.explanation = "Vision did not recognize this row. Its ink and debug image have been preserved."
-                } else if result.confidence >= recognitionThreshold {
+                    step.explanation = "The recognizer did not recognize this row. Its ink and debug image have been preserved."
+                } else if (result.confidence ?? 0) >= recognitionThreshold {
                     step.recognizedText = result.text
                     step.ghostLaTeX = result.latex
                     step.label = result.text
                     step.recognitionState = .ready
-                    step.status = mathEngine.checkStep(latex: result.latex, mode: page.mathMode)
-                    step.explanation = mathEngine.explain(latex: result.latex, mode: page.mathMode)
+                    step.status = .unchecked
+                    step.explanation = "Recognition draft. Mathematics has not been verified."
                 } else {
                     step.recognizedText = result.text
                     step.ghostLaTeX = result.latex
                     step.label = result.text
                     step.recognitionState = .ambiguous
                     step.status = .unchecked
-                    step.explanation = "Recognition confidence is low. The original ink has been preserved."
+                    step.explanation = result.confidence == nil
+                        ? "Model draft; confidence is not calibrated. Mathematics has not been verified."
+                        : "Recognition confidence is low. The original ink has been preserved."
                 }
             } catch {
-                guard currentDrawingMatches(drawingFingerprint, page: page) else { return }
+                guard !Task.isCancelled else { return }
+                guard currentDrawingMatches(drawingFingerprint, page: page) && page.mathMode == processingMode else { return }
 #if DEBUG
                 await RecognitionDebugRecorder.shared.recordFailure(context: debugContext, error: error)
 #endif
+                guard !Task.isCancelled, currentDrawingMatches(drawingFingerprint, page: page), page.mathMode == processingMode else { return }
                 step.recognitionState = .failed
                 step.status = .unchecked
                 step.label = "Unrecognized handwriting"
-                step.explanation = "Recognition failed. The original ink has been preserved."
+                step.explanation = "\(error.localizedDescription) Original ink is preserved. Check recognition settings and tap Recognize again."
             }
 
             step.updatedAt = Date()

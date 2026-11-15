@@ -70,70 +70,60 @@ struct TypesetStep: Identifiable {
 struct MathJaxWebView: UIViewRepresentable {
     let steps: [TypesetStep]
 
+    func makeCoordinator() -> Coordinator { Coordinator() }
     func makeUIView(context: Context) -> WKWebView {
-        let config = WKWebViewConfiguration()
-        config.preferences.isElementFullscreenEnabled = false
-        let webView = WKWebView(frame: .zero, configuration: config)
-        webView.isOpaque = false
-        webView.backgroundColor = .clear
-        webView.scrollView.backgroundColor = .clear
-        loadContent(in: webView)
-        return webView
+        let view = WKWebView()
+        view.isOpaque = false
+        view.backgroundColor = .clear
+        view.navigationDelegate = context.coordinator
+        context.coordinator.steps = steps
+        do {
+            guard let asset = Bundle.main.url(forResource: "tex-svg", withExtension: "js") else { return view }
+            let directory = FileManager.default.temporaryDirectory.appendingPathComponent("InkPadMathJax", isDirectory: true)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let target = directory.appendingPathComponent("tex-svg.js")
+            if !FileManager.default.fileExists(atPath: target.path) { try FileManager.default.copyItem(at: asset, to: target) }
+            let html = directory.appendingPathComponent("preview.html")
+            try Self.html.write(to: html, atomically: true, encoding: .utf8)
+            view.loadFileURL(html, allowingReadAccessTo: directory)
+        } catch { /* The adjacent SwiftUI raw LaTeX remains available. */ }
+        return view
     }
-
-    func updateUIView(_ webView: WKWebView, context: Context) {
-        loadContent(in: webView)
+    func updateUIView(_ view: WKWebView, context: Context) {
+        context.coordinator.steps = steps
+        context.coordinator.render(view)
     }
-
-    private func loadContent(in webView: WKWebView) {
-        let stepsHTML = steps.map { step in
-            let statusColor: String
-            switch step.status {
-            case .unchecked: statusColor = "#8D8981"
-            case .verified: statusColor = "#5A9E5A"
-            case .warning: statusColor = "#C7943A"
-            case .error: statusColor = "#C45C4A"
-            case nil: statusColor = "#8D8981"
+    final class Coordinator: NSObject, WKNavigationDelegate {
+        var steps: [TypesetStep] = []
+        var ready = false
+        var rendering = false
+        var last: [String] = []
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) { ready = true; render(webView) }
+        func render(_ view: WKWebView) {
+            let values = steps.map(\.latex)
+            guard ready, !rendering, values != last else { return }
+            rendering = true
+            Task { @MainActor in
+                do {
+                    _ = try await view.callAsyncJavaScript("await window.renderRows(rows);", arguments: ["rows": values], in: nil, contentWorld: .page)
+                    self.last = values
+                } catch { /* Keep raw LaTeX visible beside the renderer. */ }
+                self.rendering = false
+                if self.steps.map(\.latex) != values { self.render(view) }
             }
-            return """
-            <div class="step">
-                <span class="status" style="color:\(statusColor)">●</span>
-                <span class="math">\\(\(step.latex)\\)</span>
-            </div>
-            """
-        }.joined()
-
-        let html = """
-        <!DOCTYPE html>
-        <html>
-        <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <style>
-            body { font-family: Georgia, serif; padding: 20px; margin: 0;
-                   background: #FFFFFF; color: #1C1C1A; }
-            .step { display: flex; align-items: baseline; gap: 8px;
-                    margin-bottom: 16px; font-size: 16px; }
-            .status { font-size: 12px; }
-            mjx-container { overflow-x: auto; }
-        </style>
-        <script>
-        window.MathJax = {
-            tex: { inlineMath: [['\\\\(','\\\\)']], displayMath: [['\\\\[','\\\\]']] },
-            svg: { fontCache: 'local' },
-            startup: { typeset: true }
-        };
-        </script>
-        <script src="tex-svg.js"></script>
-        </head>
-        <body>\(stepsHTML)</body>
-        </html>
-        """
-
-        if let texSvgURL = Bundle.main.url(forResource: "tex-svg", withExtension: "js") {
-            let baseURL = texSvgURL.deletingLastPathComponent()
-            webView.loadHTMLString(html, baseURL: baseURL)
-        } else {
-            webView.loadHTMLString(html, baseURL: nil)
         }
     }
+    static let html = #"""
+    <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
+    <style>body{margin:8px;color:#1c1c1a;background:white;font-size:20px} .row{padding:8px;overflow-x:auto} </style>
+    <script>window.MathJax={tex:{inlineMath:[['\\(','\\)']]},svg:{fontCache:'local'},options:{enableMenu:false},startup:{typeset:false}};</script>
+    <script src="tex-svg.js"></script></head><body><div id="rows"></div>
+    <script>window.renderRows=async function(rows){
+      if(!window.MathJax || !MathJax.startup) throw new Error('MathJax unavailable');
+      await MathJax.startup.promise;
+      MathJax.typesetClear(); const host=document.getElementById('rows'); host.replaceChildren();
+      rows.forEach(latex=>{const row=document.createElement('div');row.className='row';row.textContent='\\('+latex+'\\)';host.appendChild(row);});
+      await MathJax.typesetPromise([host]);return true;
+    };</script></body></html>
+    """#
 }

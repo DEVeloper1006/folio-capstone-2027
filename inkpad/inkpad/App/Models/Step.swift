@@ -22,11 +22,19 @@ final class Step {
     var recognitionStateRaw: String = "ready"
     var sourceRaw: String = "seeded"
     var isActive: Bool = true
+    var recognitionProviderRaw: String = ""
+    var recognitionMilliseconds: Int = 0
+    var acceptedLatex: String = ""
+    var acceptedFingerprint: String = ""
+    var acceptedAt: Date? = nil
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
     var page: Page?
     @Relationship(deleteRule: .cascade, inverse: \StepRevision.step)
     var revisions: [StepRevision] = []
+
+    @Relationship(deleteRule: .cascade, inverse: \ComputationResult.source)
+    var computationResults: [ComputationResult] = []
 
     init(
         sortIndex: Int,
@@ -44,6 +52,17 @@ final class Step {
         self.explanation = explanation
         self.yPosition = yPosition
         self.sourceRaw = source.rawValue
+    }
+
+    var latestAcceptedRevisionNumber: Int { revisions.filter(\.isUserAccepted).map(\.revisionNumber).max() ?? 0 }
+
+    var isAccepted: Bool {
+        isActive && acceptedAt != nil && acceptedFingerprint == strokeFingerprint
+    }
+
+    func invalidateAcceptance() {
+        acceptedAt = nil
+        acceptedFingerprint = ""
     }
 
     var status: StepStatus {

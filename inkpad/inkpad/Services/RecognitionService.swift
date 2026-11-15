@@ -5,13 +5,13 @@ import Vision
 
 struct RecognitionCandidate: Sendable, Codable, Equatable {
     let text: String
-    let confidence: Double
+    let confidence: Double?
 }
 
 struct RecognitionResult: Sendable {
     let text: String
     let latex: String
-    let confidence: Double
+    let confidence: Double?
     let candidates: [RecognitionCandidate]
     let debugImagePNG: Data?
     let durationMilliseconds: Int
@@ -19,7 +19,7 @@ struct RecognitionResult: Sendable {
     init(
         text: String,
         latex: String,
-        confidence: Double,
+        confidence: Double?,
         candidates: [RecognitionCandidate] = [],
         debugImagePNG: Data? = nil,
         durationMilliseconds: Int = 0
@@ -34,8 +34,11 @@ struct RecognitionResult: Sendable {
 }
 
 protocol RecognitionService {
+    var identifier: String { get }
     func recognize(inkData: Data, mode: MathMode) async throws -> RecognitionResult
 }
+
+extension RecognitionService { var identifier: String { "custom" } }
 
 enum RecognitionError: LocalizedError {
     case invalidDrawing
@@ -52,7 +55,7 @@ enum RecognitionError: LocalizedError {
 }
 
 enum RowInkRenderer {
-    static func renderPNG(
+    @MainActor static func renderPNG(
         inkData: Data,
         padding: CGFloat = 16,
         scale: CGFloat = 2
@@ -61,21 +64,26 @@ enum RowInkRenderer {
             throw RecognitionError.invalidDrawing
         }
 
-        let sourceBounds = drawing.bounds.insetBy(dx: -padding, dy: -padding)
+        let sourceBounds = drawing.bounds.insetBy(dx: -padding, dy: -padding).integral
         guard sourceBounds.width > 0, sourceBounds.height > 0 else {
             throw RecognitionError.invalidDrawing
         }
 
         let format = UIGraphicsImageRendererFormat()
-        format.scale = scale
+        format.scale = min(scale, 2048 / max(sourceBounds.width, sourceBounds.height))
         format.opaque = true
         let renderer = UIGraphicsImageRenderer(size: sourceBounds.size, format: format)
-        let image = renderer.image { context in
-            UIColor.white.setFill()
-            context.fill(CGRect(origin: .zero, size: sourceBounds.size))
-            drawing.image(from: sourceBounds, scale: scale).draw(
-                in: CGRect(origin: .zero, size: sourceBounds.size)
-            )
+        var image: UIImage!
+        // PencilKit adapts ink to the active appearance. Export against white
+        // under a light trait so black strokes cannot become white in dark mode.
+        UITraitCollection(userInterfaceStyle: .light).performAsCurrent {
+            image = renderer.image { context in
+                UIColor.white.setFill()
+                context.fill(CGRect(origin: .zero, size: sourceBounds.size))
+                drawing.image(from: sourceBounds, scale: format.scale).draw(
+                    in: CGRect(origin: .zero, size: sourceBounds.size)
+                )
+            }
         }
 
         guard let png = image.pngData() else { throw RecognitionError.renderingFailed }
@@ -126,10 +134,11 @@ enum SimpleMathLaTeXNormalizer {
 /// A free, fully on-device baseline. Vision is text-oriented rather than a
 /// dedicated handwritten-math model, but it is useful for validating that row
 /// segmentation and recognition are wired together correctly.
-final class VisionMathRecognitionService: RecognitionService {
+struct VisionMathRecognitionService: RecognitionService {
+    let identifier = "vision"
     func recognize(inkData: Data, mode: MathMode) async throws -> RecognitionResult {
         let startedAt = Date()
-        let png = try RowInkRenderer.renderPNG(inkData: inkData)
+        let png = try await MainActor.run { try RowInkRenderer.renderPNG(inkData: inkData) }
         guard let image = UIImage(data: png), let cgImage = image.cgImage else {
             throw RecognitionError.renderingFailed
         }

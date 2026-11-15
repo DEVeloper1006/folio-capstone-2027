@@ -80,7 +80,7 @@ final class inkpadTests: XCTestCase {
     @MainActor
     func testTrackingUpdatesExistingStepAndAddsRevision() async throws {
         let schema = Schema([
-            Notebook.self, Page.self, Step.self, StepRevision.self, Branch.self,
+            Notebook.self, Page.self, Step.self, StepRevision.self, ComputationResult.self, Branch.self,
             ChatThread.self, ChatMessage.self, Snapshot.self, Insight.self,
             ClassSpace.self, WorkedExample.self,
         ])

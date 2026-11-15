@@ -39,6 +39,9 @@ struct LibraryView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 HStack {
+                    NavigationLink { StrokeLabView() } label: {
+                        Label("Stroke Lab", systemImage: "scribble.variable")
+                    }
                     Button { showSettings = true } label: {
                         Image(systemName: "gearshape")
                     }

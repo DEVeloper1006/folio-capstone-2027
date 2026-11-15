@@ -1,5 +1,6 @@
 import Foundation
 import PencilKit
+import CryptoKit
 
 struct InkRegion: Sendable {
     let bounds: CGRect
@@ -84,28 +85,46 @@ struct SpatialInkSegmenter: InkSegmenting {
     }
 
     nonisolated private static func fingerprint(for stroke: PKStroke) -> String {
-        var hash: UInt64 = 14_695_981_039_346_656_037
-        func combine(_ value: Int64) {
-            hash ^= UInt64(bitPattern: value)
-            hash &*= 1_099_511_628_211
+        // Canonical content, not the native archive (which contains fresh IDs).
+        // Include all points and erasure masks, rather than sparse geometry.
+        var data = Data()
+        func add(_ value: Double) {
+            let rounded = (value * 10_000).rounded()
+            var bits = (rounded == 0 ? 0.0 : rounded).bitPattern.littleEndian
+            withUnsafeBytes(of: &bits) { data.append(contentsOf: $0) }
         }
-
-        let bounds = stroke.renderBounds
-        combine(Int64((bounds.minX * 10).rounded()))
-        combine(Int64((bounds.minY * 10).rounded()))
-        combine(Int64((bounds.width * 10).rounded()))
-        combine(Int64((bounds.height * 10).rounded()))
-        combine(Int64(stroke.path.count))
-
-        guard stroke.path.count > 0 else { return String(hash, radix: 16) }
-        let sampleIndices = Set([0, stroke.path.count / 2, stroke.path.count - 1])
-        for index in sampleIndices.sorted() {
-            let point = stroke.path[index]
-            combine(Int64((point.location.x * 10).rounded()))
-            combine(Int64((point.location.y * 10).rounded()))
+        data.append(contentsOf: stroke.ink.inkType.rawValue.utf8)
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        stroke.ink.color.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        for value in [red, green, blue, alpha] { add(Double(value)) }
+        let t = stroke.transform, b = stroke.renderBounds
+        for value in [t.a, t.b, t.c, t.d, t.tx, t.ty, b.minX, b.minY, b.width, b.height] { add(Double(value)) }
+        add(Double(stroke.path.count))
+        for point in stroke.path {
+            for value in [point.location.x, point.location.y, point.size.width, point.size.height,
+                          point.force, point.opacity, point.azimuth, point.altitude] { add(Double(value)) }
+            add(point.timeOffset)
         }
-        return String(hash, radix: 16)
+        if let mask = stroke.mask {
+            add(1)
+            mask.cgPath.applyWithBlock { element in
+                add(Double(element.pointee.type.rawValue))
+                let count: Int
+                switch element.pointee.type {
+                case .moveToPoint, .addLineToPoint: count = 1
+                case .addQuadCurveToPoint: count = 2
+                case .addCurveToPoint: count = 3
+                case .closeSubpath: count = 0
+                @unknown default: count = 0
+                }
+                for index in 0..<count {
+                    add(Double(element.pointee.points[index].x)); add(Double(element.pointee.points[index].y))
+                }
+            }
+        } else { add(0) }
+        return SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
     }
+
 }
 
 private struct DisjointSet {

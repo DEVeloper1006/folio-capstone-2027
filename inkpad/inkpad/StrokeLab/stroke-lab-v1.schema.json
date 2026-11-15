@@ -1,0 +1,376 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:folio:stroke-lab:1.0.0",
+  "title": "Folio Stroke Lab page and annotations",
+  "type": "object",
+  "properties": {
+    "raw": {
+      "$ref": "#/$defs/raw"
+    },
+    "annotations": {
+      "$ref": "#/$defs/annotations"
+    }
+  },
+  "required": [
+    "raw",
+    "annotations"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "point": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "time": {
+          "type": "number",
+          "minimum": 0
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0
+        },
+        "opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "pressure": {
+          "type": "number"
+        },
+        "azimuth": {
+          "type": "number"
+        },
+        "altitude": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "time",
+        "width",
+        "height",
+        "opacity"
+      ],
+      "additionalProperties": false
+    },
+    "transform": {
+      "type": "object",
+      "properties": {
+        "a": {
+          "type": "number"
+        },
+        "b": {
+          "type": "number"
+        },
+        "c": {
+          "type": "number"
+        },
+        "d": {
+          "type": "number"
+        },
+        "tx": {
+          "type": "number"
+        },
+        "ty": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "a",
+        "b",
+        "c",
+        "d",
+        "tx",
+        "ty"
+      ],
+      "additionalProperties": false
+    },
+    "bounds": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "additionalProperties": false
+    },
+    "ink": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rgba": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "minItems": 4,
+          "maxItems": 4
+        }
+      },
+      "required": [
+        "type",
+        "rgba"
+      ],
+      "additionalProperties": false
+    },
+    "stroke": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "createdAt": {
+          "type": "number"
+        },
+        "points": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/point"
+          },
+          "minItems": 1
+        },
+        "transform": {
+          "$ref": "#/$defs/transform"
+        },
+        "bounds": {
+          "$ref": "#/$defs/bounds"
+        },
+        "ink": {
+          "$ref": "#/$defs/ink"
+        },
+        "randomSeed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      },
+      "required": [
+        "id",
+        "createdAt",
+        "points",
+        "transform",
+        "bounds",
+        "ink",
+        "randomSeed"
+      ],
+      "additionalProperties": false
+    },
+    "row": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string"
+        },
+        "parentRowID": {
+          "type": "string",
+          "minLength": 1
+        },
+        "strokeIDs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "strokeIDs"
+      ],
+      "additionalProperties": false
+    },
+    "group": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string"
+        },
+        "strokeIDs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/row"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "strokeIDs",
+        "rows"
+      ],
+      "additionalProperties": false
+    },
+    "revision": {
+      "type": "object",
+      "properties": {
+        "number": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "author": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "const": "manual-stroke-lab"
+        },
+        "action": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "number",
+        "timestamp",
+        "author",
+        "source",
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "raw": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0.0"
+        },
+        "pageID": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coordinateSystem": {
+          "const": "pencilkit-points-top-left-y-down"
+        },
+        "pointSpace": {
+          "const": "stroke-local"
+        },
+        "timeUnit": {
+          "const": "seconds"
+        },
+        "creationTimeEpoch": {
+          "const": "unix"
+        },
+        "identityStrategy": {
+          "const": "sha256-path-v1"
+        },
+        "canvasWidth": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "canvasHeight": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "strokes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stroke"
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "pageID",
+        "coordinateSystem",
+        "pointSpace",
+        "timeUnit",
+        "creationTimeEpoch",
+        "identityStrategy",
+        "canvasWidth",
+        "canvasHeight",
+        "strokes"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0.0"
+        },
+        "pageID": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/group"
+          }
+        },
+        "history": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/revision"
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "pageID",
+        "revision",
+        "groups",
+        "history"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

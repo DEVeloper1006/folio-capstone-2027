@@ -36,7 +36,7 @@ actor RecognitionDebugRecorder {
         let fingerprint: String
         let rawText: String
         let latex: String
-        let confidence: Double
+        let confidence: Double?
         let candidates: [RecognitionCandidate]
         let imageFilename: String?
         let durationMilliseconds: Int
@@ -109,7 +109,7 @@ actor RecognitionDebugRecorder {
             try handle.close()
 
             logger.info(
-                "row=\(context.rowIndex) strokes=\(context.strokeCount) text=\(result.text, privacy: .public) latex=\(result.latex, privacy: .public) confidence=\(result.confidence) log=\(self.logURL.path, privacy: .public)"
+                "row=\(context.rowIndex) strokes=\(context.strokeCount) text=\(result.text, privacy: .public) latex=\(result.latex, privacy: .public) confidence=\(String(describing: result.confidence)) log=\(self.logURL.path, privacy: .public)"
             )
         } catch {
             logger.error("Could not write recognition debug record: \(error.localizedDescription, privacy: .public)")

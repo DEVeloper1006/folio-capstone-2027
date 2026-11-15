@@ -37,3 +37,12 @@ Pods/
 
 # Claude Code
 CLAUDE.md
+
+# Local handwriting collection (never commit personal samples)
+*.folioink/
+*.pkdrawing
+/handwriting-data/
+/stroke-lab-data/
+
+# Generated local model resources; recreate using scripts/prepare-local-recognition.py
+/inkpad/inkpad/Resources/LocalTexTeller/
