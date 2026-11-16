@@ -11,9 +11,9 @@ import { installNavigation } from '../navigation/navigation.ts'
 
 /** Identify the notebook cell, supply its initial formula, and report subsequent LaTeX edits. The initial value seeds the field once; parent updates do not replace the active formula. */
 interface UseMathLiveOptions {
-  cellId: number
+  cellId: string
   initialLatex: string
-  onLatexChange: (cellId: number, latex: string) => void
+  onLatexChange: (cellId: string, latex: string) => void
   onEditorKeyDown?: (mathfield: MathfieldElement, event: KeyboardEvent) => boolean
 }
 
@@ -49,7 +49,7 @@ export function useMathLive({ cellId, initialLatex, onLatexChange, onEditorKeyDo
       MathfieldElement.fontsDirectory = null
       const mathfield = new MathfieldElement()
       mountedMathfield = mathfield
-      mathfield.setAttribute('aria-label', `LaTeX cell ${cellId + 1}`)
+      mathfield.setAttribute('aria-label', 'LaTeX cell')
 
       /** Report this cell’s current LaTeX to the notebook after an input event. */
       const reportLatexChange = () => onLatexChange(cellId, mathfield.value)

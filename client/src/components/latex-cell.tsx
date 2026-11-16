@@ -9,9 +9,9 @@ import { ExpressionCommandMenuView } from './expression-command-menu-view'
 
 /** Supply the cell's identity, starting LaTeX, and notebook edit callback to the MathLive lifecycle hook. */
 interface LatexCellProps {
-  cellId: number
+  cellId: string
   initialLatex: string
-  onLatexChange: (cellId: number, latex: string) => void
+  onLatexChange: (cellId: string, latex: string) => void
 }
 
 /** Connect the editor to notebook edits and render a local command menu only while its slash session is open. */

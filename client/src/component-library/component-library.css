@@ -1,0 +1,191 @@
+/**
+ * Style the shared notebook controls and the gallery that shows them.
+ * Contains button variants, labeled fields, segmented choices, popover panels, and the gallery layout.
+ * @file
+ */
+
+.ui-button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.ui-button:focus-visible {
+  outline: 2px solid #7279a8;
+  outline-offset: 2px;
+}
+
+.ui-button-default {
+  padding: 4px 9px;
+  border: 0;
+  border-radius: 4px;
+  background: #f5f5f5;
+  color: #444;
+}
+
+.ui-button-default:hover {
+  background: #eaeaea;
+}
+
+.ui-button-quiet {
+  padding: 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #888;
+  font-size: 13px;
+}
+
+.ui-button-quiet:hover {
+  background: #f6f6f6;
+  color: #252525;
+}
+
+.ui-button-icon {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #666;
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
+.ui-button-icon:hover,
+.ui-button-icon[aria-expanded='true'] {
+  background: #f3f3f3;
+  color: #252525;
+}
+
+.ui-field {
+  display: grid;
+  gap: 8px;
+  align-items: center;
+  color: #444;
+  font-size: 13px;
+}
+
+.ui-field-with-suffix {
+  grid-template-columns: 1fr auto auto;
+}
+
+.ui-field-input {
+  width: 100%;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+  font: inherit;
+}
+
+.ui-field-with-suffix .ui-field-input {
+  width: 64px;
+}
+
+.ui-field-input:focus-visible {
+  outline: 2px solid #7279a8;
+  outline-offset: 1px;
+}
+
+.ui-segmented {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 6px;
+}
+
+.ui-segmented button {
+  padding: 6px 8px;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+  background: #fff;
+  color: #444;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ui-segmented button[aria-pressed='true'] {
+  border-color: #7279a8;
+  background: #f4f5fb;
+  color: #252525;
+}
+
+.ui-segmented button:focus-visible {
+  outline: 2px solid #7279a8;
+  outline-offset: 2px;
+}
+
+.ui-popover {
+  position: relative;
+  display: inline-block;
+}
+
+.ui-popover-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  z-index: 2;
+  display: grid;
+  gap: 12px;
+  width: 220px;
+  padding: 12px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 24px #00000014;
+}
+
+.ui-popover-panel-start {
+  left: 0;
+}
+
+.ui-popover-panel-end {
+  right: 0;
+}
+
+.component-library {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 64px 40px 120px;
+}
+
+.component-library h1 {
+  margin: 0;
+  color: #252525;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.component-library p,
+.component-library h2 {
+  color: #666;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.component-library-section {
+  margin-top: 36px;
+}
+
+.component-library-section h2 {
+  margin: 0 0 8px;
+  font-weight: 500;
+}
+
+.component-library-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-items: center;
+}
+
+.component-library-section > .ui-field,
+.component-library-section > .ui-segmented {
+  max-width: 320px;
+}
+
+@media (max-width: 900px) {
+  .component-library {
+    padding: 48px 22px 120px;
+  }
+}

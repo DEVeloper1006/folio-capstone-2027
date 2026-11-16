@@ -1,5 +1,5 @@
 /**
- * Define the shared HTML document for the notebook. Contains page metadata, MathLive font and application stylesheet links, and the root document component.
+ * Define the shared HTML document for the notebook. Contains page metadata, MathLive fonts, Markdown mathematics styles, application styles, shared control styles, and the root document component.
  *
  * @file
  */
@@ -8,10 +8,12 @@ import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 
 import appStylesheetUrl from '../styles.css?url'
+import componentLibraryStylesheetUrl from '../component-library/component-library.css?url'
 import mathFontsStylesheetUrl from 'mathlive/fonts.css?url'
+import markdownMathStylesheetUrl from 'katex/dist/katex.min.css?url'
 
 export const Route = createRootRoute({
-  /** Supply the document metadata and stylesheets required to display the notebook and MathLive fonts. */
+  /** Supply document metadata and stylesheets for mathematical editors, rendered Markdown mathematics, the notebook layout, and shared controls. */
   head: () => ({
     meta: [
       {
@@ -32,7 +34,15 @@ export const Route = createRootRoute({
       },
       {
         rel: 'stylesheet',
+        href: markdownMathStylesheetUrl,
+      },
+      {
+        rel: 'stylesheet',
         href: appStylesheetUrl,
+      },
+      {
+        rel: 'stylesheet',
+        href: componentLibraryStylesheetUrl,
       },
     ],
   }),

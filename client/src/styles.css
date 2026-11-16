@@ -1,6 +1,7 @@
 /**
- * Style the notebook cells, expression-command menu, movement guide, and MathLive selection highlights.
- * Contains page layout, cell outlines, search results, hidden editor controls, and responsive spacing.
+ * Style the mixed math and Markdown notebook, expression-command menu, movement guide, and MathLive selection highlights.
+ * Contains page layout, Markdown source and preview surfaces, search results, and responsive spacing.
+ * Shared buttons, fields, segmented choices, and popovers are styled in component-library.css.
  * @file
  */
 
@@ -21,71 +22,46 @@ body {
 }
 
 .notebook {
-  max-width: 760px;
+  position: relative;
   margin: 0 auto;
   padding: 88px 40px 120px;
 }
 
-.notebook-intro {
-  margin: 0 0 28px 34px;
-  color: #666;
-  font-size: 13px;
-  line-height: 1.6;
+.notebook-regular {
+  max-width: 760px;
 }
 
-.notebook-intro h1 {
-  margin: 0;
-  color: #252525;
-  font-size: 20px;
-  font-weight: 500;
-}
-
-.notebook-intro summary {
-  cursor: pointer;
-}
-
-.movement-keys {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
-  gap: 10px 16px;
-}
-
-.movement-keys dt {
-  color: #252525;
-}
-
-.movement-keys dd {
-  margin: 0;
+.notebook-full {
+  max-width: none;
 }
 
 .cell-content {
   min-width: 0;
 }
 
-.cell-title {
-  margin: 12px 0 8px;
-  color: #777;
-  font-size: 12px;
+.page {
+  display: flex;
+  flex-direction: column;
+}
+
+.page-menu {
+  position: absolute;
+  top: 28px;
+  right: 28px;
+  z-index: 2;
 }
 
 .cell {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
   align-items: start;
-  padding: 5px 0;
 }
 
 .cell-number {
-  padding: 44px 9px 0 0;
+  padding: 18px 9px 0 0;
   color: #999;
   font-size: 10px;
   text-align: right;
-  opacity: 1;
-}
-
-.cell:hover .cell-number,
-.cell:focus-within .cell-number {
-  opacity: 1;
 }
 
 .cell-input {
@@ -96,6 +72,196 @@ body {
 
 .cell-editor {
   position: relative;
+}
+
+.markdown-cell {
+  margin: 2px 0 12px;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.markdown-cell:focus-within {
+  border-color: #a3a3a3;
+}
+
+.markdown-cell.is-editing {
+  border-color: #7279a8;
+  box-shadow: 0 0 0 2px #7279a810;
+}
+
+.markdown-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 34px;
+  padding: 5px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #888;
+  font-size: 11px;
+}
+
+.markdown-empty:focus-visible {
+  outline: 2px solid #7279a8;
+  outline-offset: 2px;
+}
+
+.markdown-source {
+  display: block;
+  width: 100%;
+  min-height: 180px;
+  padding: 16px;
+  resize: none;
+  overflow: hidden;
+  border: 0;
+  outline: 0;
+  background: #fafafa;
+  color: #333;
+  font:
+    13px / 1.8 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  tab-size: 2;
+}
+
+.markdown-source::placeholder {
+  color: #999;
+}
+
+.markdown-hint {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 16px;
+  margin: 0;
+  padding: 9px 12px;
+  border-top: 1px solid #eee;
+  color: #888;
+  font-size: 10px;
+}
+
+.markdown-rendered {
+  min-height: 72px;
+  padding: 16px 18px;
+  outline: 0;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.markdown-rendered:focus-visible {
+  outline: 2px solid #7279a8;
+  outline-offset: -2px;
+}
+
+.markdown-rendered > :first-child {
+  margin-top: 0;
+}
+
+.markdown-rendered > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown-rendered :is(h1, h2, h3, h4, h5, h6) {
+  margin: 1.2em 0 0.5em;
+  color: #292929;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.markdown-rendered h1 {
+  font-size: 24px;
+}
+
+.markdown-rendered h2 {
+  font-size: 20px;
+}
+
+.markdown-rendered :is(h3, h4, h5, h6) {
+  font-size: 16px;
+}
+
+.markdown-rendered :is(p, ul, ol, pre, blockquote, table) {
+  margin: 0.8em 0;
+}
+
+.markdown-rendered :is(ul, ol) {
+  padding-left: 1.5em;
+}
+
+.markdown-rendered li + li {
+  margin-top: 5px;
+}
+
+.markdown-rendered blockquote {
+  margin-left: 0;
+  padding-left: 14px;
+  border-left: 2px solid #d4d4d4;
+  color: #777;
+}
+
+.markdown-rendered a {
+  color: #4f5795;
+  text-underline-offset: 3px;
+}
+
+.markdown-rendered code {
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: #f3f3f3;
+  font:
+    12px / 1.7 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+}
+
+.markdown-rendered pre {
+  padding: 12px 14px;
+  overflow-x: auto;
+  border-radius: 4px;
+  background: #f7f7f7;
+}
+
+.markdown-rendered pre code {
+  padding: 0;
+  background: transparent;
+}
+
+.markdown-rendered table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.markdown-rendered :is(th, td) {
+  padding: 6px 12px;
+  border: 1px solid #e5e5e5;
+  text-align: left;
+}
+
+.markdown-rendered img {
+  max-width: 100%;
+  height: auto;
+}
+
+.markdown-rendered .katex-display {
+  padding: 3px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.markdown-empty {
+  width: 100%;
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  color: #999;
+  font: inherit;
+  text-align: left;
+  cursor: text;
 }
 
 .command-menu {
@@ -217,26 +383,10 @@ math-field::part(menu-toggle) {
   display: none;
 }
 
-.add-cell {
+.add-cell-actions {
+  display: flex;
+  gap: 8px;
   margin: 12px 0 0 34px;
-  padding: 8px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: #888;
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.add-cell:hover {
-  background: #f6f6f6;
-  color: #252525;
-}
-
-.add-cell:focus-visible {
-  outline: 2px solid #7279a8;
-  outline-offset: 2px;
 }
 
 @media (max-width: 900px) {
