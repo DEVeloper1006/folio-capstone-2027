@@ -4,7 +4,7 @@
  * @file
  */
 import { useImperativeHandle, useRef, useState } from 'react'
-import type { KeyboardEvent, Ref } from 'react'
+import type { ClipboardEvent, Ref } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { PageFrame } from '#/components/page-view'
 import { CellFrame } from '#/component-library/cell-frame'
@@ -12,9 +12,18 @@ import { MathIcon, MarkdownIcon } from '#/component-library/icons/folio-icons'
 import { LatexCell } from '#/components/latex-cell'
 import { MarkdownCell } from '#/components/markdown-cell'
 import { appendCell, editCell, notebookCommands, usePageSelection } from './use-page-state'
-import { createCellId } from './notebook-cells'
+import { createCellId, pastedLatex } from './notebook-cells'
 import type { NotebookCell } from './notebook-cells'
 import type { Page, PageMetadata } from './page'
+import { shortcutKey, defaultOverrides } from '#/editor/commands/shortcut-overrides'
+import type { ShortcutOverrides } from '#/editor/commands/shortcut-overrides'
+import type { CommandContext } from '#/editor/commands/editor-commands'
+
+/** Expose live interaction context and command dispatch to the workspace listener. */
+export interface NotebookCommandController {
+  run: (id: string) => boolean
+  getContext: () => CommandContext
+}
 /** Select the layout fields that change independently of a cell's text. */
 function pageLayout(page: Page): Omit<Page, 'cells'> & { cells: readonly Pick<NotebookCell, 'kind' | 'cellId'>[] } {
   /** Keep each cell's identity and kind for ordering and the add-cell control. */
@@ -75,18 +84,27 @@ function NotebookCellEditor({ pageId, index, cellId, editing, focused, selected,
 }
 
 /** Render a cached page. Only layout changes update the frame and only the edited cell receives new source. */
-export function NotebookPageView({ pageId, commandRef }: { pageId: string; commandRef: Ref<(id: string) => boolean> }) {
+export function NotebookPageView({ pageId, commandRef }: { pageId: string; commandRef: Ref<NotebookCommandController> }) {
   const client = useQueryClient()
   const page = usePageSelection(pageId, pageLayout)
   const { updatePage, renamePage, getPage } = notebookCommands(client)
-  const [editingId, setEditing] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [cellMode, setCellMode] = useState<CommandContext['cellMode']>('idle')
+  /** Enter edit mode for a cell, or return to cell selection when editing finishes. */
+  function setEditing(id: string | null) {
+    setEditingId(id)
+    setCellMode(id ? 'editing' : 'selection')
+    if (id) setSelected(id)
+  }
   const notebookRef = useRef<HTMLElement>(null)
   const [viewingId, setViewing] = useState<string | null>(null)
   const [selectedId, setSelected] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
   /** Select a row in view mode and give it keyboard focus. */
   function selectRow(id?: string) {
-    setEditing(null)
+    setEditingId(null)
+    setCellMode(id ? 'selection' : 'idle')
+    setViewing(null)
     setSelected(id ?? null)
     const row = id && notebookRef.current?.querySelector<HTMLElement>(`[data-cell-id="${CSS.escape(id)}"]`)
     if (row) row.focus()
@@ -107,6 +125,63 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
     } catch {
       setNotice('Could not copy the cell to the clipboard.')
     }
+  }
+
+  /** Replace the requested cell's source while preserving its identity and kind. */
+  function pasteSource(id: string, text: string) {
+    /** Apply clipboard text to the latest stored cell. */
+    function replace(current: Page) {
+      /** Identify the destination so Markdown retains its source delimiters. */
+      function matches(cell: NotebookCell) {
+        return cell.cellId === id
+      }
+      const cell = current.cells.find(matches)
+      return editCell(current, id, cell?.kind === 'math' ? pastedLatex(text) : text)
+    }
+    updatePage(pageId, replace)
+    setNotice('Cell contents pasted')
+  }
+  /** Read clipboard text for a palette action or a custom paste shortcut. */
+  async function pasteCell(id: string) {
+    try {
+      pasteSource(id, await navigator.clipboard.readText())
+    } catch {
+      setNotice('Clipboard unavailable. Use Cmd/Ctrl+V on the selected cell.')
+    }
+  }
+  /** Put source text on the native clipboard when copying a selected row. */
+  function handleCellCopy(event: ClipboardEvent<HTMLElement>) {
+    const overrides = client.getQueryData<ShortcutOverrides>(shortcutKey) ?? defaultOverrides
+    if (cellMode !== 'selection' || !selectedId || Object.hasOwn(overrides, 'workspace.currentPage.cell.copySelected')) return
+    const target = event.target
+    if (!(target instanceof Element) || !target.closest('[data-cell-id]')) return
+    /** Read the selected cell's latest source. */
+    function matches(cell: NotebookCell) {
+      return cell.cellId === selectedId
+    }
+    const cell = getPage(pageId)?.cells.find(matches)
+    if (!cell) return
+    event.clipboardData.setData('text/plain', cell.kind === 'math' ? cell.latex : cell.markdown)
+    event.preventDefault()
+    event.stopPropagation()
+    setNotice('Cell copied')
+  }
+
+  /** Use the browser paste event for default bindings, avoiding a separate clipboard permission request. */
+  function handleCellPaste(event: ClipboardEvent<HTMLElement>) {
+    const overrides = client.getQueryData<ShortcutOverrides>(shortcutKey) ?? defaultOverrides
+    if (cellMode !== 'selection' || !selectedId || Object.hasOwn(overrides, 'workspace.currentPage.cell.pasteSelected')) return
+    const target = event.target
+    if (!(target instanceof Element) || !target.closest('[data-cell-id]') || !event.clipboardData.types.includes('text/plain')) return
+    event.preventDefault()
+    event.stopPropagation()
+    /** Identify whether the target accepts the LaTeX clipboard representation. */
+    function matches(cell: NotebookCell) {
+      return cell.cellId === selectedId
+    }
+    const math = getPage(pageId)?.cells.find(matches)?.kind === 'math'
+    const latex = math ? event.clipboardData.getData('application/x-latex') : ''
+    pasteSource(selectedId, latex || event.clipboardData.getData('text/plain'))
   }
 
   /** Finish the active editor or insert a sibling using the current stored source. */
@@ -190,11 +265,17 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
       setEditing(id)
       return true
     }
-    if (command === 'workspace.currentPage.cell.copy') {
+    if ((command === 'workspace.currentPage.cell.copySelected' || command === 'workspace.currentPage.cell.pasteSelected') && cellMode !== 'selection') return false
+    if (command === 'workspace.currentPage.cell.pasteSelected') {
+      void pasteCell(id)
+      return true
+    }
+    if (command === 'workspace.currentPage.cell.copy' || command === 'workspace.currentPage.cell.copySelected') {
       void copyCell(id)
       return true
     }
-    if (command === 'workspace.currentPage.cell.delete') {
+    if (command === 'workspace.currentPage.cell.deleteSelected' && cellMode !== 'selection') return false
+    if (command === 'workspace.currentPage.cell.delete' || command === 'workspace.currentPage.cell.deleteSelected') {
       /** Remove only the selected cell from the latest page. */
       function remove(current: Page) {
         /** Keep cells with other ids. */
@@ -208,9 +289,7 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
       return true
     }
     if (command === 'workspace.currentPage.cell.unfocus') {
-      setEditing(null)
-      setSelected(null)
-      notebookRef.current?.focus({ preventScroll: true })
+      selectRow(id)
       return true
     }
     const duplicate = command === 'workspace.currentPage.cell.duplicateBelow'
@@ -234,9 +313,24 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
   /** Keep the last notebook cell available while the sidebar opens the palette. */
   function recordFocus(event: React.FocusEvent<HTMLElement>) {
     const row = event.target.closest<HTMLElement>('[data-cell-id]')
-    setViewing(row && row !== event.target ? (row.dataset.cellId ?? null) : null)
-    setSelected(row?.dataset.cellId ?? null)
-    if (!row || row === event.target) setEditing(null)
+    const id = row?.dataset.cellId ?? null
+    setSelected(id)
+    if (!id) {
+      setEditingId(null)
+      setViewing(null)
+      setCellMode('idle')
+      return
+    }
+    if (row === event.target || event.target.closest('.notebook-cell-gutter')) {
+      setEditingId(null)
+      setViewing(null)
+      setCellMode('selection')
+    } else if (event.target.closest('math-field, [contenteditable="true"]')) {
+      setCellMode('editing')
+    } else {
+      setViewing(id)
+      setCellMode('view')
+    }
   }
   /** Dispatch a palette choice against the last focused notebook cell. */
   function paletteCommand(command: string) {
@@ -244,17 +338,21 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
   }
   /** Expose the same dispatcher used by shortcuts to the route's command palette. */
   function bindPalette() {
-    return paletteCommand
+    /** Read actual focus so selection shortcuts do not consume arrows in the sidebar or menus. */
+    function getContext(): CommandContext {
+      const target = document.activeElement
+      const notebookFocus = !!target && !!notebookRef.current?.contains(target)
+      const cellFocus = notebookFocus && selectedId !== null
+      /** Identify the current cell kind without reading its source. */
+      function matches(cell: Pick<NotebookCell, 'cellId'>) {
+        return cell.cellId === selectedId
+      }
+      return { cellMode, notebookFocus, cellFocus, mathFocus: cellFocus && page?.cells.find(matches)?.kind === 'math' }
+    }
+    return { run: paletteCommand, getContext }
   }
   useImperativeHandle(commandRef, bindPalette)
 
-  /** Enter opens a selected row for editing. Arrow keys move between selected rows. */
-  function handleRowKey(event: KeyboardEvent<HTMLElement>) {
-    if (!(event.target instanceof HTMLElement) || !event.target.dataset.cellId || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
-    const actions: Record<string, string> = { Enter: 'edit', ArrowDown: 'selectNext', ArrowUp: 'selectPrevious' }
-    const action = actions[event.key]
-    if (action && runCellCommand('workspace.currentPage.cell.' + action, event.target.dataset.cellId)) event.preventDefault()
-  }
   /** Rename the open page. */
   function rename(title: string) {
     renamePage(pageId, title)
@@ -269,11 +367,13 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
   }
   /** Append a math cell. */
   function addMath() {
+    const cellId = createCellId()
     /** Allocate a math cell on the latest page. */
     function update(current: Page) {
-      return appendCell(current, 'math')
+      return appendCell(current, 'math', cellId)
     }
     updatePage(pageId, update)
+    setEditing(cellId)
   }
   /** Append a Markdown cell. */
   function addMarkdown() {
@@ -291,7 +391,7 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
   }
   if (!page) return null
   return (
-    <main ref={notebookRef} tabIndex={-1} onKeyDown={handleRowKey} onFocusCapture={recordFocus} className={`notebook notebook-${page.pageMetadata.width}`} aria-label="Folio notebook">
+    <main ref={notebookRef} tabIndex={-1} data-cell-mode={cellMode} onCopy={handleCellCopy} onPaste={handleCellPaste} onFocusCapture={recordFocus} className={`notebook notebook-${page.pageMetadata.width}`} aria-label="Folio notebook">
       <span className="cell-command-notice" role="status">
         {notice}
       </span>

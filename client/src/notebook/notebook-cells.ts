@@ -28,3 +28,19 @@ export interface MarkdownNotebookCell extends CellIdentity {
 
 /** Select an editor by cell kind while retaining the original source for each supported content format. */
 export type NotebookCell = MathNotebookCell | MarkdownNotebookCell
+
+/** Remove a single enclosing Markdown or TeX math delimiter pair from clipboard text. Bare LaTeX stays unchanged. */
+export function pastedLatex(source: string) {
+  const trimmed = source.trim()
+  const delimiters = [
+    ['$$', '$$'],
+    ['\\[', '\\]'],
+    ['\\(', '\\)'],
+    ['$', '$'],
+  ] as const
+  for (const [open, close] of delimiters) {
+    if (trimmed.length < open.length + close.length || !trimmed.startsWith(open) || !trimmed.endsWith(close)) continue
+    return trimmed.slice(open.length, -close.length).trim()
+  }
+  return source
+}

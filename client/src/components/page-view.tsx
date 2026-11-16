@@ -4,7 +4,6 @@
  * @file
  */
 
-import { useState } from 'react'
 import type { CSSProperties, ChangeEvent, ReactNode } from 'react'
 import { Menu } from '@base-ui/react/menu'
 import { MathIcon, MarkdownIcon } from '#/component-library/icons/folio-icons.tsx'
@@ -73,36 +72,17 @@ function EditablePageTitle({ title, onTitleChange }: { title: string; onTitleCha
   return <input className="page-title" aria-label="Page title" placeholder="Untitled" value={title} onChange={handleTitleChange} />
 }
 
-/** Append a cell. Hovering offers math or Markdown; clicking repeats the kind of the cell above, or math when the page has no cells. */
-function NewCellControl({ cells, onAddMathCell, onAddMarkdownCell }: { cells: readonly Pick<NotebookCell, 'kind'>[]; onAddMathCell: () => void; onAddMarkdownCell: () => void }) {
-  const [open, setOpen] = useState(false)
-  const previousKind = cells.at(-1)?.kind ?? 'math'
-
-  /** Append another cell of the same kind as the last one on the page. */
-  function addCellLikePrevious() {
-    if (previousKind === 'math') onAddMathCell()
-    else onAddMarkdownCell()
-  }
-
-  /** Open the kind list on hover. A press on the button itself repeats the previous kind and leaves the list closed. */
-  function handleOpenChange(next: boolean, details: { reason: string }) {
-    if (details.reason === 'trigger-press') {
-      addCellLikePrevious()
-      setOpen(false)
-      return
-    }
-    setOpen(next)
-  }
-
+/** Open the cell-kind menu from a click, keyboard, or hover. */
+function NewCellControl({ onAddMathCell, onAddMarkdownCell }: { onAddMathCell: () => void; onAddMarkdownCell: () => void }) {
   return (
     <div className="add-cell-actions">
-      <Menu.Root open={open} onOpenChange={handleOpenChange} modal={false}>
+      <Menu.Root modal={false}>
         <Menu.Trigger className="ui-button ui-button-quiet" openOnHover delay={160} closeDelay={120}>
           New Cell
         </Menu.Trigger>
         <Menu.Portal>
           <Menu.Positioner side="bottom" sideOffset={6} align="start">
-            <Menu.Popup className="primitive-popup">
+            <Menu.Popup className="primitive-popup" finalFocus={false}>
               <Menu.Item className="primitive-item" onClick={onAddMathCell}>
                 <span className="primitive-item-label">
                   <MathIcon /> Math
@@ -143,7 +123,7 @@ export function PageFrame(props: FrameProps) {
       {props.interaction === 'editable' ? <EditablePageTitle title={page.title} onTitleChange={props.onTitleChange} /> : <PageTitleHeading title={page.title} />}
       {page.cells.length === 0 ? <p className="page-empty">{props.interaction === 'view' ? 'This page is empty.' : 'This page has no cells yet.'}</p> : null}
       {props.content}
-      {props.interaction === 'editable' ? <NewCellControl cells={page.cells} onAddMathCell={props.onAddMathCell} onAddMarkdownCell={props.onAddMarkdownCell} /> : null}
+      {props.interaction === 'editable' ? <NewCellControl onAddMathCell={props.onAddMathCell} onAddMarkdownCell={props.onAddMarkdownCell} /> : null}
     </section>
   )
 }

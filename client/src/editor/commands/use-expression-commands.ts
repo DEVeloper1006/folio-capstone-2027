@@ -18,15 +18,9 @@ interface CommandSession {
   latex: string
 }
 
-/** Open only in an empty editable region or a selected placeholder, so a backslash inside existing math still starts a LaTeX command. */
+/** Open Folio's expression menu anywhere in editable mathematics. The saved selection becomes the insertion or replacement range. */
 function canOpenCommands(mathfield: MathfieldElement) {
-  if (mathfield.readOnly || mathfield.mode !== 'math') return false
-  if (!mathfield.selectionIsCollapsed) return /^\\placeholder\{\}$/.test(mathfield.getValue(mathfield.selection, 'latex'))
-  const current = mathfield.getElementInfo(mathfield.position)
-  const next = mathfield.getElementInfo(mathfield.position + 1)
-  if (!mathfield.value) return true
-  if (current?.latex !== '' || current.depth === undefined) return false
-  return !next || (next.depth !== undefined && (next.depth < current.depth || (next.depth === current.depth && next.latex === '')))
+  return !mathfield.readOnly && mathfield.mode === 'math'
 }
 
 /** Keep menu state local to one cell; opening and cancelling never edits its formula. Accept a replacement search provider without changing menu rendering. */

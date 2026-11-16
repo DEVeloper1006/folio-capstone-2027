@@ -1,11 +1,11 @@
 /**
- * Edit Markdown source or display its rendered content inside one notebook cell. Contains local edit mode, keyboard completion, and Markdown rendering with tables and mathematics. Typing `$` inserts a MathLive expression that stays rendered while editing.
+ * Edit Markdown source or display its rendered content inside one notebook cell. Contains local edit mode, keyboard completion, Markdown rendering, and LaTeX-preserving copy for rendered mathematics. Typing `$` inserts a MathLive expression that stays rendered while editing.
  *
  * @file
  */
 
 import { useLayoutEffect, useRef, useState } from 'react'
-import type { KeyboardEvent } from 'react'
+import type { ClipboardEvent, KeyboardEvent } from 'react'
 import { MarkdownMathField } from '#/component-library/markdown-math-field.tsx'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -29,6 +29,49 @@ function MarkdownDocument({ markdown }: { markdown: string }) {
       {markdown}
     </Markdown>
   )
+}
+
+/** Find the complete rendered formula containing a selection endpoint. */
+function containingFormula(node: Node) {
+  return (node instanceof Element ? node : node.parentElement)?.closest('.katex')
+}
+
+/** Copy preview mathematics from its original LaTeX annotation. Partial formula selections copy the whole expression, as KaTeX's copy-tex extension does. */
+function copyRenderedMath(event: ClipboardEvent<HTMLDivElement>) {
+  const selection = window.getSelection()
+  if (!selection || selection.isCollapsed || selection.rangeCount !== 1) return
+  const range = selection.getRangeAt(0).cloneRange()
+  const preview = event.currentTarget
+  if (!preview.contains(range.startContainer) || !preview.contains(range.endContainer)) return
+  const start = containingFormula(range.startContainer)
+  const end = containingFormula(range.endContainer)
+  if (start) range.setStartBefore(start)
+  if (end) range.setEndAfter(end)
+  const fragment = range.cloneContents()
+  const formulas = Array.from(fragment.querySelectorAll('.katex'))
+  if (!formulas.length) return
+  const copy = document.createElement('div')
+  copy.append(fragment)
+  event.clipboardData.setData('text/html', copy.innerHTML)
+  let singleLatex: string | undefined
+  for (const formula of formulas) {
+    const latex = formula.querySelector('annotation[encoding="application/x-tex"]')?.textContent
+    if (latex === undefined) return
+    singleLatex = latex
+    const delimiter = formula.closest('.katex-display') ? '$$' : '$'
+    formula.replaceWith(document.createTextNode(delimiter + latex + delimiter))
+  }
+  // Preserve line breaks between selected paragraphs and lists in plain-text pastes.
+  for (const block of copy.querySelectorAll('p,div,li,h1,h2,h3,h4,h5,h6,blockquote,pre')) {
+    block.prepend(document.createTextNode('\n'))
+    block.append(document.createTextNode('\n'))
+  }
+  for (const br of copy.querySelectorAll('br')) br.replaceWith(document.createTextNode('\n'))
+  const text = copy.textContent.trim()
+  const formulaOnly = formulas.length === 1 && (text === '$' + singleLatex + '$' || text === '$$' + singleLatex + '$$')
+  event.clipboardData.setData('text/plain', formulaOnly ? (singleLatex ?? '') : text)
+  if (formulaOnly) event.clipboardData.setData('application/x-latex', singleLatex ?? '')
+  event.preventDefault()
 }
 
 /** Keep only the editing mode local; store every source edit in the parent notebook and render that same source when editing finishes. A read-only cell never enters edit mode. */
@@ -80,7 +123,9 @@ export function MarkdownCell({ cellId, markdown, onMarkdownChange, editing, onEd
   if (readOnly) {
     return (
       <section className="markdown-cell" aria-label="Markdown cell">
-        <div className="markdown-rendered">{markdown.trim() ? <MarkdownDocument markdown={markdown} /> : <p className="markdown-empty">No note yet.</p>}</div>
+        <div className="markdown-rendered" onCopy={copyRenderedMath}>
+          {markdown.trim() ? <MarkdownDocument markdown={markdown} /> : <p className="markdown-empty">No note yet.</p>}
+        </div>
       </section>
     )
   }
@@ -92,7 +137,7 @@ export function MarkdownCell({ cellId, markdown, onMarkdownChange, editing, onEd
           <MarkdownMathField fieldRef={editorRef} className="markdown-source" value={markdown} onChange={handleSourceChange} label="Markdown source" placeholder="Write a note…" onEscape={onEditingChange ? undefined : finishEditing} onCommandEnter={onEditingChange ? undefined : finishEditing} />
         </>
       ) : (
-        <div ref={previewRef} onClick={editProse} className="markdown-rendered" tabIndex={0} aria-label="Rendered Markdown; press Enter to edit" onKeyDown={handlePreviewKeyDown}>
+        <div onCopy={copyRenderedMath} ref={previewRef} onClick={editProse} className="markdown-rendered" tabIndex={0} aria-label="Rendered Markdown; press Enter to edit" onKeyDown={handlePreviewKeyDown}>
           {markdown.trim() ? (
             <MarkdownDocument markdown={markdown} />
           ) : (

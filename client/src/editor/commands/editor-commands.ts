@@ -11,7 +11,33 @@ import type { ShortcutKeyInput } from './shortcut-label.ts'
 import type { ShortcutOverrides } from './shortcut-overrides.ts'
 import { shortcutLabel } from './shortcut-overrides.ts'
 
-/** Name one notebook command. `id` stays stable when the label changes. `when` is the context label shown in the shortcut table, and it is not evaluated. `shortcut` is only the label shown in the keybinding column. */
+/** Interaction state used to decide which command owns a key. */
+export interface CommandContext {
+  cellMode: 'idle' | 'selection' | 'editing' | 'view'
+  notebookFocus: boolean
+  cellFocus: boolean
+  mathFocus: boolean
+}
+
+/** Evaluate the named command conditions against the current notebook interaction. */
+function commandEnabled(command: EditorCommand, context: CommandContext) {
+  switch (command.when) {
+    case 'workspace':
+      return true
+    case 'notebookFocus':
+      return context.notebookFocus
+    case 'cellFocus':
+      return context.cellFocus
+    case 'mathFocus':
+      return context.mathFocus
+    case 'cellSelection':
+      return context.notebookFocus && context.cellMode === 'selection' && context.cellFocus
+    default:
+      return false
+  }
+}
+
+/** Name one notebook command. Workspace shortcut dispatch evaluates its named `when` condition before matching the current binding. Cursor commands retain their formula-specific listener. */
 export interface EditorCommand {
   id: string
   label: string
@@ -28,10 +54,11 @@ export const cellCommands = [
 ] as const satisfies readonly EditorCommand[]
 
 /** Resolve a live binding. Both Control and Command activate the default primary-modifier shortcuts. A recorded binding matches exactly. */
-export function workspaceCommandForKey(event: ShortcutKeyInput, overrides: ShortcutOverrides) {
+export function workspaceCommandForKey(event: ShortcutKeyInput, overrides: ShortcutOverrides, context: CommandContext) {
   const key = formatShortcut(event)
   /** Match the recorded override or the platform equivalents of the catalog default. */
   function matches(command: EditorCommand) {
+    if (!commandEnabled(command, context)) return false
     const binding = shortcutLabel(command.id, command.shortcut, overrides)
     return binding === key || (!Object.hasOwn(overrides, command.id) && command.shortcut?.replace('⌘', '⌃') === key)
   }
@@ -63,16 +90,19 @@ const workspaceCommands: readonly EditorCommand[] = [
   { id: 'workspace.currentPage.cell.addMath', label: 'Append math cell', keywords: [], when: 'notebookFocus' },
   { id: 'workspace.currentPage.cell.addMarkdown', label: 'Append Markdown cell', keywords: [], when: 'notebookFocus' },
   { id: 'workspace.currentPage.cell.add', label: 'Append cell', keywords: [], when: 'notebookFocus' },
+  { id: 'workspace.currentPage.cell.copySelected', label: 'Copy selected cell', keywords: ['clipboard'], when: 'cellSelection', shortcut: '⌘C' },
+  { id: 'workspace.currentPage.cell.pasteSelected', label: 'Paste into selected cell', keywords: ['clipboard', 'replace'], when: 'cellSelection', shortcut: '⌘V' },
   { id: 'workspace.currentPage.cell.copy', label: 'Copy cell', keywords: [], when: 'cellFocus' },
   { id: 'workspace.currentPage.cell.select', label: 'Select current cell', keywords: [], when: 'notebookFocus' },
-  { id: 'workspace.currentPage.cell.selectNext', label: 'Select next cell', keywords: [], when: 'notebookFocus' },
-  { id: 'workspace.currentPage.cell.selectPrevious', label: 'Select previous cell', keywords: [], when: 'notebookFocus' },
+  { id: 'workspace.currentPage.cell.selectNext', label: 'Select next cell', keywords: [], when: 'cellSelection', shortcut: '↓' },
+  { id: 'workspace.currentPage.cell.selectPrevious', label: 'Select previous cell', keywords: [], when: 'cellSelection', shortcut: '↑' },
   { id: 'workspace.currentPage.cell.selectFirst', label: 'Select first cell', keywords: [], when: 'notebookFocus' },
   { id: 'workspace.currentPage.cell.selectLast', label: 'Select last cell', keywords: [], when: 'notebookFocus' },
   { id: 'workspace.currentPage.cell.view', label: 'View cell contents', keywords: ['focus', 'preview'], when: 'cellFocus' },
-  { id: 'workspace.currentPage.cell.edit', label: 'Edit selected cell', keywords: [], when: 'cellFocus' },
+  { id: 'workspace.currentPage.cell.edit', label: 'Edit selected cell', keywords: [], when: 'cellSelection', shortcut: '↩' },
   ...cellCommands,
   { id: 'workspace.currentPage.cell.createAbove', label: 'Create cell above', keywords: ['add', 'insert', 'new'], when: 'cellFocus' },
+  { id: 'workspace.currentPage.cell.deleteSelected', label: 'Delete selected cell', keywords: ['remove'], when: 'cellSelection', shortcut: '⌘D' },
   { id: 'workspace.currentPage.cell.delete', label: 'Delete current cell', keywords: ['remove'], when: 'cellFocus', shortcut: '⌘⌫' },
 ]
 

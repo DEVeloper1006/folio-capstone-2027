@@ -11,6 +11,7 @@ import { CommandPaletteView } from '#/components/command-palette-view.tsx'
 import type { CommandPaletteAction } from '#/components/command-palette-view.tsx'
 import { CommandSettingsView } from '#/components/command-settings-view.tsx'
 import { PageSidebarView } from '#/components/page-sidebar-view'
+import type { NotebookCommandController } from '#/notebook/notebook-page-view'
 import { NotebookPageView } from '#/notebook/notebook-page-view'
 import { ThemeControls } from '#/theme/theme-controls'
 import { workspaceCommandForKey } from '#/editor/commands/editor-commands.ts'
@@ -25,7 +26,7 @@ function NotebookPage() {
   const { selectPage: showPage, createPage, renamePage, deletePage } = notebookCommands(useQueryClient())
   const { overrides, actions, setShortcut, resetShortcut } = useEditorCommandShortcuts()
   const sidebarCommand = useRef<((id: string) => boolean) | null>(null)
-  const cellCommand = useRef<((id: string) => boolean) | null>(null)
+  const cellCommand = useRef<NotebookCommandController | null>(null)
   const [settingsOpen, setSettingsOpen] = useState<'shortcuts' | 'theme' | null>(null)
   const paletteOrigin = useRef<HTMLElement | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -82,7 +83,7 @@ function NotebookPage() {
       selectPage(id.slice('open-page:'.length))
       return true
     }
-    return sidebarCommand.current?.(id) || cellCommand.current?.(id) || false
+    return sidebarCommand.current?.(id) || cellCommand.current?.run(id) || false
   }
   /** Run a chosen command after dismissing the palette. */
   function runCommand(action: CommandPaletteAction) {
@@ -95,7 +96,7 @@ function NotebookPage() {
     function handleKey(event: KeyboardEvent) {
       if (event.isComposing || event.defaultPrevented || paletteOpen || document.querySelector('.command-settings-shortcut.is-recording')) return
       const target = event.target
-      const command = workspaceCommandForKey(event, overrides)
+      const command = workspaceCommandForKey(event, overrides, cellCommand.current?.getContext() ?? { cellMode: 'idle', notebookFocus: false, cellFocus: false, mathFocus: false })
       if (!command || !(target instanceof Element)) return
       if ((command.when === 'cellFocus' || command.when === 'mathFocus') && !target.closest('[data-cell-id]')) return
       if (command.id.endsWith('.duplicateBelow') && target.closest('.markdown-cell')) {
@@ -105,7 +106,14 @@ function NotebookPage() {
       }
       if (target.closest('.command-menu,.latex-editor-inline') && command.id !== 'workspace.command.open') return
       if (target.closest('input,textarea,[contenteditable=true]') && !target.closest('[data-cell-id]') && command.id !== 'workspace.command.open') return
-      if (event.repeat || !dispatch(command.id)) return
+      if (event.repeat && !command.id.endsWith('.selectNext') && !command.id.endsWith('.selectPrevious')) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        return
+      }
+      // Default copy and paste use native clipboard events with clipboard data attached.
+      if ((command.id === 'workspace.currentPage.cell.pasteSelected' || command.id === 'workspace.currentPage.cell.copySelected') && !Object.hasOwn(overrides, command.id)) return
+      if (!dispatch(command.id)) return
       event.preventDefault()
       event.stopImmediatePropagation()
     }

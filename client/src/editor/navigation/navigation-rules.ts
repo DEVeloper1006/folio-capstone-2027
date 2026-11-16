@@ -1,5 +1,5 @@
 /**
- * Define all custom cursor movement and selection behavior. Contains visual arrow navigation, logical selection anchors, vertical return positions, term jumps, structure entry and exit, selection growth history, and rule matching.
+ * Define all custom cursor movement and selection behavior. Contains visual arrow navigation, logical selection anchors, vertical return positions, word jumps, structure entry and exit, selection growth history, and rule matching.
  *
  * @file
  */
@@ -158,14 +158,14 @@ export const navigationRules: readonly NavigationRule[] = [
     id: 'skip-backward',
     action: 'skipBackward',
 
-    /** Move to the preceding term boundary within the current editable slot. */
+    /** Move to the preceding word boundary within the current editable slot. */
     resolve: ({ structure, position: cursorOffset }) => jump(structure, cursorOffset, -1),
   },
   {
     id: 'skip-forward',
     action: 'skipForward',
 
-    /** Move to the following term boundary within the current editable slot. */
+    /** Move to the following word boundary within the current editable slot. */
     resolve: ({ structure, position: cursorOffset }) => jump(structure, cursorOffset, 1),
   },
   {
@@ -224,21 +224,41 @@ export function resolveRule(action: NavigationActionName, context: ActionContext
   return undefined
 }
 
-/** Jump to the next term end or previous term start within the current slot, stopping at that slot’s boundary. */
+/** Group adjacent letters or digits into words. Structures and operators are separate stops; explicit spacing separates neighboring words. */
+function wordSpans(nodes: readonly StructureNode[]): Span[] {
+  const words: Span[] = []
+  let previousKind: 'letters' | 'number' | undefined
+  for (const node of nodes) {
+    if (/^(?:\\[,;!: ]|\\(?:quad|qquad))$/.test(node.latex)) {
+      previousKind = undefined
+      continue
+    }
+    const kind = /^\p{L}+$/u.test(node.latex) ? 'letters' : /^[0-9.]+$/.test(node.latex) ? 'number' : undefined
+    const previous = words.at(-1)
+    if (previous?.end === node.start && (node.kind === 'scripts' || (kind !== undefined && kind === previousKind))) previous.end = node.end
+    else words.push({ start: node.start, end: node.end })
+    previousKind = kind
+  }
+  return words
+}
+
+/** Move to the next word end or previous word start in the current editable region. A fraction, power, or other structure is one stop at this level. */
 export function jump(structure: Structure, cursorOffset: number, direction: -1 | 1) {
   const branch = branchAt(structure, cursorOffset)
   if (!branch) return cursorOffset
+  const words = wordSpans(branch.nodes)
   if (direction === 1) {
-    /** Find the first term whose end is ahead of the current cursor. */
-    const endsAfterCursor = (term: Span) => term.end > cursorOffset
-
-    return branch.terms.find(endsAfterCursor)?.end ?? branch.end
+    /** Find the first word ending beyond the cursor. */
+    function endsAfterCursor(word: Span) {
+      return word.end > cursorOffset
+    }
+    return words.find(endsAfterCursor)?.end ?? branch.end
   }
-
-  /** Find the nearest preceding term start when scanning backward. */
-  const startsBeforeCursor = (term: Span) => term.start < cursorOffset
-
-  return [...branch.terms].reverse().find(startsBeforeCursor)?.start ?? branch.start
+  /** Find the last word starting before the cursor. */
+  function startsBeforeCursor(word: Span) {
+    return word.start < cursorOffset
+  }
+  return words.reverse().find(startsBeforeCursor)?.start ?? branch.start
 }
 
 /** Return the end of the structure owning the current slot, or keep the cursor still at the outermost level. */
