@@ -6,8 +6,9 @@
     "#/*": "./src/*"
   },
   "scripts": {
-    "dev": "vite dev --port 3000",
-    "build": "vite build",
+    "dev": "pnpm build:math && vite dev --port 3000",
+    "build": "pnpm build:math && vite build",
+    "build:math": "rolldown src/math/latex-ast.ts --platform browser --format iife --no-codeSplitting --minify --file public/dist/latex-ast.js",
     "start": "node .output/server/index.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
@@ -15,9 +16,12 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@base-ui/react": "1.9.0",
+    "@cortex-js/compute-engine": "0.190.0",
     "@tanstack/react-router": "1.170.46",
     "@tanstack/react-start": "1.169.4",
     "katex": "^0.16.47",
+    "lucide-react": "1.73.0",
     "mathlive": "^0.111.4",
     "nitro": "3.0.260610-beta",
     "react": "^19.2.0",
@@ -37,6 +41,7 @@
     "eslint-plugin-jsdoc": "^65.4.5",
     "prettier": "^3.8.1",
     "prettier-plugin-jsdoc": "^1.8.1",
+    "rolldown": "1.2.16",
     "typescript": "^6.0.2",
     "vite": "^8.0.0"
   },

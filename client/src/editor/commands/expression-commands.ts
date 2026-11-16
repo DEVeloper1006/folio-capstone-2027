@@ -1,5 +1,5 @@
 /**
- * Define searchable expression templates and one level of variants. Contains local command IDs, labels, symbols, keywords, and MathLive LaTeX placeholders.
+ * Define searchable expression templates and one level of variants. Contains local command IDs, labels, symbols, keywords, and MathLive LaTeX placeholders. The slash menu also searches MathLive’s full command list.
  *
  * @file
  */
@@ -48,8 +48,8 @@ export const expressionCommands: readonly ExpressionCommandGroup[] = [
     variants: [
       { id: 'product', label: 'Product', symbol: '∏', keywords: ['prod', 'product', 'big pi'], latex: String.raw`\prod_{#?}^{#?}#?` },
       { id: 'coproduct', label: 'Coproduct', symbol: '∐', keywords: ['coprod', 'coproduct'], latex: String.raw`\coprod_{#?}^{#?}#?` },
-      { id: 'conjunction', label: 'Big conjunction', symbol: '⋀', keywords: ['bigwedge', 'conjunction', 'and'], latex: String.raw`\bigwedge_{#?}^{#?}#?` },
-      { id: 'disjunction', label: 'Big disjunction', symbol: '⋁', keywords: ['bigvee', 'disjunction', 'or'], latex: String.raw`\bigvee_{#?}^{#?}#?` },
+      { id: 'conjunction', label: 'Big conjunction', symbol: '⋀', keywords: ['bigwedge', 'big conjunction'], latex: String.raw`\bigwedge_{#?}^{#?}#?` },
+      { id: 'disjunction', label: 'Big disjunction', symbol: '⋁', keywords: ['bigvee', 'big disjunction'], latex: String.raw`\bigvee_{#?}^{#?}#?` },
     ],
   },
   {

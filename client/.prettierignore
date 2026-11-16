@@ -5,4 +5,5 @@ yarn.lock
 .output
 .nitro
 .mac
+public/dist/
 src/routeTree.gen.ts

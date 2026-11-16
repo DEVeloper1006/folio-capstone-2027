@@ -1,6 +1,7 @@
 /**
- * Style the shared notebook controls and the gallery that shows them.
- * Contains button variants, labeled fields, segmented choices, popover panels, and the gallery layout.
+ * Style the shared notebook controls.
+ * Contains button variants, labeled fields, segmented choices, popover panels, and the markdown field that inserts rendered math with $.
+ * Colors and type come from theme.css. Secondary tints quiet buttons. Primary marks the pressed choice and the focus ring.
  * @file
  */
 
@@ -10,20 +11,20 @@
 }
 
 .ui-button:focus-visible {
-  outline: 2px solid #7279a8;
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
 .ui-button-default {
   padding: 4px 9px;
-  border: 0;
+  border: 1px solid color-mix(in srgb, var(--secondary) 35%, var(--line));
   border-radius: 4px;
-  background: #f5f5f5;
-  color: #444;
+  background: var(--secondary-soft);
+  color: var(--ink-secondary);
 }
 
 .ui-button-default:hover {
-  background: #eaeaea;
+  background: color-mix(in srgb, var(--secondary) 24%, var(--canvas));
 }
 
 .ui-button-quiet {
@@ -31,13 +32,13 @@
   border: 0;
   border-radius: 4px;
   background: transparent;
-  color: #888;
-  font-size: 13px;
+  color: var(--faint);
+  font-size: var(--text-ui-size);
 }
 
 .ui-button-quiet:hover {
-  background: #f6f6f6;
-  color: #252525;
+  background: var(--sunken-strong);
+  color: var(--ink);
 }
 
 .ui-button-icon {
@@ -46,23 +47,23 @@
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #666;
+  color: var(--muted);
   font-size: 16px;
   letter-spacing: 1px;
 }
 
 .ui-button-icon:hover,
 .ui-button-icon[aria-expanded='true'] {
-  background: #f3f3f3;
-  color: #252525;
+  background: var(--sunken-strong);
+  color: var(--ink);
 }
 
 .ui-field {
   display: grid;
   gap: 8px;
   align-items: center;
-  color: #444;
-  font-size: 13px;
+  color: var(--ink-secondary);
+  font-size: var(--text-ui-size);
 }
 
 .ui-field-with-suffix {
@@ -73,8 +74,10 @@
   width: 100%;
   min-width: 0;
   padding: 4px 6px;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--line);
   border-radius: 4px;
+  background: var(--raised);
+  color: var(--ink);
   font: inherit;
 }
 
@@ -83,7 +86,7 @@
 }
 
 .ui-field-input:focus-visible {
-  outline: 2px solid #7279a8;
+  outline: 2px solid var(--focus);
   outline-offset: 1px;
 }
 
@@ -96,23 +99,23 @@
 
 .ui-segmented button {
   padding: 6px 8px;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--line);
   border-radius: 4px;
-  background: #fff;
-  color: #444;
+  background: var(--raised);
+  color: var(--ink-secondary);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--text-ui-size);
   cursor: pointer;
 }
 
 .ui-segmented button[aria-pressed='true'] {
-  border-color: #7279a8;
-  background: #f4f5fb;
-  color: #252525;
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--ink);
 }
 
 .ui-segmented button:focus-visible {
-  outline: 2px solid #7279a8;
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -129,10 +132,10 @@
   gap: 12px;
   width: 220px;
   padding: 12px;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 8px 24px #00000014;
+  background: var(--raised);
+  box-shadow: 0 8px 24px var(--shadow);
 }
 
 .ui-popover-panel-start {
@@ -143,49 +146,50 @@
   right: 0;
 }
 
-.component-library {
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 64px 40px 120px;
+.markdown-math-field {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  cursor: text;
 }
 
-.component-library h1 {
+.markdown-math-field:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.markdown-math-field:empty::before {
+  content: attr(data-placeholder);
+  color: var(--placeholder);
+  pointer-events: none;
+}
+
+.markdown-math-chip {
+  display: inline-block;
+  margin: 0 1px;
+  padding: 1px 2px;
+  border-radius: 3px;
+  background: color-mix(in srgb, #5b8def 32%, transparent);
+  line-height: inherit;
+  vertical-align: baseline;
+  cursor: text;
+}
+
+.markdown-math-chip .katex {
+  font-size: 1em;
+}
+
+.markdown-math-chip .katex-display {
+  display: inline;
   margin: 0;
-  color: #252525;
-  font-size: 20px;
-  font-weight: 500;
 }
 
-.component-library p,
-.component-library h2 {
-  color: #666;
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.component-library-section {
-  margin-top: 36px;
-}
-
-.component-library-section h2 {
-  margin: 0 0 8px;
-  font-weight: 500;
-}
-
-.component-library-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 16px;
-  align-items: center;
-}
-
-.component-library-section > .ui-field,
-.component-library-section > .ui-segmented {
-  max-width: 320px;
-}
-
-@media (max-width: 900px) {
-  .component-library {
-    padding: 48px 22px 120px;
-  }
+.markdown-expression-anchor {
+  display: inline-block;
+  margin: 0 1px;
+  padding: 1px 2px;
+  border: 0;
+  border-radius: 3px;
+  background: color-mix(in srgb, #5b8def 32%, transparent);
+  line-height: inherit;
+  vertical-align: baseline;
 }

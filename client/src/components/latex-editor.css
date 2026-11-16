@@ -1,0 +1,45 @@
+/*
+ * Show a formula as static KaTeX until it is activated, then as a MathLive field. An inline formula sits in a sentence instead of filling a notebook row.
+ */
+
+.static-latex {
+  min-height: 54px;
+  padding: 7px 8px;
+  cursor: text;
+}
+
+.static-latex .katex-display {
+  margin: 0;
+}
+
+.latex-editor-inline {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  line-height: inherit;
+  vertical-align: baseline;
+}
+
+.latex-editor-inline-field {
+  display: inline-block;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+}
+
+.latex-editor-inline math-field {
+  display: inline-block;
+  width: auto;
+  min-width: 1ch;
+  min-height: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 1em;
+  line-height: inherit;
+  vertical-align: baseline;
+}
+
+.latex-editor-inline .command-menu {
+  width: min(390px, 80vw);
+}

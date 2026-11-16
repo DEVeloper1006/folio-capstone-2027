@@ -70,7 +70,7 @@ export function ExpressionCommandMenuView({ menu }: ExpressionCommandMenuViewPro
     return (
       <div className={`command-result${isActive ? ' is-active' : ''}`} key={command.id} onPointerMove={handlePointerMove} role="presentation">
         <button id={`${listId}-${command.id}`} ref={isActive ? activeResultRef : undefined} type="button" role="option" aria-selected={isActive} tabIndex={-1} onMouseDown={keepQueryFocus} onClick={handleInsert}>
-          <span className="command-symbol" aria-hidden="true">
+          <span className={`command-symbol${command.symbol.length > 4 ? ' is-name' : ''}`} aria-hidden="true">
             {command.symbol}
           </span>
           <span>
