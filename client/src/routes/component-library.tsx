@@ -11,7 +11,7 @@ import { AgentToolCards } from '#/component-library/primitives/agent-tool-specim
 import { BaseCheckbox, BaseContextMenu, BaseDialog, BaseDisclosure, BaseExpressionSearch, BaseHoverCard, BaseMenu, BasePageWidth, BasePopover, BaseShortcutList, BaseSpacing, BaseTabs, BaseToolbar, BaseTooltip } from '#/component-library/primitives/base-ui-primitives.tsx'
 import { ChatContextAttachments, SelectionToChat } from '#/component-library/primitives/chat-context-specimens.tsx'
 import { FullScreenChat, SidebarChat } from '#/component-library/primitives/chat-surfaces.tsx'
-import { CellStates, IconSet, InlineSuggestion, SpeechInput } from '#/component-library/primitives/notebook-specimens.tsx'
+import { CellStates, CommandPaletteSpecimen, IconSet, InlineSuggestion, SpeechInput } from '#/component-library/primitives/notebook-specimens.tsx'
 import { ThemeControls } from '#/theme/theme-controls.tsx'
 import showcaseStylesheetUrl from '../component-library/primitives/primitive-showcase.css?url'
 
@@ -74,6 +74,12 @@ const notebookSpecimens: readonly PrimitiveSpecimen[] = [
     title: 'Inline suggestion',
     detail: 'Ghost LaTeX and Markdown continuations inside a cell, with an inline icon trigger to accept. Tab accepts and Escape dismisses.',
     sample: <InlineSuggestion />,
+  },
+  {
+    id: 'command-palette',
+    title: 'Command palette',
+    detail: 'A searchable list of notebook actions. Arrow keys move, Enter runs the highlighted action, and Escape closes the palette. These sample actions only record their name. Shortcuts are labels and are not bound yet.',
+    sample: <CommandPaletteSpecimen />,
   },
   {
     id: 'speech',

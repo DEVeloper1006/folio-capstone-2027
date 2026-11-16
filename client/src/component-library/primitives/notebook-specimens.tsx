@@ -1,11 +1,14 @@
 /**
- * Show notebook chrome around live math and Markdown cells: the Lucide icon palette with tooltips, six real MathLive `LatexCell` states, inline completions, and speech dictation.
+ * Show notebook chrome around live math and Markdown cells: the Lucide icon palette with tooltips, six real MathLive `LatexCell` states, inline completions, speech dictation, and the command palette shell.
  *
  * @file
  */
 
 import { useCallback, useState } from 'react'
 import type { ReactNode } from 'react'
+import { Button } from '#/component-library/index.ts'
+import { CommandPaletteView } from '#/components/command-palette-view.tsx'
+import type { CommandPaletteAction } from '#/components/command-palette-view.tsx'
 import { LatexCell } from '#/components/latex-cell.tsx'
 import {
   AcceptIcon,
@@ -241,6 +244,49 @@ export function InlineSuggestion() {
         </span>
       </div>
       <p className="primitive-status">{status}</p>
+    </div>
+  )
+}
+
+/** Sample the actions the notebook will register. Choosing one records its name. The shortcut text is not bound. */
+const paletteActions: readonly CommandPaletteAction[] = [
+  { id: 'focus-first', label: 'Focus first cell', shortcut: '⌘↑', keywords: ['top', 'start'] },
+  { id: 'focus-last', label: 'Focus last cell', shortcut: '⌘↓', keywords: ['bottom', 'end'] },
+  { id: 'focus-index', label: 'Focus cell by index', keywords: ['go to', 'number'] },
+  { id: 'create-below', label: 'Create cell below', keywords: ['add', 'insert', 'new'] },
+  { id: 'create-above', label: 'Create cell above', keywords: ['add', 'insert', 'new'] },
+  { id: 'create-and-focus', label: 'Create cell and focus it', keywords: ['add', 'new'] },
+  { id: 'delete-current', label: 'Delete current cell', keywords: ['remove'] },
+]
+
+/** Open the command palette and record which sample action was chosen. The notebook cells on this page stay where they are. */
+export function CommandPaletteSpecimen() {
+  const [open, setOpen] = useState(false)
+  const [lastAction, setLastAction] = useState('None yet')
+
+  /** Show the palette. */
+  function openPalette() {
+    setOpen(true)
+  }
+
+  /** Hide the palette without running an action. */
+  function closePalette() {
+    setOpen(false)
+  }
+
+  /** Record the chosen action and close the palette. */
+  function runAction(action: CommandPaletteAction) {
+    setLastAction(action.label)
+    setOpen(false)
+  }
+
+  return (
+    <div className="notebook-stack">
+      <Button variant="quiet" onClick={openPalette}>
+        Open command palette
+      </Button>
+      <p className="primitive-status">Last action: {lastAction}</p>
+      <CommandPaletteView actions={paletteActions} open={open} onClose={closePalette} onRun={runAction} />
     </div>
   )
 }

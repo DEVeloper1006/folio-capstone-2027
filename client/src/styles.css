@@ -1,5 +1,5 @@
 /**
- * Style the mixed math and Markdown notebook, expression-command menu, movement guide, and MathLive selection highlights.
+ * Style the mixed math and Markdown notebook, expression-command menu, command palette, movement guide, and MathLive selection highlights.
  * Contains page layout, Markdown source and preview surfaces, search results, and responsive spacing.
  * Shared buttons, fields, segmented choices, and popovers are styled in component-library.css.
  * Color, type, and dark mode come from theme.css.
@@ -339,6 +339,83 @@ body {
 
 .command-help {
   font-size: 11px;
+}
+
+.command-palette-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 12vh 16px 16px;
+  background: color-mix(in srgb, var(--ink) 28%, transparent);
+}
+
+.command-palette {
+  display: flex;
+  flex-direction: column;
+  width: min(520px, 100%);
+  max-height: min(420px, 70vh);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--canvas);
+  color: var(--ink);
+  box-shadow: 0 16px 40px var(--shadow);
+  font-size: 14px;
+}
+
+.command-palette-search {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line-subtle);
+}
+
+.command-palette-search input {
+  width: 100%;
+  padding: 4px 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.command-palette-results {
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.command-palette-results button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.command-palette-results button.is-active,
+.command-palette-results button:hover {
+  background: var(--accent-soft);
+}
+
+.command-palette-shortcut {
+  margin-left: auto;
+  color: var(--muted);
+  font: 11px / 1.4 var(--font-code);
+}
+
+.command-palette-empty {
+  margin: 0;
+  padding: 14px 12px;
+  color: var(--muted);
 }
 
 math-field {
