@@ -1,5 +1,5 @@
 /**
- * Connect a React host element to an editable MathLive field. Contains browser-only loading, field configuration, command-key delegation, change reporting, and cleanup.
+ * Connect a React host element to an editable MathLive field. Contains browser-only loading, background preloading, field configuration, command-key delegation, change reporting, and cleanup.
  *
  * @file
  */
@@ -15,6 +15,7 @@ interface UseMathLiveOptions {
   initialLatex: string
   onLatexChange: (cellId: string, latex: string) => void
   onEditorKeyDown?: (mathfield: MathfieldElement, event: KeyboardEvent) => boolean
+  focusOnMount?: boolean
 }
 
 /** Drop MathLive’s virtual-keyboard shortcut so the field keeps the remaining bindings. */
@@ -25,7 +26,7 @@ export function withoutVirtualKeyboardToggle(keybindings: MathfieldElement['keyb
 }
 
 /** Return the host ref for one MathLive field and manage its browser lifecycle. Use the initial LaTeX once; report edits without replacing the active field. */
-export function useMathLive({ cellId, initialLatex, onLatexChange, onEditorKeyDown }: UseMathLiveOptions) {
+export function useMathLive({ cellId, initialLatex, onLatexChange, onEditorKeyDown, focusOnMount = false }: UseMathLiveOptions) {
   const editorHostRef = useRef<HTMLDivElement>(null)
   const initialLatexRef = useRef(initialLatex)
   const editorKeyDownRef = useRef(onEditorKeyDown)
@@ -66,6 +67,7 @@ export function useMathLive({ cellId, initialLatex, onLatexChange, onEditorKeyDo
         return editorKeyDownRef.current?.(mathfield, event) ?? false
       }
       removeNavigationListeners = installNavigation(mathfield, handleEditorKeyDown)
+      if (focusOnMount) mathfield.focus()
     }
 
     // MathLive's editable field requires the browser DOM.
@@ -80,7 +82,41 @@ export function useMathLive({ cellId, initialLatex, onLatexChange, onEditorKeyDo
     return unmountEditor
   }
 
-  useEffect(mountEditor, [cellId, onLatexChange])
+  useEffect(mountEditor, [cellId, focusOnMount, onLatexChange])
 
   return editorHostRef
+}
+
+/** Download the MathLive module after the import callback runs. */
+function loadMathLive() {
+  void import('mathlive')
+}
+
+let didSchedulePreload = false
+
+/** Download MathLive once, after the first paint. Activating a cell reuses this cached module, and the server never loads it. */
+export function preloadMathLive() {
+  if (didSchedulePreload) {
+    /** Leave the shared download in place when another cell subscribes. */
+    function keepScheduledPreload() {}
+    return keepScheduledPreload
+  }
+  didSchedulePreload = true
+
+  if (typeof requestIdleCallback !== 'function') {
+    const timeoutId = setTimeout(loadMathLive, 1)
+    /** Cancel a preload that was scheduled with a timer. */
+    function cancelTimeoutPreload() {
+      clearTimeout(timeoutId)
+    }
+    return cancelTimeoutPreload
+  }
+
+  const idleId = requestIdleCallback(loadMathLive, { timeout: 1500 })
+  /** Cancel a preload that is still waiting for idle time. */
+  function cancelIdlePreload() {
+    cancelIdleCallback(idleId)
+    didSchedulePreload = false
+  }
+  return cancelIdlePreload
 }
