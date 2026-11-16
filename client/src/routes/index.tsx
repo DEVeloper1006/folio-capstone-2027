@@ -1,5 +1,5 @@
 /**
- * Display the mixed math and Markdown notebook at the home route. Contains the sample page and in-memory source updates.
+ * Display the mixed math and Markdown notebook at the home route. Contains the sample page, in-memory source updates, and actions for adding either cell type.
  *
  * @file
  */
@@ -8,6 +8,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useCallback, useState } from 'react'
 import { PageView } from '#/components/page-view'
 import { createSamplePage } from '#/notebook/sample-page.ts'
+import { createCellId } from '#/notebook/notebook-cells.ts'
 import type { NotebookCell } from '#/notebook/notebook-cells.ts'
 import type { Page } from '#/notebook/page.ts'
 
@@ -44,9 +45,39 @@ function NotebookPage() {
 
   const handleMarkdownChange = useCallback(updateCellMarkdown, [])
 
+  /** Append an empty cell of the requested kind while retaining all existing sources and stable cell IDs. */
+  function addCell(kind: NotebookCell['kind']) {
+    /** Allocate a new identifier for this append-only notebook and initialize the matching source field. */
+    function appendEmptyCell(currentPage: Page) {
+      const cellId = createCellId()
+      const cell: NotebookCell = kind === 'math' ? { cellId, kind, latex: '' } : { cellId, kind, markdown: '' }
+      return { ...currentPage, cells: [...currentPage.cells, cell] }
+    }
+    setPage(appendEmptyCell)
+  }
+
+  /** Add an empty mathematical editor using the existing MathLive interaction model. */
+  function handleAddMathCell() {
+    addCell('math')
+  }
+
+  /** Add an empty Markdown cell that opens directly in source-editing mode. */
+  function handleAddMarkdownCell() {
+    addCell('markdown')
+  }
+
+  /** Replace the page's display metadata while keeping its cells. */
+  function handlePageMetadataChange(pageMetadata: Page['pageMetadata']) {
+    /** Apply the next display settings to the latest page. */
+    function replacePageMetadata(currentPage: Page) {
+      return { ...currentPage, pageMetadata }
+    }
+    setPage(replacePageMetadata)
+  }
+
   return (
     <main className={`notebook notebook-${page.pageMetadata.width}`} aria-label="Folio notebook">
-      <PageView page={page} onLatexChange={handleLatexChange} onMarkdownChange={handleMarkdownChange} />
+      <PageView page={page} onLatexChange={handleLatexChange} onMarkdownChange={handleMarkdownChange} onAddMathCell={handleAddMathCell} onAddMarkdownCell={handleAddMarkdownCell} onPageMetadataChange={handlePageMetadataChange} />
     </main>
   )
 }

@@ -172,7 +172,7 @@ export function SourceIcon() {
 }
 
 /** Mark a narrow reading column width. */
-export function RegularWidthIcon() {
+export function NarrowWidthIcon() {
   return renderCompactIcon(Columns2)
 }
 

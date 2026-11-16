@@ -165,7 +165,7 @@ const controlSpecimens: readonly PrimitiveSpecimen[] = [
   {
     id: 'width',
     title: 'Page width',
-    detail: 'Segmented icon rail for regular reading width or full page width.',
+    detail: 'Segmented icon rail for a narrow reading width or the full page width.',
     sample: <BasePageWidth />,
   },
   {

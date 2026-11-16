@@ -39,10 +39,10 @@ import {
   MathIcon,
   MinusIcon,
   MoreActionsIcon,
+  NarrowWidthIcon,
   PlusIcon,
   PreviewIcon,
   QuoteIcon,
-  RegularWidthIcon,
   SearchIcon,
   SettingsIcon,
   SourceIcon,
@@ -302,13 +302,13 @@ export function BaseTabs() {
   )
 }
 
-/** Choose regular or full page width with compact icon toggles and tooltips. */
+/** Choose narrow or full page width with compact icon toggles and tooltips. */
 export function BasePageWidth() {
   return (
-    <ToggleGroup className="primitive-segmented" defaultValue={['regular']} aria-label="Page width">
-      <IconTooltip label="Regular reading width">
-        <Toggle className="primitive-icon-button primitive-segment-icon" value="regular" aria-label="Regular width">
-          <RegularWidthIcon />
+    <ToggleGroup className="primitive-segmented" defaultValue={['narrow']} aria-label="Page width">
+      <IconTooltip label="Narrow reading width">
+        <Toggle className="primitive-icon-button primitive-segment-icon" value="narrow" aria-label="Narrow width">
+          <NarrowWidthIcon />
         </Toggle>
       </IconTooltip>
       <IconTooltip label="Full page width">

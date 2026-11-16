@@ -16,7 +16,7 @@ interface PageMenuViewProps {
 }
 
 const pageWidthOptions: ReadonlyArray<SegmentedOption<PageWidth>> = [
-  { value: 'regular', label: 'Regular' },
+  { value: 'narrow', label: 'Narrow' },
   { value: 'full', label: 'Full' },
 ]
 

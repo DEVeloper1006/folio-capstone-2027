@@ -21,7 +21,7 @@ body {
   padding: 88px 40px 120px;
 }
 
-.notebook-regular {
+.notebook-narrow {
   max-width: 760px;
 }
 
@@ -366,7 +366,7 @@ math-field::part(menu-toggle) {
 .add-cell-actions {
   display: flex;
   gap: 8px;
-  margin: 12px 0 0 34px;
+  margin: 12px 0 0;
 }
 
 @media (max-width: 900px) {

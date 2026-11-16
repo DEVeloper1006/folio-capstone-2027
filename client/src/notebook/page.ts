@@ -6,8 +6,8 @@
 
 import type { NotebookCell } from './notebook-cells.ts'
 
-/** Choose how wide the page content is. Regular uses the notebook's centered column; full uses the available width. */
-export type PageWidth = 'regular' | 'full'
+/** Choose how wide the page content is. Narrow uses the notebook's centered column; full uses the available width. */
+export type PageWidth = 'narrow' | 'full'
 
 /** Store the information used to display a page. Cell spacing is the vertical distance between cells, in pixels, matching the rest of the notebook layout. */
 export interface PageMetadata {

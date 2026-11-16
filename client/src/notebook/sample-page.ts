@@ -12,7 +12,7 @@ import type { Page } from './page.ts'
 const defaultPageMetadata = {
   title: 'Notebook playground',
   cellSpacingPx: 16,
-  width: 'regular',
+  width: 'narrow',
 } as const
 
 const openingNote = `## Make room for the reasoning
