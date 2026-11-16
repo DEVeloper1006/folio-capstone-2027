@@ -1,13 +1,12 @@
 /**
- * Show one formula as static KaTeX until it is activated, then as a MathLive field. Notebook cells and inline markdown expressions share this surface. Contains the static renderer, pointer-selection handoff, the MathLive host, and expression menus.
+ * Show one formula as static KaTeX until it is activated, then as a MathLive field. Notebook cells and inline markdown expressions share this surface. Contains shared preview rendering, pointer-selection handoff, the MathLive host, and expression menus.
  *
  * @file
  */
 
 import { useEffect, useId, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react'
-import katex from 'katex'
-import { previewMacros } from '#/editor/mathlive/mathfield-macros'
+import { MathPreview } from '#/component-library/math-preview'
 import type { MathfieldElement } from 'mathlive'
 import { expandMathfieldAliases, useExpressionCommands, useMathLive } from '#/editor/index.ts'
 import { ExpressionSelectionMenu } from './expression-selection-menu.tsx'
@@ -45,15 +44,13 @@ interface StaticLatexProps {
   onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => void
 }
 
-/** Turn stored LaTeX into HTML the server and the browser can both produce. Invalid LaTeX is shown as source text. Display mode is for a notebook cell; inline math stays in the text line. */
-export function renderLatexMarkup(latex: string, displayMode = true) {
-  return katex.renderToString(latex, { displayMode, throwOnError: false, output: 'html', macros: { ...previewMacros } })
-}
-
-/** Show stored LaTeX as KaTeX without a control that starts editing. */
+/** Show the shared formula preview without a control that starts editing. */
 function StaticLatexMarkup({ latex, label }: { latex: string; label: string }) {
-  const markup = renderLatexMarkup(latex)
-  return <div className="static-latex is-view" aria-label={label} dangerouslySetInnerHTML={{ __html: markup }} />
+  return (
+    <div className="static-latex is-view" aria-label={label}>
+      <MathPreview latex={latex} />
+    </div>
+  )
 }
 
 /** Continue a drag across the static-to-editable transition using MathLive's public coordinate lookup. */
@@ -215,8 +212,6 @@ function isPlainHorizontalArrow(event: KeyboardEvent) {
 
 /** Render KaTeX and activate MathLive from a pointer press, Enter, or Space, preserving pointer drags. */
 function StaticLatex({ latex, label, onEdit, onPointerDown }: StaticLatexProps) {
-  const markup = renderLatexMarkup(latex)
-
   /** Activate the formula from Enter or Space. */
   function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
     if (event.key !== 'Enter' && event.key !== ' ') return
@@ -224,5 +219,9 @@ function StaticLatex({ latex, label, onEdit, onPointerDown }: StaticLatexProps) 
     onEdit()
   }
 
-  return <div className="static-latex" role="button" tabIndex={0} aria-label={label} dangerouslySetInnerHTML={{ __html: markup }} onPointerDown={onPointerDown} onKeyDown={handleKeyDown} />
+  return (
+    <div className="static-latex" role="button" tabIndex={0} aria-label={label} onPointerDown={onPointerDown} onKeyDown={handleKeyDown}>
+      <MathPreview latex={latex} />
+    </div>
+  )
 }

@@ -1,5 +1,5 @@
 /**
- * Render the page display menu. Contains the shared popover, cell-spacing field, and page-width choice.
+ * Render the page display menu. Contains the shared popover, cell-editing mode, cell-spacing field, and page-width choice.
  *
  * @file
  */
@@ -7,7 +7,7 @@
 import type { ChangeEvent } from 'react'
 import { Popover, SegmentedControl, TextField } from '#/component-library/index.ts'
 import type { SegmentedOption } from '#/component-library/index.ts'
-import type { PageMetadata, PageWidth } from '#/notebook/page.ts'
+import type { CellEditorMode, PageMetadata, PageWidth } from '#/notebook/page.ts'
 
 /** Receive the current display metadata and report a replacement when spacing or width changes. */
 interface PageMenuViewProps {
@@ -34,9 +34,23 @@ export function PageMenuView({ pageMetadata, onPageMetadataChange }: PageMenuVie
     onPageMetadataChange({ ...pageMetadata, width })
   }
 
+  /** Apply one editing mode to every cell on this page. */
+  function handleEditorModeChange(editorMode: CellEditorMode) {
+    onPageMetadataChange({ ...pageMetadata, editorMode })
+  }
+
   return (
     <div className="page-menu">
       <Popover label="Page display" trigger="···" align="end">
+        <SegmentedControl<CellEditorMode>
+          label="Cell editing"
+          value={pageMetadata.editorMode}
+          options={[
+            { value: 'rich', label: 'Rich' },
+            { value: 'source', label: 'Source' },
+          ]}
+          onValueChange={handleEditorModeChange}
+        />
         <TextField label="Cell spacing" type="number" min={0} step={4} suffix="px" value={pageMetadata.cellSpacingPx} onChange={handleSpacingChange} />
         <SegmentedControl label="Page width" value={pageMetadata.width} options={pageWidthOptions} onValueChange={handleWidthChange} />
       </Popover>

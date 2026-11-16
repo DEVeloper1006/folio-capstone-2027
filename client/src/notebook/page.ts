@@ -10,10 +10,14 @@ import type { NotebookCell } from './notebook-cells.ts'
 /** Choose how wide the page content is. Narrow uses the notebook's centered column; full uses the available width. */
 export type PageWidth = 'narrow' | 'full'
 
+/** Rendered editing or literal Markdown/LaTeX, chosen for every cell on a page. */
+export type CellEditorMode = 'rich' | 'source'
+
 /** Store the information used to display a page. Cell spacing is the vertical distance between cells, in pixels, matching the rest of the notebook layout. */
 export interface PageMetadata {
   cellSpacingPx: number
   width: PageWidth
+  editorMode: CellEditorMode
 }
 
 /** Hold one page's identity, its title, its cells in display order, and the metadata used when that page is shown. */
@@ -28,6 +32,7 @@ export interface Page {
 export const defaultPageMetadata: PageMetadata = {
   cellSpacingPx: 16,
   width: 'narrow',
+  editorMode: 'rich',
 }
 
 /** Create a page with no cells. The caller supplies the title and the page receives a new id. */

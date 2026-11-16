@@ -4,7 +4,7 @@
  * @file
  */
 
-import katex from 'katex'
+import { MathPreview } from '../math-preview'
 import { previewMacros } from '#/editor/mathlive/mathfield-macros'
 import Markdown from 'react-markdown'
 import rehypeKatex from 'rehype-katex'
@@ -20,14 +20,8 @@ interface InlineLatexProps {
 
 /** Typeset a single LaTeX expression into an inline span so it can sit inside buttons, chips, and selectable expression tokens. */
 export function InlineLatex({ latex, display = false, className }: InlineLatexProps) {
-  const html = katex.renderToString(latex, {
-    displayMode: display,
-    throwOnError: false,
-    strict: 'ignore',
-    macros: { ...previewMacros },
-  })
   const combinedClass = className === undefined ? 'chat-latex' : `chat-latex ${className}`
-  return <span className={combinedClass} dangerouslySetInnerHTML={{ __html: html }} />
+  return <MathPreview latex={latex} display={display} className={combinedClass} />
 }
 
 /** Render Markdown prose, inline code, `$...$` inline math, and `$$...$$` display math for chat messages, context previews, and agent replies. */

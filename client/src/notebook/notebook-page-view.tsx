@@ -14,7 +14,7 @@ import { MarkdownCell } from '#/components/markdown-cell'
 import { appendCell, editCell, notebookCommands, usePageSelection } from './use-page-state'
 import { createCellId, pastedLatex } from './notebook-cells'
 import type { NotebookCell } from './notebook-cells'
-import type { Page, PageMetadata } from './page'
+import type { CellEditorMode, Page, PageMetadata } from './page'
 import { shortcutKey, defaultOverrides } from '#/editor/commands/shortcut-overrides'
 import type { ShortcutOverrides } from '#/editor/commands/shortcut-overrides'
 import type { CommandContext } from '#/editor/commands/editor-commands'
@@ -34,7 +34,27 @@ function pageLayout(page: Page): Omit<Page, 'cells'> & { cells: readonly Pick<No
 }
 
 /** Subscribe one editor to its cell and write changes against that page's latest document. */
-function NotebookCellEditor({ pageId, index, cellId, editing, focused, selected, selectRow, setEditing }: { pageId: string; index: number; cellId: string; editing: boolean; focused: boolean; selected: boolean; selectRow: (id: string) => void; setEditing: (id: string | null) => void }) {
+function NotebookCellEditor({
+  editorMode,
+  pageId,
+  index,
+  cellId,
+  editing,
+  focused,
+  selected,
+  selectRow,
+  setEditing,
+}: {
+  editorMode: CellEditorMode
+  pageId: string
+  index: number
+  cellId: string
+  editing: boolean
+  focused: boolean
+  selected: boolean
+  selectRow: (id: string) => void
+  setEditing: (id: string | null) => void
+}) {
   const client = useQueryClient()
   /** Ignore a stale slot while the layout is changing. */
   function selectCell(page: Page) {
@@ -75,9 +95,9 @@ function NotebookCellEditor({ pageId, index, cellId, editing, focused, selected,
       onSelect={selectFromGutter}
     >
       {cell.kind === 'math' ? (
-        <LatexCell cellId={cellId} editing={editing} onBeginEditing={beginEditing} initialLatex={cell.latex} onLatexChange={changeSource} />
+        <LatexCell editorMode={editorMode} cellId={cellId} editing={editing} onBeginEditing={beginEditing} initialLatex={cell.latex} onLatexChange={changeSource} />
       ) : (
-        <MarkdownCell cellId={cellId} editing={editing} onEditingChange={changeEditing} markdown={cell.markdown} onMarkdownChange={changeSource} />
+        <MarkdownCell editorMode={editorMode} cellId={cellId} editing={editing} onEditingChange={changeEditing} markdown={cell.markdown} onMarkdownChange={changeSource} />
       )}
     </CellFrame>
   )
@@ -196,6 +216,10 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
     const first = cells.at(0)?.cellId
     const last = cells.at(-1)?.cellId
     switch (command) {
+      case 'workspace.page.editRich':
+      case 'workspace.page.editSource':
+        setMetadata({ ...page.pageMetadata, editorMode: command.endsWith('editSource') ? 'source' : 'rich' })
+        return true
       case 'workspace.page.scrollTop':
         window.scrollTo(0, 0)
         return true
@@ -325,7 +349,7 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
       setEditingId(null)
       setViewing(null)
       setCellMode('selection')
-    } else if (event.target.closest('math-field, [contenteditable="true"]')) {
+    } else if (event.target.closest('math-field, textarea, [contenteditable="true"]')) {
       setCellMode('editing')
     } else {
       setViewing(id)
@@ -387,7 +411,20 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
   }
   /** Subscribe each cell by its position and stable identity. */
   function renderSlot(slot: Pick<NotebookCell, 'cellId'>, index: number) {
-    return <NotebookCellEditor focused={slot.cellId === viewingId} selectRow={selectRow} selected={slot.cellId === selectedId} editing={slot.cellId === editingId} setEditing={setEditing} key={slot.cellId} pageId={pageId} cellId={slot.cellId} index={index} />
+    return (
+      <NotebookCellEditor
+        editorMode={page?.pageMetadata.editorMode ?? 'rich'}
+        focused={slot.cellId === viewingId}
+        selectRow={selectRow}
+        selected={slot.cellId === selectedId}
+        editing={slot.cellId === editingId}
+        setEditing={setEditing}
+        key={slot.cellId}
+        pageId={pageId}
+        cellId={slot.cellId}
+        index={index}
+      />
+    )
   }
   if (!page) return null
   return (

@@ -83,6 +83,8 @@ const workspaceCommands: readonly EditorCommand[] = [
   { id: 'workspace.page.rename', label: 'Rename current page', keywords: [], when: 'notebookFocus' },
   { id: 'workspace.page.delete', label: 'Delete current page', keywords: [], when: 'notebookFocus' },
   { id: 'workspace.page.display', label: 'Open page display settings', keywords: [], when: 'notebookFocus' },
+  { id: 'workspace.page.editRich', label: 'Use rich cell editing', keywords: ['wysiwyg', 'rendered', 'markdown', 'math'], when: 'notebookFocus' },
+  { id: 'workspace.page.editSource', label: 'Use source cell editing', keywords: ['plaintext', 'latex', 'markdown'], when: 'notebookFocus' },
   { id: 'workspace.page.full', label: 'Use full page width', keywords: [], when: 'notebookFocus' },
   { id: 'workspace.page.narrow', label: 'Use narrow page width', keywords: [], when: 'notebookFocus' },
   { id: 'workspace.page.scrollTop', label: 'Scroll to top of page', keywords: [], when: 'notebookFocus' },

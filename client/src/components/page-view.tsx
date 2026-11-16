@@ -43,9 +43,9 @@ function renderCell(cell: NotebookCell, props: PageViewProps) {
   return (
     <div className="cell" key={cell.cellId}>
       {cell.kind === 'math' ? (
-        <LatexCell cellId={cell.cellId} initialLatex={cell.latex} onLatexChange={readOnly ? ignoreLatexChange : props.onLatexChange} readOnly={readOnly} />
+        <LatexCell editorMode={props.page.pageMetadata.editorMode} cellId={cell.cellId} initialLatex={cell.latex} onLatexChange={readOnly ? ignoreLatexChange : props.onLatexChange} readOnly={readOnly} />
       ) : (
-        <MarkdownCell cellId={cell.cellId} markdown={cell.markdown} onMarkdownChange={readOnly ? ignoreMarkdownChange : props.onMarkdownChange} readOnly={readOnly} />
+        <MarkdownCell editorMode={props.page.pageMetadata.editorMode} cellId={cell.cellId} markdown={cell.markdown} onMarkdownChange={readOnly ? ignoreMarkdownChange : props.onMarkdownChange} readOnly={readOnly} />
       )}
     </div>
   )

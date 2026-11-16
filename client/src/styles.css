@@ -862,3 +862,54 @@ math-field::part(menu-toggle) {
     transition: none;
   }
 }
+
+.cell-source {
+  display: block;
+  width: 100%;
+  min-height: 54px;
+  padding: 12px 8px;
+  resize: none;
+  overflow: hidden;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font: var(--text-code-size) / 1.6 var(--font-code);
+}
+
+.markdown-rich-editor {
+  min-height: 72px;
+  outline: none;
+}
+
+.markdown-rich-math {
+  display: inline-block;
+  vertical-align: baseline;
+}
+
+.markdown-rich-math.is-display {
+  display: block;
+  margin: 12px 0;
+}
+
+.markdown-rich-math > button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: text;
+}
+
+.markdown-rich-editor table {
+  border-collapse: collapse;
+}
+
+.markdown-rich-editor :is(td, th) {
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+}
+
+.markdown-rich-editor img {
+  max-width: 100%;
+}

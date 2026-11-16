@@ -15,3 +15,8 @@ export { TextField } from './text-field.tsx'
 export type { TextFieldProps } from './text-field.tsx'
 
 export { MatrixBuilder } from './matrix-builder'
+
+export { MathPreview, renderLatexMarkup } from './math-preview'
+
+export { SourceField } from './source-field'
+export { MarkdownRichField } from './markdown-rich-field'

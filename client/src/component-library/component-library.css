@@ -411,3 +411,16 @@
   min-height: 90px;
   font-family: var(--font-code);
 }
+
+.math-preview.is-display {
+  font-size: var(--text-math-size);
+}
+
+.math-preview.is-display .katex {
+  font-size: 1em;
+}
+
+.math-preview .katex-display {
+  margin: 0;
+  text-align: left;
+}

@@ -15,11 +15,6 @@
   cursor: default;
 }
 
-.static-latex .katex-display {
-  margin: 0;
-  text-align: left;
-}
-
 .latex-editor-inline {
   position: relative;
   display: inline-block;
@@ -114,7 +109,7 @@
   gap: 4px;
 }
 
-.expression-selection-menu svg {
+.expression-selection-menu .ui-button svg {
   width: 14px;
   height: 14px;
 }

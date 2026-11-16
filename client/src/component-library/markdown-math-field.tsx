@@ -10,7 +10,8 @@ import type { ClipboardEvent, FormEvent, KeyboardEvent, MouseEvent, RefObject } 
 import { createPortal } from 'react-dom'
 import type { MathfieldElement } from 'mathlive'
 import { preloadMathLive } from '#/editor/index.ts'
-import { LatexEditor, renderLatexMarkup } from '#/components/latex-editor.tsx'
+import { LatexEditor } from '#/components/latex-editor.tsx'
+import { renderLatexMarkup } from './math-preview'
 
 /** One stretch of prose, or one expression, in reading order. */
 type MathRun = { kind: 'text'; text: string } | { kind: 'math'; latex: string; display: boolean }

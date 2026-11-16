@@ -8,7 +8,7 @@ import { useLayoutEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { QueryClient } from '@tanstack/react-query'
 import { createCellId } from './notebook-cells.ts'
-import { createEmptyPage, nextUntitledTitle } from './page.ts'
+import { createEmptyPage, nextUntitledTitle, defaultPageMetadata } from './page.ts'
 import { createSamplePage, createPracticePages } from './sample-page.ts'
 import type { NotebookCell } from './notebook-cells.ts'
 import type { Page } from './page.ts'
@@ -72,7 +72,10 @@ function loadPageList(): PageList {
 /** Read the stored page, using the bundled example until it is first edited. */
 function loadPage(pageId: string): Page {
   const record = sessionStorage.getItem(storagePrefix + pageId)
-  if (record) return JSON.parse(record) as Page
+  if (record) {
+    const page = JSON.parse(record) as Page
+    return { ...page, pageMetadata: { ...defaultPageMetadata, ...page.pageMetadata } }
+  }
   /** Resolve a bundled page that has not yet been edited. */
   function matches(page: Page) {
     return page.pageId === pageId

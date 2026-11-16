@@ -9,7 +9,7 @@ import { createPortal } from 'react-dom'
 import type { MathfieldElement } from 'mathlive'
 import { Button } from '#/component-library/button'
 import { CopyIcon } from '#/component-library/icons/folio-icons'
-import { InlineLatex } from '#/component-library/primitives/chat-math'
+import { MathPreview } from '#/component-library/math-preview'
 import { expandMathfieldAliases } from '#/editor/index'
 
 /** Store selected source and the highlight's lower-right viewport corner. */
@@ -142,7 +142,7 @@ export function ExpressionSelectionMenu({ hostRef }: { hostRef: RefObject<HTMLDi
 
   /** Render each selected range separately. */
   function preview(latex: string, index: number) {
-    return <InlineLatex key={index} latex={latex} />
+    return <MathPreview key={index} latex={latex} />
   }
 
   if (!selection) return null

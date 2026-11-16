@@ -1,12 +1,14 @@
 /**
- * Edit Markdown source or display its rendered content inside one notebook cell. Contains local edit mode, keyboard completion, Markdown rendering, and LaTeX-preserving copy for rendered mathematics. Typing `$` inserts a MathLive expression that stays rendered while editing.
+ * Edit Markdown as rendered prose or literal source inside one notebook cell. Contains the page-mode switch, local edit/preview state, Markdown rendering, and LaTeX-preserving copy for rendered mathematics. Typing `$` inserts a MathLive expression that stays rendered while editing.
  *
  * @file
  */
 
 import { useLayoutEffect, useRef, useState } from 'react'
 import type { ClipboardEvent, KeyboardEvent } from 'react'
-import { MarkdownMathField } from '#/component-library/markdown-math-field.tsx'
+import { MarkdownRichField } from '#/component-library/markdown-rich-field'
+import { SourceField } from '#/component-library/source-field'
+import type { CellEditorMode } from '#/notebook/page'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
@@ -16,6 +18,7 @@ import { previewMacros } from '#/editor/mathlive/mathfield-macros'
 /** Receive the cell's controlled Markdown source and report edits to the notebook without replacing its stable identity. `readOnly` shows the rendered note and hides editing. */
 interface MarkdownCellProps {
   cellId: string
+  editorMode?: CellEditorMode
   markdown: string
   onMarkdownChange: (cellId: string, markdown: string) => void
   editing?: boolean
@@ -76,7 +79,7 @@ function copyRenderedMath(event: ClipboardEvent<HTMLDivElement>) {
 }
 
 /** Keep only the editing mode local; store every source edit in the parent notebook and render that same source when editing finishes. A read-only cell never enters edit mode. */
-export function MarkdownCell({ cellId, markdown, onMarkdownChange, editing, onEditingChange, readOnly = false }: MarkdownCellProps) {
+export function MarkdownCell({ editorMode = 'rich', cellId, markdown, onMarkdownChange, editing, onEditingChange, readOnly = false }: MarkdownCellProps) {
   const [localEditing, setLocalEditing] = useState(!readOnly && !markdown.trim())
   const isEditing = editing ?? localEditing
   const setIsEditing = onEditingChange ?? setLocalEditing
@@ -121,6 +124,8 @@ export function MarkdownCell({ cellId, markdown, onMarkdownChange, editing, onEd
     if (event.target instanceof Element && !event.target.closest('a,button') && !window.getSelection()?.toString()) beginEditing()
   }
 
+  if (editorMode === 'source' && isEditing && !readOnly) return <SourceField value={markdown} onChange={handleSourceChange} label="Markdown source" onFinish={onEditingChange ? undefined : finishEditing} />
+
   if (readOnly) {
     return (
       <section className="markdown-cell" aria-label="Markdown cell">
@@ -135,7 +140,7 @@ export function MarkdownCell({ cellId, markdown, onMarkdownChange, editing, onEd
     <section className={`markdown-cell${isEditing ? ' is-editing' : ''}`} aria-label="Markdown cell">
       {isEditing ? (
         <>
-          <MarkdownMathField fieldRef={editorRef} className="markdown-source" value={markdown} onChange={handleSourceChange} label="Markdown source" placeholder="Write a note…" onEscape={onEditingChange ? undefined : finishEditing} onCommandEnter={onEditingChange ? undefined : finishEditing} />
+          <MarkdownRichField value={markdown} onChange={handleSourceChange} onFinish={onEditingChange ? undefined : finishEditing} />
         </>
       ) : (
         <div onCopy={copyRenderedMath} ref={previewRef} onClick={editProse} className="markdown-rendered" tabIndex={0} aria-label="Rendered Markdown; press Enter to edit" onKeyDown={handlePreviewKeyDown}>
