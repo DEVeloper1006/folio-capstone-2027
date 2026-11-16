@@ -1,21 +1,25 @@
 /**
- * Switch the shared palette and color mode, and show those colors on notebook chrome. Contains the gallery controls for light and dark, the named palettes, and live samples of primary, secondary, and accent.
+ * Switch the shared palette and color mode, and show those colors on notebook chrome. Contains the query-backed shared selection, gallery controls for light and dark, the named palettes, and live samples of primary, secondary, and accent.
  *
  * @file
  */
 
-import { useEffect, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { MouseEvent } from 'react'
 import type { ColorMode, PaletteId, ThemeSelection } from './theme.ts'
 import { applyTheme, defaultTheme, isColorMode, isPaletteId, paletteIds, paletteLabels, readStoredTheme } from './theme.ts'
 
 /** Show the current primary, secondary, and accent, and switch palette or color mode. The choice is stored for the notebook too. */
 export function ThemeControls({ gallery = false }: { gallery?: boolean } = {}) {
-  const [theme, setTheme] = useState<ThemeSelection>(defaultTheme)
+  const client = useQueryClient()
+  const themeKey = ['settings', 'theme'] as const
+  const { data: theme } = useQuery({ queryKey: themeKey, queryFn: readStoredTheme, initialData: defaultTheme, staleTime: 0, refetchOnWindowFocus: false, networkMode: 'always' })
 
-  useEffect(() => {
-    setTheme(readStoredTheme())
-  }, [])
+  /** Persist and apply the choice before notifying every mounted theme control through the shared cache. */
+  function setTheme(next: ThemeSelection) {
+    applyTheme(next)
+    client.setQueryData(themeKey, next)
+  }
 
   /** Store the palette named on the pressed choice. */
   function selectPalette(event: MouseEvent<HTMLButtonElement>) {
@@ -23,7 +27,6 @@ export function ThemeControls({ gallery = false }: { gallery?: boolean } = {}) {
     if (!isPaletteId(palette)) return
     const next = { palette, colorMode: theme.colorMode }
     setTheme(next)
-    applyTheme(next)
   }
 
   /** Store the color mode named on the pressed choice. */
@@ -32,7 +35,6 @@ export function ThemeControls({ gallery = false }: { gallery?: boolean } = {}) {
     if (!isColorMode(colorMode)) return
     const next = { palette: theme.palette, colorMode }
     setTheme(next)
-    applyTheme(next)
   }
 
   /** Render one palette button with a dot for each role color. */

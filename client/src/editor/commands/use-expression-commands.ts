@@ -1,10 +1,12 @@
 /**
- * Manage a cell's expression-command session. Contains backslash triggering, cancellable local search, variant navigation, saved editor selection, and template insertion.
+ * Manage a cell's expression-command session. Contains backslash triggering, query-cached cancellable search, variant navigation, saved editor selection, and template insertion.
  *
  * @file
  */
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import type { QueryFunctionContext } from '@tanstack/react-query'
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
 import type { MathfieldElement } from 'mathlive'
 import { searchExpressionCommands } from './expression-command-search.ts'
@@ -23,15 +25,26 @@ function canOpenCommands(mathfield: MathfieldElement) {
   return !mathfield.readOnly && mathfield.mode === 'math'
 }
 
-/** Keep menu state local to one cell; opening and cancelling never edits its formula. Accept a replacement search provider without changing menu rendering. */
+const searchProviders = new WeakMap<SearchExpressionCommands, number>()
+let nextSearchProvider = 0
+
+/** Share searches between cells using the same provider, while isolating replacement providers with different results. */
+function searchProviderKey(provider: SearchExpressionCommands) {
+  let key = searchProviders.get(provider)
+  if (key === undefined) {
+    key = nextSearchProvider++
+    searchProviders.set(provider, key)
+  }
+  return key
+}
+
+/** Keep insertion and menu interactions local to one cell. Query owns provider results and request status, keyed by provider identity and search text; inactive searches expire after five minutes. */
 export function useExpressionCommands(searchCommands: SearchExpressionCommands = searchExpressionCommands) {
   const [matrixBuilder, setMatrixBuilder] = useState<'blank' | 'sparse' | null>(null)
   const [session, setSession] = useState<CommandSession | null>(null)
   const [query, setQuery] = useState('')
-  const [matches, setMatches] = useState<readonly CommandMatch[]>([])
   const [parent, setParent] = useState<ExpressionCommand>()
   const [activeIndex, setActiveIndex] = useState(0)
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const restoreFocusRef = useRef<MathfieldElement | null>(null)
 
   /** Restore editor focus after React removes the focused search input, preserving the selection chosen by cancellation or insertion. */
@@ -43,28 +56,21 @@ export function useExpressionCommands(searchCommands: SearchExpressionCommands =
   }
   useLayoutEffect(restoreEditorFocus, [session])
 
-  /** Search the current query and ignore responses after a new query, dismissal, or unmount. */
-  function searchQuery() {
-    if (!session) return
-    let cancelled = false
-    /** Publish only results belonging to the current open query. */
-    function receiveMatches(results: readonly CommandMatch[]) {
-      if (cancelled) return
-      setMatches(results)
-      setStatus('ready')
-    }
-    /** Keep provider failures inside the menu so they cannot interrupt the editor. */
-    function reportSearchFailure() {
-      if (!cancelled) setStatus('error')
-    }
-    void searchCommands({ query }).then(receiveMatches, reportSearchFailure)
-    /** Invalidate pending results without retaining a mounted-editor listener. */
-    function cancelSearch() {
-      cancelled = true
-    }
-    return cancelSearch
+  /** Pass Query's abort signal to the provider so obsolete requests can stop without updating the active results. */
+  function searchQuery({ signal }: QueryFunctionContext) {
+    return searchCommands({ query, signal })
   }
-  useEffect(searchQuery, [session, query, searchCommands])
+  const search = useQuery({
+    queryKey: ['expression-commands', searchProviderKey(searchCommands), session ? query : null],
+    queryFn: searchQuery,
+    enabled: session !== null,
+    staleTime: Infinity,
+    gcTime: 5 * 60 * 1000,
+    retry: false,
+    networkMode: 'always',
+  })
+  const matches = search.data ?? []
+  const status = search.isError ? 'error' : search.isSuccess ? 'ready' : 'loading'
 
   /** Close the menu and optionally restore the original selection if the formula is still unchanged. */
   function closeMenu(restoreFocus = true) {
@@ -80,10 +86,8 @@ export function useExpressionCommands(searchCommands: SearchExpressionCommands =
   function handleEditorKeyDown(mathfield: MathfieldElement, event: KeyboardEvent) {
     if (event.key !== '\\' || event.ctrlKey || event.metaKey || event.altKey || event.isComposing || !canOpenCommands(mathfield)) return false
     setQuery('')
-    setMatches([])
     setParent(undefined)
     setActiveIndex(0)
-    setStatus('loading')
     setSession({ mathfield, selection: structuredClone(mathfield.selection), latex: mathfield.value })
     return true
   }
@@ -91,10 +95,8 @@ export function useExpressionCommands(searchCommands: SearchExpressionCommands =
   /** Start a new search at the root list, discarding the previous query's results immediately. */
   function updateQuery(text: string) {
     setQuery(text)
-    setMatches([])
     setParent(undefined)
     setActiveIndex(0)
-    setStatus('loading')
   }
 
   /** Replace the saved insertion range once, selecting the first placeholder and preserving MathLive undo. Reject stale sessions after external edits. */

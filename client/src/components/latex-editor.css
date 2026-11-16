@@ -1,8 +1,11 @@
 /*
- * Show a formula as static KaTeX until it is activated, then as a MathLive field. An inline formula sits in a sentence instead of filling a notebook row.
+ * Style static and editable formulas, consistent selection highlights, and the floating subexpression copy menu. Inline math follows its sentence instead of filling a notebook row.
  */
 
 .static-latex {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
   min-height: 54px;
   padding: 7px 8px;
   cursor: text;
@@ -14,6 +17,7 @@
 
 .static-latex .katex-display {
   margin: 0;
+  text-align: left;
 }
 
 .latex-editor-inline {
@@ -46,4 +50,71 @@
 
 .latex-editor-inline .command-menu {
   width: min(390px, 80vw);
+}
+
+/* Keep full-cell math centered in the row while inline math follows its sentence. */
+.notebook-live-cell:has(> .notebook-live-cell-body > :is(.static-latex, .cell-editor)) {
+  padding-block: 8px;
+}
+
+.cell-input {
+  display: flex;
+  align-items: center;
+  min-height: 54px;
+  padding: 0;
+}
+
+.cell-input math-field {
+  min-height: 54px;
+  padding: 7px 8px;
+}
+
+.cell-input math-field::part(container) {
+  min-height: 40px;
+  align-items: center;
+  padding: 0;
+}
+
+.cell-input math-field::part(content) {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.static-latex ::selection {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.expression-selection-menu.primitive-popup {
+  position: fixed;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  max-width: min(360px, calc(100vw - 16px));
+  padding: 8px;
+}
+
+.expression-selection-preview {
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+  max-height: 160px;
+  padding: 4px 4px 12px;
+  overflow: auto;
+  border-bottom: 1px solid var(--line);
+}
+
+.expression-selection-menu .ui-button {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+}
+
+.expression-selection-menu svg {
+  width: 14px;
+  height: 14px;
 }

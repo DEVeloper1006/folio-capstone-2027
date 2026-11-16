@@ -10,6 +10,8 @@ import type { ExpressionCommand } from './expression-commands.ts'
 /** Describe the current search text; future context can be added as explicit fields. */
 export interface CommandSearchRequest {
   query: string
+  /** Aborted when this search no longer has an active observer. Providers may pass it to fetch or check it during local work. */
+  signal?: AbortSignal
 }
 
 /** Return an insertable definition and its optional parent for breadcrumbs and variant navigation. */
@@ -48,7 +50,8 @@ function normalize(text: string) {
 const searchResultLimit = 40
 
 /** Rank exact names ahead of prefixes and prefixes ahead of looser matches. An empty search shows only the hand-written top-level templates. */
-export const searchExpressionCommands: SearchExpressionCommands = async ({ query }) => {
+export const searchExpressionCommands: SearchExpressionCommands = async ({ query, signal }) => {
+  signal?.throwIfAborted()
   const text = normalize(query)
   const words = text.split(' ')
   const commands = text ? [...templateMatches, ...symbolMatches] : templateMatches

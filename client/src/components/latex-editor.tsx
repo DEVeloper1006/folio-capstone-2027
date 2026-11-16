@@ -1,15 +1,16 @@
 /**
- * Show one formula as static KaTeX until it is activated, then as a MathLive field. Notebook cells and inline markdown expressions share this surface. Contains the static renderer, the MathLive host, and the expression-command menu.
+ * Show one formula as static KaTeX until it is activated, then as a MathLive field. Notebook cells and inline markdown expressions share this surface. Contains the static renderer, pointer-selection handoff, the MathLive host, and expression menus.
  *
  * @file
  */
 
-import { useId, useRef, useState } from 'react'
-import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
+import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react'
 import katex from 'katex'
 import { previewMacros } from '#/editor/mathlive/mathfield-macros'
 import type { MathfieldElement } from 'mathlive'
 import { expandMathfieldAliases, useExpressionCommands, useMathLive } from '#/editor/index.ts'
+import { ExpressionSelectionMenu } from './expression-selection-menu.tsx'
 import { ExpressionCommandMenuView } from './expression-command-menu-view.tsx'
 import './latex-editor.css'
 
@@ -32,6 +33,8 @@ interface LatexEditorProps {
   onBoundary?: (edge: 'start' | 'end', latex: string) => void
   /** Where the caret sits when an inline formula opens. A notebook cell ignores this. */
   caretEdge?: 'start' | 'end'
+  /** Apply the pointer's initial selection after the editor replaces its static preview. */
+  onMount?: (mathfield: MathfieldElement) => void
 }
 
 /** Receive the formula to display and the callback that mounts its editor. */
@@ -39,6 +42,7 @@ interface StaticLatexProps {
   latex: string
   label: string
   onEdit: () => void
+  onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => void
 }
 
 /** Turn stored LaTeX into HTML the server and the browser can both produce. Invalid LaTeX is shown as source text. Display mode is for a notebook cell; inline math stays in the text line. */
@@ -52,6 +56,64 @@ function StaticLatexMarkup({ latex, label }: { latex: string; label: string }) {
   return <div className="static-latex is-view" aria-label={label} dangerouslySetInnerHTML={{ __html: markup }} />
 }
 
+/** Continue a drag across the static-to-editable transition using MathLive's public coordinate lookup. */
+function usePreviewSelection(editing: boolean, beginEditing: () => void) {
+  const field = useRef<MathfieldElement | null>(null)
+  const drag = useRef<{ x: number; y: number; endX: number; endY: number; active: boolean } | null>(null)
+
+  /** Map both pointer endpoints to the mounted formula without changing its source. */
+  function applyDrag() {
+    const current = drag.current
+    const mathfield = field.current
+    if (!current || !mathfield?.isConnected) return
+    const anchor = mathfield.getOffsetFromPoint(current.x, current.y)
+    const focus = mathfield.getOffsetFromPoint(current.endX, current.endY)
+    mathfield.selection = { ranges: [[Math.min(anchor, focus), Math.max(anchor, focus)]], direction: focus < anchor ? 'backward' : 'forward' }
+    if (!current.active) drag.current = null
+  }
+
+  /** Activate MathLive before a browser text selection can start. */
+  function beginPointerSelection(event: ReactPointerEvent<HTMLDivElement>) {
+    if (event.button !== 0 || event.ctrlKey || event.metaKey || event.altKey) return
+    event.preventDefault()
+    drag.current = { x: event.clientX, y: event.clientY, endX: event.clientX, endY: event.clientY, active: true }
+    beginEditing()
+  }
+
+  /** Restore the pointer selection once MathLive has laid out its glyphs. */
+  function mountSelection(mathfield: MathfieldElement) {
+    field.current = mathfield
+    requestAnimationFrame(applyDrag)
+  }
+
+  /** Keep a preview drag alive even after its original DOM element has been replaced. */
+  function trackDrag() {
+    if (!editing) return
+    /** Update the selection as the pointer moves, and finish it on release. */
+    function move(event: PointerEvent) {
+      if (!drag.current?.active) return
+      drag.current.endX = event.clientX
+      drag.current.endY = event.clientY
+      drag.current.active = event.type === 'pointermove' && event.buttons !== 0
+      applyDrag()
+    }
+    document.addEventListener('pointermove', move)
+    document.addEventListener('pointerup', move)
+    document.addEventListener('pointercancel', move)
+    /** Remove document listeners when the cell leaves edit mode. */
+    function stopTracking() {
+      document.removeEventListener('pointermove', move)
+      document.removeEventListener('pointerup', move)
+      document.removeEventListener('pointercancel', move)
+      drag.current = null
+      field.current = null
+    }
+    return stopTracking
+  }
+  useEffect(trackDrag, [editing])
+  return { beginPointerSelection, mountSelection }
+}
+
 /** Show a formula as static KaTeX, or mount the same MathLive field a notebook cell uses once editing starts. A read-only formula never mounts MathLive. */
 export function LatexEditor({ initialLatex, onLatexChange, readOnly = false, label = 'LaTeX expression', layout = 'cell', startEditing = false, editing, onBeginEditing, onCommit, onCancel, onBoundary, caretEdge }: LatexEditorProps) {
   const [isEditing, setIsEditing] = useState(startEditing && !readOnly)
@@ -62,13 +124,16 @@ export function LatexEditor({ initialLatex, onLatexChange, readOnly = false, lab
     else setIsEditing(true)
   }
 
+  const active = editing ?? isEditing
+  const { beginPointerSelection, mountSelection } = usePreviewSelection(active, beginEditing)
+
   if (readOnly) return <StaticLatexMarkup latex={initialLatex} label={label} />
-  if (!(editing ?? isEditing)) return <StaticLatex latex={initialLatex} label={label} onEdit={beginEditing} />
-  return <LatexMathfield initialLatex={initialLatex} onLatexChange={onLatexChange} label={label} layout={layout} onCommit={onCommit} onCancel={onCancel} onBoundary={onBoundary} caretEdge={caretEdge} />
+  if (!active) return <StaticLatex latex={initialLatex} label={label} onEdit={beginEditing} onPointerDown={beginPointerSelection} />
+  return <LatexMathfield initialLatex={initialLatex} onLatexChange={onLatexChange} label={label} layout={layout} onCommit={onCommit} onCancel={onCancel} onBoundary={onBoundary} caretEdge={caretEdge} onMount={mountSelection} />
 }
 
 /** Connect one activated formula to MathLive, expression commands, and optional Enter, Escape, and arrow-boundary callbacks. */
-function LatexMathfield({ initialLatex, onLatexChange, label, layout, onCommit, onCancel, onBoundary, caretEdge = 'start' }: LatexEditorProps) {
+function LatexMathfield({ initialLatex, onLatexChange, label, layout, onCommit, onCancel, onBoundary, caretEdge = 'start', onMount }: LatexEditorProps) {
   const onCommitRef = useRef(onCommit)
   const onCancelRef = useRef(onCancel)
   const onBoundaryRef = useRef(onBoundary)
@@ -85,8 +150,9 @@ function LatexMathfield({ initialLatex, onLatexChange, label, layout, onCommit, 
     onLatexChange(latex)
   }
 
-  /** Fit an inline formula to the text line, then place the caret at the edge the sentence requested. */
+  /** Restore a preview pointer selection; fit inline math to its text line and place its initial caret at the requested edge. */
   function configureMathfield(mathfield: MathfieldElement) {
+    onMount?.(mathfield)
     if (layout !== 'inline') return
     const container = mathfield.shadowRoot?.querySelector('.ML__container')
     if (container instanceof HTMLElement) {
@@ -137,7 +203,7 @@ function LatexMathfield({ initialLatex, onLatexChange, label, layout, onCommit, 
   return (
     <div className={editorClass}>
       <div className={fieldClass} ref={editorHostRef} />
-      {commands.isOpen ? <ExpressionCommandMenuView menu={commands} /> : null}
+      {commands.isOpen ? <ExpressionCommandMenuView menu={commands} /> : <ExpressionSelectionMenu hostRef={editorHostRef} />}
     </div>
   )
 }
@@ -147,8 +213,8 @@ function isPlainHorizontalArrow(event: KeyboardEvent) {
   return (event.key === 'ArrowLeft' || event.key === 'ArrowRight') && !event.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey && !event.isComposing
 }
 
-/** Render a formula with KaTeX and activate the editor from a click, Enter, or Space. */
-function StaticLatex({ latex, label, onEdit }: StaticLatexProps) {
+/** Render KaTeX and activate MathLive from a pointer press, Enter, or Space, preserving pointer drags. */
+function StaticLatex({ latex, label, onEdit, onPointerDown }: StaticLatexProps) {
   const markup = renderLatexMarkup(latex)
 
   /** Activate the formula from Enter or Space. */
@@ -158,5 +224,5 @@ function StaticLatex({ latex, label, onEdit }: StaticLatexProps) {
     onEdit()
   }
 
-  return <div className="static-latex" role="button" tabIndex={0} aria-label={label} dangerouslySetInnerHTML={{ __html: markup }} onClick={onEdit} onKeyDown={handleKeyDown} />
+  return <div className="static-latex" role="button" tabIndex={0} aria-label={label} dangerouslySetInnerHTML={{ __html: markup }} onPointerDown={onPointerDown} onKeyDown={handleKeyDown} />
 }
