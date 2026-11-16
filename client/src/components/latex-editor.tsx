@@ -12,13 +12,16 @@ import { expandMathfieldAliases, useExpressionCommands, useMathLive } from '#/ed
 import { ExpressionCommandMenuView } from './expression-command-menu-view.tsx'
 import './latex-editor.css'
 
-/** Supply the formula and the callbacks for editing it. `startEditing` opens MathLive immediately; otherwise a click or Enter replaces the static formula. */
+/** Supply the formula and the callbacks for editing it. `startEditing` opens MathLive immediately; otherwise a click or Enter replaces the static formula. `readOnly` keeps the static formula and does not accept a click. */
 interface LatexEditorProps {
   initialLatex: string
   onLatexChange: (latex: string) => void
+  readOnly?: boolean
   label?: string
   /** `cell` fills a notebook row. `inline` sits inside a sentence. */
   layout?: 'cell' | 'inline'
+  editing?: boolean
+  onBeginEditing?: () => void
   startEditing?: boolean
   /** Enter commits the formula. Shift+Enter stays with MathLive. Omit this on a notebook cell so Enter is not captured. */
   onCommit?: (latex: string) => void
@@ -42,16 +45,24 @@ export function renderLatexMarkup(latex: string, displayMode = true) {
   return katex.renderToString(latex, { displayMode, throwOnError: false, output: 'html' })
 }
 
-/** Show a formula as static KaTeX, or mount the same MathLive field a notebook cell uses once editing starts. */
-export function LatexEditor({ initialLatex, onLatexChange, label = 'LaTeX expression', layout = 'cell', startEditing = false, onCommit, onCancel, onBoundary, caretEdge }: LatexEditorProps) {
-  const [isEditing, setIsEditing] = useState(startEditing)
+/** Show stored LaTeX as KaTeX without a control that starts editing. */
+function StaticLatexMarkup({ latex, label }: { latex: string; label: string }) {
+  const markup = renderLatexMarkup(latex)
+  return <div className="static-latex is-view" aria-label={label} dangerouslySetInnerHTML={{ __html: markup }} />
+}
+
+/** Show a formula as static KaTeX, or mount the same MathLive field a notebook cell uses once editing starts. A read-only formula never mounts MathLive. */
+export function LatexEditor({ initialLatex, onLatexChange, readOnly = false, label = 'LaTeX expression', layout = 'cell', startEditing = false, editing, onBeginEditing, onCommit, onCancel, onBoundary, caretEdge }: LatexEditorProps) {
+  const [isEditing, setIsEditing] = useState(startEditing && !readOnly)
 
   /** Replace the static formula with the MathLive field. */
   function beginEditing() {
-    setIsEditing(true)
+    if (onBeginEditing) onBeginEditing()
+    else setIsEditing(true)
   }
 
-  if (!isEditing) return <StaticLatex latex={initialLatex} label={label} onEdit={beginEditing} />
+  if (readOnly) return <StaticLatexMarkup latex={initialLatex} label={label} />
+  if (!(editing ?? isEditing)) return <StaticLatex latex={initialLatex} label={label} onEdit={beginEditing} />
   return <LatexMathfield initialLatex={initialLatex} onLatexChange={onLatexChange} label={label} layout={layout} onCommit={onCommit} onCancel={onCancel} onBoundary={onBoundary} caretEdge={caretEdge} />
 }
 
@@ -86,7 +97,7 @@ function LatexMathfield({ initialLatex, onLatexChange, label, layout, onCommit, 
     mathfield.position = caretEdgeRef.current === 'end' ? mathfield.lastOffset : 0
   }
 
-  /** Let expression commands consume `/` first. Enter commits an inline formula, Escape cancels it, and Left or Right at the formula’s edge returns to the sentence. */
+  /** Let expression commands consume `\` first. Enter commits an inline formula, Escape cancels it, and Left or Right at the formula’s edge returns to the sentence. */
   function handleEditorKeyDown(mathfield: MathfieldElement, event: KeyboardEvent) {
     if (commands.handleEditorKeyDown(mathfield, event)) return true
     if (onBoundaryRef.current !== undefined && isPlainHorizontalArrow(event) && mathfield.selectionIsCollapsed) {

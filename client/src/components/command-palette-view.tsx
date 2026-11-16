@@ -1,11 +1,11 @@
 /**
- * Render the notebook command palette. Contains the search field, the filtered action list, and keyboard selection. The notebook supplies the actions and runs the chosen one. This view does not register actions or listen for their shortcuts.
+ * Render the notebook command palette. Contains the search field, the filtered action list, and one shared highlight for the pointer and the arrow keys. The notebook supplies the actions and runs the chosen one. This view does not register actions or listen for their shortcuts.
  *
  * @file
  */
 
 import { useEffect, useId, useRef, useState } from 'react'
-import type { ChangeEvent, KeyboardEvent, MouseEvent } from 'react'
+import type { ChangeEvent, KeyboardEvent, MouseEvent, PointerEvent } from 'react'
 
 /** Name one action the palette can search and run. The shortcut is display text; binding it is the caller's job. */
 export interface CommandPaletteAction {
@@ -44,7 +44,7 @@ function actionMatches(action: CommandPaletteAction, query: string) {
   return words.every(containsWord)
 }
 
-/** Show a centered search list of actions. Arrow keys move the highlight, Enter runs it, and Escape or the backdrop closes the palette. */
+/** Show a centered search list of actions. The pointer and the arrow keys share one highlighted row, Enter runs it, and Escape or the backdrop closes the palette. */
 export function CommandPaletteView({ actions, open, onClose, onRun }: CommandPaletteViewProps) {
   const listId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -117,8 +117,9 @@ export function CommandPaletteView({ actions, open, onClose, onRun }: CommandPal
     function handleRun() {
       onRun(action)
     }
-    /** Highlight the row under the pointer without moving focus out of the search field. */
-    function handlePointerMove() {
+    /** Select this row when the pointer moves onto it. A pointer that stays still leaves the arrow-key selection in place. */
+    function handlePointerMove(event: PointerEvent<HTMLButtonElement>) {
+      if (event.movementX === 0 && event.movementY === 0) return
       if (!isActive) setActiveIndex(index)
     }
     /** Keep the search field focused while the pointer selects a row. */

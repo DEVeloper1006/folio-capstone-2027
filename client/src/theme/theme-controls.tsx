@@ -10,7 +10,7 @@ import type { ColorMode, PaletteId, ThemeSelection } from './theme.ts'
 import { applyTheme, defaultTheme, isColorMode, isPaletteId, paletteIds, paletteLabels, readStoredTheme } from './theme.ts'
 
 /** Show the current primary, secondary, and accent, and switch palette or color mode. The choice is stored for the notebook too. */
-export function ThemeControls() {
+export function ThemeControls({ gallery = false }: { gallery?: boolean } = {}) {
   const [theme, setTheme] = useState<ThemeSelection>(defaultTheme)
 
   useEffect(() => {
@@ -43,7 +43,7 @@ export function ThemeControls() {
   return (
     <section className="theme-panel" aria-labelledby="theme-heading">
       <h2 id="theme-heading">Theme</h2>
-      <p className="primitive-row-copy">Primary, secondary, and accent live in client/src/theme/theme.css. Neutrals are shared. Pick a palette and a color mode here. The notebook uses the same tokens.</p>
+      {gallery && <p className="primitive-row-copy">Primary, secondary, and accent live in client/src/theme/theme.css. Neutrals are shared. Pick a palette and a color mode here. The notebook uses the same tokens.</p>}
       <div className="theme-controls">
         <div className="theme-choices" role="group" aria-label="Color mode">
           <ColorModeChoice colorMode="light" pressed={theme.colorMode === 'light'} onSelect={selectColorMode} />
@@ -53,30 +53,34 @@ export function ThemeControls() {
           {paletteIds.map(renderPaletteChoice)}
         </div>
       </div>
-      <ThemeUsage />
-      <div className="type-specimens">
-        <article className="type-specimen">
-          <h3>UI</h3>
-          <p className="type-ui">Menus, fields, and shortcuts use the system sans at 13px.</p>
-        </article>
-        <article className="type-specimen">
-          <h3>Reading</h3>
-          <p className="type-reading">
-            Markdown notes use Georgia. A notebook needs the <a href="#theme-heading">why</a> as well as the working.
-          </p>
-        </article>
-        <article className="type-specimen">
-          <h3>Code</h3>
-          <p className="type-code">## Make room for the reasoning</p>
-        </article>
-        <article className="type-specimen">
-          <h3>Math</h3>
-          <p className="type-math">
-            ∫ <span className="theme-math-selection">f(x)</span> dx
-          </p>
-          <p className="type-caption">The highlight is the accent. Expressions themselves stay in MathLive.</p>
-        </article>
-      </div>
+      {gallery && (
+        <>
+          <ThemeUsage />
+          <div className="type-specimens">
+            <article className="type-specimen">
+              <h3>UI</h3>
+              <p className="type-ui">Menus, fields, and shortcuts use the system sans at 13px.</p>
+            </article>
+            <article className="type-specimen">
+              <h3>Reading</h3>
+              <p className="type-reading">
+                Markdown notes use Georgia. A notebook needs the <a href="#theme-heading">why</a> as well as the working.
+              </p>
+            </article>
+            <article className="type-specimen">
+              <h3>Code</h3>
+              <p className="type-code">## Make room for the reasoning</p>
+            </article>
+            <article className="type-specimen">
+              <h3>Math</h3>
+              <p className="type-math">
+                ∫ <span className="theme-math-selection">f(x)</span> dx
+              </p>
+              <p className="type-caption">The highlight is the accent. Expressions themselves stay in MathLive.</p>
+            </article>
+          </div>
+        </>
+      )}
     </section>
   )
 }

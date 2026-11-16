@@ -405,8 +405,8 @@
   text-align: center;
 }
 
+/* Keyboard highlight and pointer hover are the same row. :hover would leave the old row lit after an arrow key. */
 .primitive-item[data-highlighted],
-.primitive-item:hover,
 .primitive-item-current {
   background: var(--accent-soft);
 }
@@ -415,8 +415,7 @@
   color: var(--danger);
 }
 
-.primitive-item-danger[data-highlighted],
-.primitive-item-danger:hover {
+.primitive-item-danger[data-highlighted] {
   background: var(--danger-soft);
 }
 
@@ -681,82 +680,6 @@
 .notebook-inline-status {
   color: var(--muted);
   font-size: 12px;
-}
-
-.notebook-live-cell {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 8px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--canvas);
-  transition: border-color 120ms ease;
-}
-
-.notebook-cell-gutter {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-}
-
-.notebook-cell-gutter:hover {
-  background: var(--sunken-strong);
-  color: var(--ink);
-}
-
-.notebook-live-cell-body {
-  flex: 1;
-  min-width: 0;
-}
-
-.notebook-state-empty {
-  border-style: dashed;
-}
-
-.notebook-state-focused {
-  border-color: var(--primary);
-}
-
-.notebook-state-focused .notebook-cell-gutter,
-.notebook-state-editing .notebook-cell-gutter {
-  color: var(--primary);
-}
-
-.notebook-state-editing {
-  border-color: var(--primary);
-  background: color-mix(in srgb, var(--primary) 7%, var(--canvas));
-}
-
-.notebook-state-selected {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, var(--canvas));
-}
-
-.notebook-state-selected .notebook-cell-gutter {
-  color: var(--accent);
-}
-
-.notebook-state-computing {
-  border-color: var(--secondary);
-}
-
-.notebook-state-error {
-  border-color: var(--danger);
-  background: color-mix(in srgb, var(--danger) 8%, var(--canvas));
-}
-
-.notebook-state-error .notebook-cell-gutter {
-  color: var(--danger);
 }
 
 .notebook-suggestion {
@@ -1683,6 +1606,32 @@
   .primitive-chevron {
     transition: none;
   }
+}
+
+.sidebar-specimen {
+  display: flex;
+  height: 560px;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--canvas);
+}
+
+.sidebar-specimen .page-sidebar-slot {
+  position: relative;
+  top: auto;
+  align-self: stretch;
+  height: 100%;
+  max-height: none;
+  min-height: 0;
+}
+
+.sidebar-specimen-page {
+  flex: 1;
+  min-width: 0;
+  padding: 20px 24px;
+  overflow: auto;
 }
 
 @media (max-width: 800px) {

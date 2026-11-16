@@ -1,5 +1,5 @@
 /**
- * Manage a cell's expression-command session. Contains slash triggering, cancellable local search, variant navigation, saved editor selection, and template insertion.
+ * Manage a cell's expression-command session. Contains backslash triggering, cancellable local search, variant navigation, saved editor selection, and template insertion.
  *
  * @file
  */
@@ -9,7 +9,7 @@ import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
 import type { MathfieldElement } from 'mathlive'
 import { searchExpressionCommands } from './expression-command-search.ts'
 import type { CommandMatch, SearchExpressionCommands } from './expression-command-search.ts'
-import type { ExpressionCommand, ExpressionCommandGroup } from './expression-commands.ts'
+import type { ExpressionCommand } from './expression-commands.ts'
 
 /** Retain the editor and insertion range while the menu's text input owns focus. */
 interface CommandSession {
@@ -18,7 +18,7 @@ interface CommandSession {
   latex: string
 }
 
-/** Open only in an empty editable region or a selected placeholder, preserving slash-as-fraction elsewhere. */
+/** Open only in an empty editable region or a selected placeholder, so a backslash inside existing math still starts a LaTeX command. */
 function canOpenCommands(mathfield: MathfieldElement) {
   if (mathfield.readOnly || mathfield.mode !== 'math') return false
   if (!mathfield.selectionIsCollapsed) return /^\\placeholder\{\}$/.test(mathfield.getValue(mathfield.selection, 'latex'))
@@ -34,7 +34,7 @@ export function useExpressionCommands(searchCommands: SearchExpressionCommands =
   const [session, setSession] = useState<CommandSession | null>(null)
   const [query, setQuery] = useState('')
   const [matches, setMatches] = useState<readonly CommandMatch[]>([])
-  const [parent, setParent] = useState<ExpressionCommandGroup>()
+  const [parent, setParent] = useState<ExpressionCommand>()
   const [activeIndex, setActiveIndex] = useState(0)
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const restoreFocusRef = useRef<MathfieldElement | null>(null)
@@ -80,9 +80,9 @@ export function useExpressionCommands(searchCommands: SearchExpressionCommands =
     setSession(null)
   }
 
-  /** Consume an unmodified slash before mathematical navigation, saving the selection without inserting query text. */
+  /** Consume an unmodified backslash before mathematical navigation, saving the selection without inserting query text. */
   function handleEditorKeyDown(mathfield: MathfieldElement, event: KeyboardEvent) {
-    if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey || event.isComposing || !canOpenCommands(mathfield)) return false
+    if (event.key !== '\\' || event.ctrlKey || event.metaKey || event.altKey || event.isComposing || !canOpenCommands(mathfield)) return false
     setQuery('')
     setMatches([])
     setParent(undefined)
@@ -114,11 +114,11 @@ export function useExpressionCommands(searchCommands: SearchExpressionCommands =
     mathfield.insert(command.latex, { format: 'latex', mode: 'math', insertionMode: 'replaceSelection', selectionMode: 'placeholder' })
   }
 
-  /** Display a group's direct variants without changing the query or modifying the editor. */
-  function openVariants(command: ExpressionCommandGroup) {
+  /** Display a group's direct variants without changing the query or modifying the editor. The group itself stays selectable at the top of that list. */
+  function openVariants(command: ExpressionCommand) {
     if (!command.variants?.length) return
     setParent(command)
-    setActiveIndex(0)
+    setActiveIndex(1)
   }
 
   /** Return to search results with their parent entry selected when it is present. */
@@ -131,11 +131,15 @@ export function useExpressionCommands(searchCommands: SearchExpressionCommands =
     setParent(undefined)
   }
 
-  /** Attach the displayed parent to a variant so breadcrumbs remain available. */
-  function variantMatch(command: ExpressionCommand): CommandMatch {
-    return { command, parent }
+  /** List the opened command, then each direct variant. The opened command is not stored as a variant of itself. */
+  function variantResults(command: ExpressionCommand): CommandMatch[] {
+    /** Attach the opened command so a variant can show where it belongs. */
+    function variantMatch(variant: ExpressionCommand): CommandMatch {
+      return { command: variant, parent: command }
+    }
+    return [{ command }, ...(command.variants?.map(variantMatch) ?? [])]
   }
-  const results = parent?.variants?.map(variantMatch) ?? matches
+  const results = parent ? variantResults(parent) : matches
 
   /** Route menu keys separately from mathematical navigation; preserve text composition and ordinary input editing. */
   function handleMenuKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
@@ -146,7 +150,7 @@ export function useExpressionCommands(searchCommands: SearchExpressionCommands =
       closeMenu(false)
       return
     } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') setActiveIndex((activeIndex + (event.key === 'ArrowDown' ? 1 : -1) + results.length) % Math.max(1, results.length))
-    else if (event.key === 'ArrowRight' && selected?.command.variants?.length) openVariants(selected.command)
+    else if (event.key === 'ArrowRight' && selected?.command.variants?.length && selected.command.id !== parent?.id) openVariants(selected.command)
     else if (event.key === 'ArrowLeft' && parent) backToResults()
     else if (event.key === 'Enter') {
       if (selected) insertCommand(selected.command)

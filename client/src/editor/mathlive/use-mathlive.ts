@@ -4,6 +4,9 @@
  * @file
  */
 
+import { useQueryClient } from '@tanstack/react-query'
+import { shortcutKey } from '../commands/shortcut-overrides.ts'
+import type { ShortcutOverrides } from '../commands/shortcut-overrides.ts'
 import { useEffect, useRef } from 'react'
 import type * as MathLive from 'mathlive'
 import type { MathfieldElement } from 'mathlive'
@@ -35,6 +38,7 @@ export function withoutVirtualKeyboardToggle(keybindings: MathfieldElement['keyb
 
 /** Return the host ref for one MathLive field and manage its browser lifecycle. Use the initial LaTeX once. A new change callback or key handler does not rebuild the active field. */
 export function useMathLive({ cellId, initialLatex, onLatexChange, onEditorKeyDown, focusOnMount = false, label = 'LaTeX cell', configureMathfield }: UseMathLiveOptions) {
+  const client = useQueryClient()
   const editorHostRef = useRef<HTMLDivElement>(null)
   const initialLatexRef = useRef(initialLatex)
   const onLatexChangeRef = useRef(onLatexChange)
@@ -82,7 +86,11 @@ export function useMathLive({ cellId, initialLatex, onLatexChange, onEditorKeyDo
       function handleEditorKeyDown(event: KeyboardEvent) {
         return editorKeyDownRef.current?.(mathfield, event) ?? false
       }
-      removeNavigationListeners = installNavigation(mathfield, handleEditorKeyDown)
+      /** Read current bindings when the key arrives without reinstalling listeners. */
+      function readOverrides() {
+        return client.getQueryData<ShortcutOverrides>(shortcutKey)
+      }
+      removeNavigationListeners = installNavigation(mathfield, handleEditorKeyDown, readOverrides)
       if (focusOnMount) mathfield.focus()
       configureMathfieldRef.current?.(mathfield)
     }
@@ -99,7 +107,7 @@ export function useMathLive({ cellId, initialLatex, onLatexChange, onEditorKeyDo
     return unmountEditor
   }
 
-  useEffect(mountEditor, [cellId, focusOnMount])
+  useEffect(mountEditor, [cellId, focusOnMount, client])
 
   return editorHostRef
 }

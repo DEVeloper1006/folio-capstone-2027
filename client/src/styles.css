@@ -1,5 +1,5 @@
 /**
- * Style the mixed math and Markdown notebook, expression-command menu, command palette, movement guide, and MathLive selection highlights.
+ * Style the mixed math and Markdown notebook, page sidebar, keyboard shortcut list, expression-command menu, command palette, movement guide, and MathLive selection highlights.
  * Contains page layout, Markdown source and preview surfaces, search results, and responsive spacing.
  * Shared buttons, fields, segmented choices, and popovers are styled in component-library.css.
  * Color, type, and dark mode come from theme.css.
@@ -13,6 +13,246 @@
 body {
   margin: 0;
   min-height: 100vh;
+}
+
+.notebook-shell {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  min-height: 100vh;
+}
+
+.notebook-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.page-sidebar-slot {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-shrink: 0;
+  align-self: flex-start;
+  width: auto;
+  min-width: 0;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  background: var(--sunken);
+  border-right: 1px solid var(--line);
+  transition: width 220ms ease;
+}
+
+.page-sidebar-slot[data-mode='collapsed'] {
+  width: 56px;
+}
+
+.page-sidebar-slot[data-mode='hidden'] {
+  width: 0;
+  border-right-width: 0;
+}
+
+.page-sidebar-slot.is-resizing {
+  transition: none;
+}
+
+.page-sidebar {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  padding: 16px 12px;
+}
+
+.page-sidebar-slot[data-mode='collapsed'] .page-sidebar {
+  align-items: center;
+  padding: 12px;
+}
+
+.page-sidebar-slot[data-mode='collapsed'] .page-sidebar-heading,
+.page-sidebar-slot[data-mode='collapsed'] .page-sidebar-label,
+.page-sidebar-slot[data-mode='collapsed'] .page-sidebar-actions {
+  display: none;
+}
+
+.page-sidebar-slot[data-mode='collapsed'] .page-sidebar-toolbar,
+.page-sidebar-slot[data-mode='collapsed'] .page-sidebar-toolbar-actions {
+  flex-direction: column;
+}
+
+.page-sidebar-slot[data-mode='collapsed'] .page-sidebar-select {
+  flex: none;
+  padding: 4px;
+}
+
+.page-sidebar-resize {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+}
+
+.page-sidebar-resize:hover,
+.page-sidebar-slot.is-resizing .page-sidebar-resize {
+  background: var(--line-strong);
+}
+
+.notebook-shell > .page-sidebar-reveal {
+  position: fixed;
+}
+
+.page-sidebar-reveal {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 3;
+}
+
+.page-sidebar-reveal .primitive-icon-button {
+  background: var(--raised);
+  box-shadow: 0 6px 18px var(--shadow);
+}
+
+.page-sidebar-toolbar,
+.page-sidebar-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.page-sidebar-toolbar {
+  justify-content: space-between;
+  padding: 0 4px;
+}
+
+.page-sidebar-heading {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.page-sidebar-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.page-sidebar-footer {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.page-sidebar-settings {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.page-sidebar-settings:hover,
+.page-sidebar-settings[data-popup-open] {
+  background: var(--sunken-strong);
+}
+
+.page-sidebar-settings.is-open,
+.page-sidebar-settings.is-open:hover,
+.page-sidebar-settings.is-open[data-popup-open] {
+  background: var(--accent-soft);
+}
+
+.page-sidebar-slot[data-mode='collapsed'] .page-sidebar-footer {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.page-sidebar-slot[data-mode='collapsed'] .page-sidebar-settings {
+  justify-content: center;
+  width: 32px;
+  padding: 4px;
+}
+
+.page-sidebar-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  padding: 2px 4px;
+  border-radius: 6px;
+  color: var(--ink);
+}
+
+.page-sidebar-row.is-open {
+  background: var(--accent-soft);
+}
+
+.page-sidebar-row.is-open .primitive-icon-button:hover,
+.page-sidebar-row.is-open .primitive-icon-button[aria-expanded='true'],
+.page-sidebar-row.is-open .primitive-icon-button[data-popup-open] {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--accent) 32%, var(--canvas));
+  color: var(--ink);
+}
+
+.page-sidebar-select,
+.page-sidebar-title {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 2px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.page-sidebar-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.page-sidebar-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.page-sidebar-title:focus {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
 }
 
 .notebook {
@@ -38,6 +278,34 @@ body {
   flex-direction: column;
 }
 
+.page-title {
+  width: 100%;
+  margin: 0 0 4px;
+  padding: 0 48px 0 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.page-title::placeholder {
+  color: var(--faint);
+}
+
+input.page-title:focus {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+}
+
+.page-empty {
+  margin: 0;
+  color: var(--muted);
+}
+
 .page-menu {
   position: absolute;
   top: 28px;
@@ -55,6 +323,9 @@ body {
   border-color: var(--line-strong);
 }
 
+.cell-command-notice:empty {
+  display: none;
+}
 .cell-input {
   min-width: 0;
   min-height: 54px;
@@ -68,17 +339,6 @@ body {
 .markdown-cell {
   margin: 2px 0 12px;
   background: var(--canvas);
-}
-
-.markdown-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 34px;
-  padding: 5px 12px;
-  border-bottom: 1px solid var(--line-subtle);
-  color: var(--faint);
-  font-size: var(--text-caption-size);
 }
 
 .markdown-empty:focus-visible {
@@ -103,18 +363,6 @@ body {
 
 .markdown-source::placeholder {
   color: var(--placeholder);
-}
-
-.markdown-hint {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 6px 16px;
-  margin: 0;
-  padding: 9px 12px;
-  border-top: 1px solid var(--line-subtle);
-  color: var(--faint);
-  font-size: var(--text-caption-size);
 }
 
 .markdown-rendered {
@@ -294,8 +542,10 @@ body {
   overflow-y: auto;
 }
 
+/* The pointer and the arrow keys share one highlighted row, so a hovered row does not paint a second selection. */
 .command-result.is-active,
-.command-menu button:hover {
+.command-search button:hover,
+.command-back:hover {
   background: var(--accent-soft);
 }
 
@@ -335,10 +585,6 @@ body {
 .command-menu p {
   margin: 8px;
   color: var(--muted);
-}
-
-.command-help {
-  font-size: 11px;
 }
 
 .command-palette-backdrop {
@@ -401,8 +647,8 @@ body {
   cursor: pointer;
 }
 
-.command-palette-results button.is-active,
-.command-palette-results button:hover {
+/* The pointer and the arrow keys share one highlighted action, so a hovered row does not paint a second selection. */
+.command-palette-results button.is-active {
   background: var(--accent-soft);
 }
 
@@ -416,6 +662,153 @@ body {
   margin: 0;
   padding: 14px 12px;
   color: var(--muted);
+}
+
+.command-settings h1 {
+  margin: 0;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.command-settings-lead,
+.command-settings-status,
+.command-settings-empty {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.command-settings-actions {
+  margin-top: 20px;
+}
+
+.command-settings-status,
+.command-settings-empty {
+  margin: 12px 0 0;
+}
+
+.command-settings .ui-field {
+  margin-top: 20px;
+}
+
+.command-settings-scroll {
+  margin-top: 8px;
+  overflow-x: auto;
+}
+
+.command-settings-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 13px;
+}
+
+.command-settings-table th {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.command-settings-table th:nth-child(1) {
+  width: 32%;
+}
+
+.command-settings-table th:nth-child(2) {
+  width: 22%;
+}
+
+.command-settings-table th:nth-child(3) {
+  width: 30%;
+}
+
+.command-settings-table td {
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.command-settings-table tbody tr:hover {
+  background: var(--sunken);
+}
+
+.command-settings-table tbody tr.is-recording,
+.command-settings-table tbody tr.is-recording:hover {
+  background: var(--accent-soft);
+}
+
+.command-settings-command,
+.command-settings-when {
+  overflow: hidden;
+  color: var(--ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.command-settings-when {
+  color: var(--muted);
+  font-family: var(--font-code);
+  font-size: 12px;
+}
+
+.command-settings-shortcut {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 12px / 1.4 var(--font-code);
+  cursor: pointer;
+}
+
+.command-settings-shortcut:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.command-keycap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 20px;
+  padding: 0 5px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--sunken-strong);
+  color: var(--ink);
+  font: 11px / 1 var(--font-code);
+}
+
+.command-settings-unbound {
+  color: var(--faint);
+}
+
+.command-settings-source {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.command-settings-source .is-user {
+  color: var(--accent);
+}
+
+.command-settings-reset.ui-button-quiet {
+  padding: 2px 6px;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 math-field {
@@ -449,5 +842,11 @@ math-field::part(menu-toggle) {
 @media (max-width: 900px) {
   .notebook {
     padding: 76px 22px 120px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-sidebar-slot {
+    transition: none;
   }
 }

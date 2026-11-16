@@ -1,6 +1,6 @@
 /**
  * Style the shared notebook controls.
- * Contains button variants, labeled fields, segmented choices, popover panels, and the markdown field that inserts rendered math with $.
+ * Contains button variants, icon buttons, menus, tooltips, labeled fields, segmented choices, popover panels, and the markdown field that inserts rendered math with $.
  * Colors and type come from theme.css. Secondary tints quiet buttons. Primary marks the pressed choice and the focus ring.
  * @file
  */
@@ -56,6 +56,121 @@
 .ui-button-icon[aria-expanded='true'] {
   background: var(--sunken-strong);
   color: var(--ink);
+}
+
+.folio-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.primitive-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--canvas);
+  color: var(--ink-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.primitive-icon-button:hover {
+  border-color: var(--line-strong);
+  background: var(--sunken-strong);
+  color: var(--ink);
+}
+
+.primitive-icon-quiet {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+}
+
+.primitive-icon-quiet:hover,
+.primitive-icon-quiet[aria-expanded='true'] {
+  border-color: transparent;
+  background: var(--sunken-strong);
+  color: var(--ink);
+}
+
+.primitive-tooltip {
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--raised);
+  box-shadow: 0 6px 18px var(--shadow);
+  color: var(--ink);
+  font-size: var(--text-caption-size);
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.primitive-popup {
+  z-index: 30;
+  box-sizing: border-box;
+  min-width: 180px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--raised);
+  box-shadow: 0 8px 24px var(--shadow);
+  color: var(--ink);
+  font-size: var(--text-ui-size);
+}
+
+.primitive-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.primitive-item-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.primitive-item[data-highlighted] {
+  background: var(--accent-soft);
+}
+
+.primitive-item-danger {
+  color: var(--danger);
+}
+
+.primitive-item-danger[data-highlighted] {
+  background: var(--danger-soft);
+}
+
+.primitive-item[data-disabled] {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.primitive-separator {
+  height: 1px;
+  margin: 4px 2px;
+  background: var(--line-subtle);
 }
 
 .ui-field {
@@ -192,4 +307,81 @@
   background: color-mix(in srgb, #5b8def 32%, transparent);
   line-height: inherit;
   vertical-align: baseline;
+}
+
+.notebook-live-cell {
+  position: relative;
+  min-width: 0;
+  padding: 2px 12px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--canvas);
+}
+
+.notebook-cell-gutter {
+  position: absolute;
+  z-index: 1;
+  bottom: 1px;
+  left: 1px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--faint);
+  cursor: pointer;
+}
+
+.notebook-cell-gutter .folio-icon {
+  width: 10px;
+  height: 10px;
+  opacity: 0.65;
+}
+
+.notebook-cell-gutter:is(:hover, :focus-visible) .folio-icon {
+  opacity: 1;
+}
+
+.notebook-live-cell-body {
+  min-width: 0;
+}
+
+.notebook-live-cell-body :is(.markdown-cell, .markdown-source, .cell-input math-field) {
+  background: transparent;
+}
+.notebook-live-cell-body :is(.markdown-source, .markdown-rendered, .static-latex):focus-visible {
+  outline: 0;
+}
+.notebook-live-cell-body .markdown-cell {
+  margin: 0;
+  border: 0;
+}
+.notebook-state-empty {
+  border-style: dashed;
+}
+
+.notebook-state-focused {
+  border-color: var(--primary);
+}
+
+.notebook-state-editing {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 7%, var(--canvas));
+}
+
+.notebook-state-selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--canvas));
+}
+
+.notebook-state-computing {
+  border-color: var(--secondary);
+}
+
+.notebook-state-error {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, var(--canvas));
 }

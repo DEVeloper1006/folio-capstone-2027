@@ -1,0 +1,301 @@
+/**
+ * Render the open notebook page from query subscriptions, track cell selection and editing, and run page and cell commands.
+ *
+ * @file
+ */
+import { useImperativeHandle, useRef, useState } from 'react'
+import type { KeyboardEvent, Ref } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { PageFrame } from '#/components/page-view'
+import { CellFrame } from '#/component-library/cell-frame'
+import { MathIcon, MarkdownIcon } from '#/component-library/icons/folio-icons'
+import { LatexCell } from '#/components/latex-cell'
+import { MarkdownCell } from '#/components/markdown-cell'
+import { appendCell, editCell, notebookCommands, usePageSelection } from './use-page-state'
+import { createCellId } from './notebook-cells'
+import type { NotebookCell } from './notebook-cells'
+import type { Page, PageMetadata } from './page'
+/** Select the layout fields that change independently of a cell's text. */
+function pageLayout(page: Page): Omit<Page, 'cells'> & { cells: readonly Pick<NotebookCell, 'kind' | 'cellId'>[] } {
+  /** Keep each cell's identity and kind for ordering and the add-cell control. */
+  function cellSlot({ cellId, kind }: NotebookCell) {
+    return { cellId, kind }
+  }
+  return { ...page, cells: page.cells.map(cellSlot) }
+}
+
+/** Subscribe one editor to its cell and write changes against that page's latest document. */
+function NotebookCellEditor({ pageId, index, cellId, editing, focused, selected, selectRow, setEditing }: { pageId: string; index: number; cellId: string; editing: boolean; focused: boolean; selected: boolean; selectRow: (id: string) => void; setEditing: (id: string | null) => void }) {
+  const client = useQueryClient()
+  /** Ignore a stale slot while the layout is changing. */
+  function selectCell(page: Page) {
+    const cell = page.cells.at(index)
+    return cell?.cellId === cellId ? cell : undefined
+  }
+  const cell = usePageSelection(pageId, selectCell)
+  /** Store the edited source on the page containing this field. */
+  function changeSource(id: string, source: string) {
+    /** Apply the edit to the latest document. */
+    function update(page: Page) {
+      return editCell(page, id, source)
+    }
+    notebookCommands(client).updatePage(pageId, update)
+  }
+  /** Activate this cell through its normal edit control. */
+  function beginEditing() {
+    setEditing(cellId)
+  }
+  /** Finish or begin editing the current Markdown cell. */
+  function changeEditing(value: boolean) {
+    setEditing(value ? cellId : null)
+  }
+  /** Focus the frame to select this whole cell. */
+  function selectFromGutter() {
+    selectRow(cellId)
+  }
+  if (!cell) return null
+  return (
+    <CellFrame
+      state={editing ? 'editing' : focused ? 'focused' : selected ? 'selected' : 'unselected'}
+      icon={cell.kind === 'math' ? <MathIcon /> : <MarkdownIcon />}
+      label={`Select cell ${index + 1}`}
+      role="group"
+      tabIndex={0}
+      aria-label={`${cell.kind === 'math' ? 'Math' : 'Markdown'} cell ${index + 1}`}
+      data-cell-id={cellId}
+      onSelect={selectFromGutter}
+    >
+      {cell.kind === 'math' ? (
+        <LatexCell cellId={cellId} editing={editing} onBeginEditing={beginEditing} initialLatex={cell.latex} onLatexChange={changeSource} />
+      ) : (
+        <MarkdownCell cellId={cellId} editing={editing} onEditingChange={changeEditing} markdown={cell.markdown} onMarkdownChange={changeSource} />
+      )}
+    </CellFrame>
+  )
+}
+
+/** Render a cached page. Only layout changes update the frame and only the edited cell receives new source. */
+export function NotebookPageView({ pageId, commandRef }: { pageId: string; commandRef: Ref<(id: string) => boolean> }) {
+  const client = useQueryClient()
+  const page = usePageSelection(pageId, pageLayout)
+  const { updatePage, renamePage, getPage } = notebookCommands(client)
+  const [editingId, setEditing] = useState<string | null>(null)
+  const notebookRef = useRef<HTMLElement>(null)
+  const [viewingId, setViewing] = useState<string | null>(null)
+  const [selectedId, setSelected] = useState<string | null>(null)
+  const [notice, setNotice] = useState('')
+  /** Select a row in view mode and give it keyboard focus. */
+  function selectRow(id?: string) {
+    setEditing(null)
+    setSelected(id ?? null)
+    const row = id && notebookRef.current?.querySelector<HTMLElement>(`[data-cell-id="${CSS.escape(id)}"]`)
+    if (row) row.focus()
+    else notebookRef.current?.focus({ preventScroll: true })
+  }
+  /** Copy the latest LaTeX or Markdown source as plain text. */
+  async function copyCell(id: string) {
+    const current = getPage(pageId)
+    /** Identify the cell being copied. */
+    function matches(cell: NotebookCell) {
+      return cell.cellId === id
+    }
+    const cell = current?.cells.find(matches)
+    if (!cell) return
+    try {
+      await navigator.clipboard.writeText(cell.kind === 'math' ? cell.latex : cell.markdown)
+      setNotice('Cell copied')
+    } catch {
+      setNotice('Could not copy the cell to the clipboard.')
+    }
+  }
+
+  /** Finish the active editor or insert a sibling using the current stored source. */
+  function runCellCommand(command: string, id: string | null): boolean {
+    if (!page) return false
+    const cells = page.cells
+    /** Find the selected row in display order. */
+    function isCurrent(cell: Pick<NotebookCell, 'cellId'>) {
+      return cell.cellId === id
+    }
+    const index = cells.findIndex(isCurrent)
+    const first = cells.at(0)?.cellId
+    const last = cells.at(-1)?.cellId
+    switch (command) {
+      case 'workspace.page.scrollTop':
+        window.scrollTo(0, 0)
+        return true
+      case 'workspace.page.scrollBottom':
+        window.scrollTo(0, document.documentElement.scrollHeight)
+        return true
+      case 'workspace.page.display':
+        notebookRef.current?.querySelector<HTMLButtonElement>('.page-menu button')?.click()
+        return true
+      case 'workspace.page.full':
+      case 'workspace.page.narrow':
+        setMetadata({ ...page.pageMetadata, width: command.endsWith('.full') ? 'full' : 'narrow' })
+        return true
+      case 'workspace.currentPage.cell.addMath':
+        addMath()
+        return true
+      case 'workspace.currentPage.cell.addMarkdown':
+        addMarkdown()
+        return true
+      case 'workspace.currentPage.cell.add':
+        if (cells.at(-1)?.kind === 'markdown') addMarkdown()
+        else addMath()
+        return true
+      case 'workspace.currentPage.cell.selectFirst':
+        selectRow(first)
+        return !!first
+      case 'workspace.currentPage.cell.selectLast':
+        selectRow(last)
+        return !!last
+      case 'workspace.currentPage.cell.select':
+        selectRow(id ?? first)
+        return !!first
+      case 'workspace.currentPage.cell.selectNext':
+        selectRow(cells[Math.min(index + 1, cells.length - 1)]?.cellId)
+        return !!first
+      case 'workspace.currentPage.cell.selectPrevious':
+        selectRow(index < 0 ? last : cells[Math.max(0, index - 1)]?.cellId)
+        return !!first
+      case 'workspace.currentPage.cell.focusFirst':
+        setEditing(first ?? null)
+        return !!first
+      case 'workspace.currentPage.cell.focusLast':
+        setEditing(last ?? null)
+        return !!last
+      case 'workspace.currentPage.cell.focusAt': {
+        const position = Number(window.prompt('Cell number (1–' + cells.length + ')'))
+        const slot = Number.isInteger(position) && position > 0 ? cells.at(position - 1) : undefined
+        if (!slot) return false
+        setEditing(slot.cellId)
+        return true
+      }
+    }
+    if (!id) return false
+    const source = cells.at(index)
+    if (index < 0 || !source) return false
+    if (command === 'workspace.currentPage.cell.view') {
+      selectRow(id)
+      const selector = `[data-cell-id="${CSS.escape(id)}"] .notebook-live-cell-body [tabindex="0"]`
+      /** Focus the rendered contents after React has closed an active editor. */
+      function focusPreview() {
+        notebookRef.current?.querySelector<HTMLElement>(selector)?.focus()
+      }
+      requestAnimationFrame(focusPreview)
+      return true
+    }
+    if (command === 'workspace.currentPage.cell.edit') {
+      setEditing(id)
+      return true
+    }
+    if (command === 'workspace.currentPage.cell.copy') {
+      void copyCell(id)
+      return true
+    }
+    if (command === 'workspace.currentPage.cell.delete') {
+      /** Remove only the selected cell from the latest page. */
+      function remove(current: Page) {
+        /** Keep cells with other ids. */
+        function keep(cell: NotebookCell) {
+          return cell.cellId !== id
+        }
+        return { ...current, cells: current.cells.filter(keep) }
+      }
+      updatePage(pageId, remove)
+      selectRow(cells.at(index + 1)?.cellId ?? (index > 0 ? cells[index - 1].cellId : undefined))
+      return true
+    }
+    if (command === 'workspace.currentPage.cell.unfocus') {
+      setEditing(null)
+      setSelected(null)
+      notebookRef.current?.focus({ preventScroll: true })
+      return true
+    }
+    const duplicate = command === 'workspace.currentPage.cell.duplicateBelow'
+    if (duplicate ? source.kind !== 'math' : command !== 'workspace.currentPage.cell.createBelow' && command !== 'workspace.currentPage.cell.createAbove') return false
+    const cellId = createCellId()
+    /** Insert after the source in the latest page, leaving its content untouched. */
+    function insert(current: Page) {
+      const sourceIndex = current.cells.findIndex(isCurrent)
+      const original = current.cells.at(sourceIndex)
+      if (sourceIndex < 0 || !original) return current
+      const cell: NotebookCell = original.kind === 'math' ? { cellId, kind: 'math', latex: duplicate ? original.latex : '' } : { cellId, kind: 'markdown', markdown: '' }
+      const nextCells = [...current.cells]
+      nextCells.splice(command.endsWith('createAbove') ? sourceIndex : sourceIndex + 1, 0, cell)
+      return { ...current, cells: nextCells }
+    }
+    updatePage(pageId, insert)
+    setSelected(cellId)
+    setEditing(cellId)
+    return true
+  }
+  /** Keep the last notebook cell available while the sidebar opens the palette. */
+  function recordFocus(event: React.FocusEvent<HTMLElement>) {
+    const row = event.target.closest<HTMLElement>('[data-cell-id]')
+    setViewing(row && row !== event.target ? (row.dataset.cellId ?? null) : null)
+    setSelected(row?.dataset.cellId ?? null)
+    if (!row || row === event.target) setEditing(null)
+  }
+  /** Dispatch a palette choice against the last focused notebook cell. */
+  function paletteCommand(command: string) {
+    return runCellCommand(command, selectedId)
+  }
+  /** Expose the same dispatcher used by shortcuts to the route's command palette. */
+  function bindPalette() {
+    return paletteCommand
+  }
+  useImperativeHandle(commandRef, bindPalette)
+
+  /** Enter opens a selected row for editing. Arrow keys move between selected rows. */
+  function handleRowKey(event: KeyboardEvent<HTMLElement>) {
+    if (!(event.target instanceof HTMLElement) || !event.target.dataset.cellId || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
+    const actions: Record<string, string> = { Enter: 'edit', ArrowDown: 'selectNext', ArrowUp: 'selectPrevious' }
+    const action = actions[event.key]
+    if (action && runCellCommand('workspace.currentPage.cell.' + action, event.target.dataset.cellId)) event.preventDefault()
+  }
+  /** Rename the open page. */
+  function rename(title: string) {
+    renamePage(pageId, title)
+  }
+  /** Apply the selected display settings. */
+  function setMetadata(pageMetadata: PageMetadata) {
+    /** Copy the display settings onto the latest page. */
+    function update(current: Page) {
+      return { ...current, pageMetadata }
+    }
+    updatePage(pageId, update)
+  }
+  /** Append a math cell. */
+  function addMath() {
+    /** Allocate a math cell on the latest page. */
+    function update(current: Page) {
+      return appendCell(current, 'math')
+    }
+    updatePage(pageId, update)
+  }
+  /** Append a Markdown cell. */
+  function addMarkdown() {
+    const cellId = createCellId()
+    /** Allocate a Markdown cell on the latest page. */
+    function update(current: Page) {
+      return appendCell(current, 'markdown', cellId)
+    }
+    updatePage(pageId, update)
+    setEditing(cellId)
+  }
+  /** Subscribe each cell by its position and stable identity. */
+  function renderSlot(slot: Pick<NotebookCell, 'cellId'>, index: number) {
+    return <NotebookCellEditor focused={slot.cellId === viewingId} selectRow={selectRow} selected={slot.cellId === selectedId} editing={slot.cellId === editingId} setEditing={setEditing} key={slot.cellId} pageId={pageId} cellId={slot.cellId} index={index} />
+  }
+  if (!page) return null
+  return (
+    <main ref={notebookRef} tabIndex={-1} onKeyDown={handleRowKey} onFocusCapture={recordFocus} className={`notebook notebook-${page.pageMetadata.width}`} aria-label="Folio notebook">
+      <span className="cell-command-notice" role="status">
+        {notice}
+      </span>
+      <PageFrame page={page} interaction="editable" onAddMathCell={addMath} onAddMarkdownCell={addMarkdown} onTitleChange={rename} onPageMetadataChange={setMetadata} content={page.cells.map(renderSlot)} />
+    </main>
+  )
+}

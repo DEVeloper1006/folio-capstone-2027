@@ -1,83 +1,152 @@
 /**
- * Display the mixed math and Markdown notebook at the home route. Contains the sample page, in-memory source updates, and actions for adding either cell type.
+ * Display the mixed math and Markdown notebook at the home route. Contains the notebook state provider and the shell that shows the page list beside the open page, the keyboard-shortcut list, or the command palette.
  *
  * @file
  */
 
+import { useQueryClient } from '@tanstack/react-query'
+import { useEffect, useRef, useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
-import { useCallback, useState } from 'react'
-import { PageView } from '#/components/page-view'
-import { createSamplePage } from '#/notebook/sample-page.ts'
-import { createCellId } from '#/notebook/notebook-cells.ts'
-import type { NotebookCell } from '#/notebook/notebook-cells.ts'
-import type { Page } from '#/notebook/page.ts'
+import { CommandPaletteView } from '#/components/command-palette-view.tsx'
+import type { CommandPaletteAction } from '#/components/command-palette-view.tsx'
+import { CommandSettingsView } from '#/components/command-settings-view.tsx'
+import { PageSidebarView } from '#/components/page-sidebar-view'
+import { NotebookPageView } from '#/notebook/notebook-page-view'
+import { ThemeControls } from '#/theme/theme-controls'
+import { workspaceCommandForKey } from '#/editor/commands/editor-commands.ts'
+import { useEditorCommandShortcuts } from '#/editor/commands/use-editor-command-shortcuts.ts'
+import { notebookCommands, usePageList } from '#/notebook/use-page-state.tsx'
 
 export const Route = createFileRoute('/')({ component: NotebookPage })
 
-/** Render the sample page, retaining its cells in React memory until the page reloads. */
+/** Show the notebook, settings and palette. Subscribe the sidebar to page titles and selection. */
 function NotebookPage() {
-  const [page, setPage] = useState(createSamplePage)
+  const { pages, openPageId } = usePageList()
+  const { selectPage: showPage, createPage, renamePage, deletePage } = notebookCommands(useQueryClient())
+  const { overrides, actions, setShortcut, resetShortcut } = useEditorCommandShortcuts()
+  const sidebarCommand = useRef<((id: string) => boolean) | null>(null)
+  const cellCommand = useRef<((id: string) => boolean) | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState<'shortcuts' | 'theme' | null>(null)
+  const paletteOrigin = useRef<HTMLElement | null>(null)
+  const [paletteOpen, setPaletteOpen] = useState(false)
+  const [lastCommandLabel, setLastCommandLabel] = useState<string | undefined>(undefined)
 
-  /** Replace the stored LaTeX for the edited cell while preserving every other cell. */
-  const updateCellLatex = (cellId: string, latex: string) => {
-    /** Compute the next notebook state from the latest cell array so concurrent React updates are retained. */
-    const replaceCellLatex = (currentPage: Page) => {
-      /** Update only the cell whose identifier matches the edit. */
-      const updateMatchingCell = (cell: NotebookCell) => (cell.cellId === cellId && cell.kind === 'math' ? { ...cell, latex } : cell)
-      return { ...currentPage, cells: currentPage.cells.map(updateMatchingCell) }
+  /** Leave the shortcut list and show the requested page. */
+  function selectPage(pageId: string) {
+    setSettingsOpen(null)
+    showPage(pageId)
+  }
+
+  /** Leave the shortcut list, then add an empty page and show it. */
+  function createAndShowPage() {
+    setSettingsOpen(null)
+    createPage()
+  }
+
+  /** Show the keyboard shortcut list in place of the page. */
+  function openSettings() {
+    setSettingsOpen('shortcuts')
+  }
+
+  /** Open the shared palette and color-mode picker. */
+  function openThemes() {
+    setSettingsOpen('theme')
+  }
+  /** Show the command palette over the page or the shortcut list. */
+  function openCommandPalette() {
+    paletteOrigin.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setPaletteOpen(true)
+  }
+
+  /** Hide the command palette without choosing a command. */
+  function closeCommandPalette() {
+    setPaletteOpen(false)
+    paletteOrigin.current?.focus({ preventScroll: true })
+  }
+
+  /** Run workspace commands from either a shortcut or the palette. */
+  function dispatch(id: string) {
+    if (id === 'workspace.command.open') {
+      openCommandPalette()
+      return true
     }
-
-    setPage(replaceCellLatex)
-  }
-
-  const handleLatexChange = useCallback(updateCellLatex, [])
-
-  /** Replace only a Markdown cell's source so preview toggling never changes its stored content or neighboring mathematical editors. */
-  const updateCellMarkdown = (cellId: string, markdown: string) => {
-    /** Apply a Markdown edit against the latest notebook state. */
-    const replaceCellMarkdown = (currentPage: Page) => {
-      /** Preserve cell identity and leave other cell types untouched. */
-      const updateMatchingCell = (cell: NotebookCell) => (cell.cellId === cellId && cell.kind === 'markdown' ? { ...cell, markdown } : cell)
-      return { ...currentPage, cells: currentPage.cells.map(updateMatchingCell) }
+    if (id === 'workspace.settings.theme') {
+      openThemes()
+      return true
     }
-    setPage(replaceCellMarkdown)
-  }
-
-  const handleMarkdownChange = useCallback(updateCellMarkdown, [])
-
-  /** Append an empty cell of the requested kind while retaining all existing sources and stable cell IDs. */
-  function addCell(kind: NotebookCell['kind']) {
-    /** Allocate a new identifier for this append-only notebook and initialize the matching source field. */
-    function appendEmptyCell(currentPage: Page) {
-      const cellId = createCellId()
-      const cell: NotebookCell = kind === 'math' ? { cellId, kind, latex: '' } : { cellId, kind, markdown: '' }
-      return { ...currentPage, cells: [...currentPage.cells, cell] }
+    if (id === 'workspace.settings.shortcuts') {
+      openSettings()
+      return true
     }
-    setPage(appendEmptyCell)
-  }
-
-  /** Add an empty mathematical editor using the existing MathLive interaction model. */
-  function handleAddMathCell() {
-    addCell('math')
-  }
-
-  /** Add an empty Markdown cell that opens directly in source-editing mode. */
-  function handleAddMarkdownCell() {
-    addCell('markdown')
-  }
-
-  /** Replace the page's display metadata while keeping its cells. */
-  function handlePageMetadataChange(pageMetadata: Page['pageMetadata']) {
-    /** Apply the next display settings to the latest page. */
-    function replacePageMetadata(currentPage: Page) {
-      return { ...currentPage, pageMetadata }
+    if (id.startsWith('open-page:')) {
+      selectPage(id.slice('open-page:'.length))
+      return true
     }
-    setPage(replacePageMetadata)
+    return sidebarCommand.current?.(id) || cellCommand.current?.(id) || false
+  }
+  /** Run a chosen command after dismissing the palette. */
+  function runCommand(action: CommandPaletteAction) {
+    setPaletteOpen(false)
+    if (dispatch(action.id)) setLastCommandLabel(action.label)
+  }
+  /** Listen at the document so the palette shortcut works before any page control has focus. */
+  function listenForWorkspaceKeys() {
+    /** Scope cell shortcuts to cell elements and let dialogs and shortcut recording own their input. */
+    function handleKey(event: KeyboardEvent) {
+      if (event.isComposing || event.defaultPrevented || paletteOpen || document.querySelector('.command-settings-shortcut.is-recording')) return
+      const target = event.target
+      const command = workspaceCommandForKey(event, overrides)
+      if (!command || !(target instanceof Element)) return
+      if ((command.when === 'cellFocus' || command.when === 'mathFocus') && !target.closest('[data-cell-id]')) return
+      if (command.id.endsWith('.duplicateBelow') && target.closest('.markdown-cell')) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        return
+      }
+      if (target.closest('.command-menu,.latex-editor-inline') && command.id !== 'workspace.command.open') return
+      if (target.closest('input,textarea,[contenteditable=true]') && !target.closest('[data-cell-id]') && command.id !== 'workspace.command.open') return
+      if (event.repeat || !dispatch(command.id)) return
+      event.preventDefault()
+      event.stopImmediatePropagation()
+    }
+    document.addEventListener('keydown', handleKey, true)
+    /** Detach the listener with its current page and bindings. */
+    function detach() {
+      document.removeEventListener('keydown', handleKey, true)
+    }
+    return detach
+  }
+  useEffect(listenForWorkspaceKeys)
+  /** Expose each sidebar page in the palette. */
+  function openPageAction(page: (typeof pages)[number]) {
+    return { id: 'open-page:' + page.pageId, label: 'Open page: ' + (page.title || 'Untitled') }
   }
 
   return (
-    <main className={`notebook notebook-${page.pageMetadata.width}`} aria-label="Folio notebook">
-      <PageView page={page} onLatexChange={handleLatexChange} onMarkdownChange={handleMarkdownChange} onAddMathCell={handleAddMathCell} onAddMarkdownCell={handleAddMarkdownCell} onPageMetadataChange={handlePageMetadataChange} />
-    </main>
+    <div className="notebook-shell">
+      <PageSidebarView
+        commandRef={sidebarCommand}
+        pages={pages}
+        openPageId={openPageId}
+        settingsOpen={!!settingsOpen}
+        onOpenThemes={openThemes}
+        onSelectPage={selectPage}
+        onCreatePage={createAndShowPage}
+        onRenamePage={renamePage}
+        onDeletePage={deletePage}
+        onOpenSettings={openSettings}
+        onOpenCommandPalette={openCommandPalette}
+      />
+      <div className="notebook-main">
+        {settingsOpen ? (
+          <main className="notebook notebook-full" aria-label={settingsOpen === 'theme' ? 'Theme settings' : 'Keyboard shortcuts'}>
+            {settingsOpen === 'theme' ? <ThemeControls /> : <CommandSettingsView overrides={overrides} paletteOpen={paletteOpen} lastCommandLabel={lastCommandLabel} onShortcutChange={setShortcut} onResetShortcut={resetShortcut} onOpenCommandPalette={openCommandPalette} />}
+          </main>
+        ) : (
+          <NotebookPageView commandRef={cellCommand} key={openPageId} pageId={openPageId} />
+        )}
+      </div>
+      <CommandPaletteView actions={[...actions, ...pages.map(openPageAction)]} open={paletteOpen} onClose={closeCommandPalette} onRun={runCommand} />
+    </div>
   )
 }

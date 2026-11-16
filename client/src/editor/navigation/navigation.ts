@@ -5,6 +5,7 @@
  */
 
 import type { MathfieldElement } from 'mathlive'
+import type { ShortcutOverrides } from '../commands/shortcut-overrides.ts'
 import { getNavigationAction } from './navigation-actions.ts'
 import type { CursorSelection } from './navigation-actions.ts'
 import { createNavigationState, applyNavigationAction } from './navigation-transition.ts'
@@ -25,7 +26,7 @@ function applySelection(mathfield: MathfieldElement, selection: CursorSelection)
 }
 
 /** Connect one MathLive field to navigation, allowing a cell command to consume a key first. Cache unchanged structure and return a listener cleanup function. */
-export function installNavigation(mathfield: MathfieldElement, beforeKeyDown?: (event: KeyboardEvent) => boolean) {
+export function installNavigation(mathfield: MathfieldElement, beforeKeyDown?: (event: KeyboardEvent) => boolean, readOverrides?: () => ShortcutOverrides | undefined) {
   let cachedLatex: string | undefined
   let cachedStructure: ReturnType<typeof buildStructure>
   let navigationState = createNavigationState(readSelection(mathfield))
@@ -69,7 +70,7 @@ export function installNavigation(mathfield: MathfieldElement, beforeKeyDown?: (
       return
     }
     if (['Alt', 'Shift', 'Control', 'Meta'].includes(event.key)) return
-    const navigationAction = getNavigationAction(event)
+    const navigationAction = getNavigationAction(event, readOverrides?.())
     if (!navigationAction || mathfield.mode === 'latex') {
       resetSelectionHistory()
       return

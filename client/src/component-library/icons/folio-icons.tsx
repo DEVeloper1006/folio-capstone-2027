@@ -14,6 +14,8 @@ import {
   Check,
   CheckCircle2,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   ClipboardPaste,
   Code,
   Columns2,
@@ -22,11 +24,13 @@ import {
   CornerUpRight,
   Ellipsis,
   Eye,
+  File,
   FileCode,
   FileText,
   GitCompare,
   Globe,
   Heading2,
+  Settings,
   Italic,
   Keyboard,
   Link2,
@@ -36,6 +40,8 @@ import {
   MessageSquarePlus,
   Mic,
   Minus,
+  PanelLeft,
+  PanelLeftClose,
   Paperclip,
   Pencil,
   Plus,
@@ -126,6 +132,31 @@ export function MarkdownIcon() {
   return renderCompactIcon(FileText)
 }
 
+/** Mark one notebook page in the page list. */
+export function PageIcon() {
+  return renderCompactIcon(File)
+}
+
+/** Collapse the page list to its icons. */
+export function SidebarCollapseIcon() {
+  return renderCompactIcon(ChevronsLeft)
+}
+
+/** Restore the page list from its icon column. */
+export function SidebarExpandIcon() {
+  return renderCompactIcon(ChevronsRight)
+}
+
+/** Hide the page list. */
+export function SidebarHideIcon() {
+  return renderCompactIcon(PanelLeftClose)
+}
+
+/** Show the page list after it has been hidden. */
+export function SidebarShowIcon() {
+  return renderCompactIcon(PanelLeft)
+}
+
 /** Mark bold text formatting. */
 export function BoldIcon() {
   return renderCompactIcon(Bold)
@@ -184,6 +215,11 @@ export function FullWidthIcon() {
 /** Mark page display and layout preferences. */
 export function SettingsIcon() {
   return renderCompactIcon(SlidersHorizontal)
+}
+
+/** Mark the notebook settings menu. */
+export function GearIcon() {
+  return renderCompactIcon(Settings)
 }
 
 /** Mark a cell or overflow action menu trigger. */

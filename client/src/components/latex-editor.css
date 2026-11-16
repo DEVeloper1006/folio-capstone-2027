@@ -8,6 +8,10 @@
   cursor: text;
 }
 
+.static-latex.is-view {
+  cursor: default;
+}
+
 .static-latex .katex-display {
   margin: 0;
 }

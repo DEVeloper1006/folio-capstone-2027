@@ -1,11 +1,11 @@
 /**
- * Render the expression search input, selectable results, and one-level variant list beneath a cell. Contains accessible combobox wiring, focus cleanup, and mouse interactions.
+ * Render the expression search input, selectable results, and one-level variant list beneath a cell. Contains accessible combobox wiring, focus cleanup, and one shared highlight for the pointer and the arrow keys.
  *
  * @file
  */
 
 import { useEffect, useId, useRef } from 'react'
-import type { ChangeEvent, FocusEvent, MouseEvent } from 'react'
+import type { ChangeEvent, FocusEvent, MouseEvent, PointerEvent } from 'react'
 import type { CommandMatch, useExpressionCommands } from '#/editor/index.ts'
 
 /** Receive the local command session and its handlers without owning search or MathLive integration. */
@@ -51,7 +51,7 @@ export function ExpressionCommandMenuView({ menu }: ExpressionCommandMenuViewPro
     menu.closeMenu()
   }
 
-  /** Render an insertable command and a separate variants button when children exist. */
+  /** Render an insertable command and a separate variants button when children exist. The command that opened the current list is itself a choice and does not offer that same list again. */
   function renderResult(match: CommandMatch, index: number) {
     const { command, parent } = match
     const isActive = index === menu.activeIndex
@@ -63,8 +63,9 @@ export function ExpressionCommandMenuView({ menu }: ExpressionCommandMenuViewPro
     function handleVariants() {
       menu.openVariants(command)
     }
-    /** Keep keyboard navigation aligned with the row under the pointer. */
-    function handlePointerMove() {
+    /** Select this row when the pointer moves onto it. A pointer that stays still leaves the arrow-key selection in place. */
+    function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
+      if (event.movementX === 0 && event.movementY === 0) return
       if (!isActive) menu.setActiveIndex(index)
     }
     return (
@@ -78,7 +79,7 @@ export function ExpressionCommandMenuView({ menu }: ExpressionCommandMenuViewPro
             {parent && <small>{parent.label}</small>}
           </span>
         </button>
-        {command.variants?.length ? (
+        {command.variants?.length && command.id !== menu.parent?.id ? (
           <button className="command-variants" type="button" tabIndex={-1} aria-label={`Variants of ${command.label}`} onMouseDown={keepQueryFocus} onClick={handleVariants}>
             ›
           </button>
@@ -91,7 +92,7 @@ export function ExpressionCommandMenuView({ menu }: ExpressionCommandMenuViewPro
   return (
     <div className="command-menu" onBlur={handleBlur}>
       <div className="command-search">
-        <span aria-hidden="true">/</span>
+        <span aria-hidden="true">\</span>
         <input
           ref={inputRef}
           aria-label="Search expressions"
@@ -119,7 +120,6 @@ export function ExpressionCommandMenuView({ menu }: ExpressionCommandMenuViewPro
         {menu.results.map(renderResult)}
       </div>
       {!menu.results.length && <p role="status">{menu.status === 'loading' ? 'Searching…' : menu.status === 'error' ? 'Search unavailable. Try another query.' : 'No matching expressions.'}</p>}
-      <p className="command-help">↑ ↓ select · → variants · ← back · Enter insert · Esc close</p>
     </div>
   )
 }

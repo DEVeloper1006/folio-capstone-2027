@@ -1,5 +1,5 @@
 /**
- * Show the component gallery at /component-library, grouped into theme, notebook, chat, agent, and control sections. The chat section includes a working sidebar dock and a full-screen assistant. Both answer with the same mock reply.
+ * Show the component gallery at /component-library, grouped into theme, notebook, command palette, sidebars, chat, agent, and control sections. The chat section includes a working sidebar dock and a full-screen assistant. Both answer with the same mock reply.
  *
  * @file
  */
@@ -12,6 +12,7 @@ import { BaseCheckbox, BaseContextMenu, BaseDialog, BaseDisclosure, BaseExpressi
 import { ChatContextAttachments, SelectionToChat } from '#/component-library/primitives/chat-context-specimens.tsx'
 import { FullScreenChat, SidebarChat } from '#/component-library/primitives/chat-surfaces.tsx'
 import { CellStates, CommandPaletteSpecimen, IconSet, InlineSuggestion, SpeechInput } from '#/component-library/primitives/notebook-specimens.tsx'
+import { PageSidebarSpecimen } from '#/component-library/primitives/sidebar-specimens.tsx'
 import { ThemeControls } from '#/theme/theme-controls.tsx'
 import showcaseStylesheetUrl from '../component-library/primitives/primitive-showcase.css?url'
 
@@ -66,7 +67,7 @@ const notebookSpecimens: readonly PrimitiveSpecimen[] = [
   {
     id: 'cell-states',
     title: 'Cell states',
-    detail: 'Six real editable MathLive LatexCells showing empty, focused, editing, selected, computing, and error states. Click into any formula to navigate or edit it.',
+    detail: 'Seven real editable MathLive LatexCells showing unselected, empty, focused, editing, selected, computing, and error states. Click into any formula to navigate or edit it.',
     sample: <CellStates />,
   },
   {
@@ -76,16 +77,28 @@ const notebookSpecimens: readonly PrimitiveSpecimen[] = [
     sample: <InlineSuggestion />,
   },
   {
-    id: 'command-palette',
-    title: 'Command palette',
-    detail: 'A searchable list of notebook actions. Arrow keys move, Enter runs the highlighted action, and Escape closes the palette. These sample actions only record their name. Shortcuts are labels and are not bound yet.',
-    sample: <CommandPaletteSpecimen />,
-  },
-  {
     id: 'speech',
     title: 'Speech to text',
     detail: 'Compact microphone toggle with a shortcut tooltip. When pressed, spoken math and prose stream into the focused cell.',
     sample: <SpeechInput />,
+  },
+]
+
+const commandPaletteSpecimens: readonly PrimitiveSpecimen[] = [
+  {
+    id: 'command-palette-shell',
+    title: 'Search and run',
+    detail: 'The pointer and the arrow keys share one highlighted row. Moving the pointer selects the row under it, and the arrow keys then move that highlight until the pointer moves again. Enter runs it. These sample actions only record their name. Shortcuts are labels and are not bound yet.',
+    sample: <CommandPaletteSpecimen />,
+  },
+]
+
+const sidebarSpecimens: readonly PrimitiveSpecimen[] = [
+  {
+    id: 'page-sidebar',
+    title: 'Page list',
+    detail: 'The new-page control is an icon with a tooltip. Each page is left aligned, with a page icon, a three-dot menu, and the same actions on right-click. The settings menu at the bottom opens the shortcut list or the command palette. This sample page is view-only.',
+    sample: <PageSidebarSpecimen />,
   },
 ]
 
@@ -159,7 +172,7 @@ const controlSpecimens: readonly PrimitiveSpecimen[] = [
   {
     id: 'search',
     title: 'Expression search',
-    detail: 'Slash-command combobox with a leading search icon and command trigger hints.',
+    detail: 'Expression combobox with a leading search icon and command trigger hints.',
     sample: <BaseExpressionSearch />,
   },
   {
@@ -214,6 +227,18 @@ const gallerySections: readonly GallerySection[] = [
     specimens: notebookSpecimens,
   },
   {
+    id: 'command-palette',
+    title: 'Command palette',
+    detail: 'A searchable list of notebook actions. The notebook supplies the actions. This shell searches them and reports the one that was chosen.',
+    specimens: commandPaletteSpecimens,
+  },
+  {
+    id: 'sidebars',
+    title: 'Sidebars',
+    detail: 'Lists that sit beside a page. The page list switches which page is open. Chat has its own dock in the next section.',
+    specimens: sidebarSpecimens,
+  },
+  {
     id: 'chat',
     title: 'Chat',
     detail: 'A sidebar dock and a full-screen assistant you can type into. Sending any message returns the same mock reply. Highlighting and context pills show how notebook material attaches to that thread.',
@@ -236,6 +261,8 @@ const gallerySections: readonly GallerySection[] = [
 const galleryNav: readonly GalleryNavItem[] = [
   { id: 'theme', title: 'Theme' },
   { id: 'notebook', title: 'Notebook' },
+  { id: 'command-palette', title: 'Command palette' },
+  { id: 'sidebars', title: 'Sidebars' },
   { id: 'chat', title: 'Chat' },
   { id: 'agent', title: 'Agent' },
   { id: 'controls', title: 'Controls' },
@@ -274,20 +301,20 @@ function renderGallerySection(section: GallerySection) {
   )
 }
 
-/** Show the theme tokens, then the notebook, chat, agent, and control sections. */
+/** Show the theme tokens, then the notebook, command palette, sidebars, chat, agent, and control sections. */
 function ComponentLibraryPage() {
   return (
     <Tooltip.Provider delay={220} closeDelay={0}>
       <main className="primitive-gallery">
         <header>
           <h1>Components</h1>
-          <p>Theme, notebook chrome, working chat surfaces, agent tool cards, and Base UI controls. The chats use mock replies.</p>
+          <p>Theme, notebook chrome, a command palette, page sidebars, working chat surfaces, agent tool cards, and Base UI controls. The chats use mock replies.</p>
         </header>
         <nav className="gallery-nav" aria-label="Component sections">
           {galleryNav.map(renderGalleryNavLink)}
         </nav>
         <div id="theme" className="gallery-anchor">
-          <ThemeControls />
+          <ThemeControls gallery />
         </div>
         {gallerySections.map(renderGallerySection)}
       </main>

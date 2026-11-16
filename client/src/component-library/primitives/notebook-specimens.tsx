@@ -1,14 +1,18 @@
 /**
- * Show notebook chrome around live math and Markdown cells: the Lucide icon palette with tooltips, six real MathLive `LatexCell` states, inline completions, speech dictation, and the command palette shell.
+ * Show notebook chrome around live math and Markdown cells: the Lucide icon palette with tooltips, seven real MathLive `LatexCell` states, inline completions, speech dictation, and the command palette shell.
  *
  * @file
  */
 
+import { CellFrame } from '../cell-frame'
+import type { CellFrameState } from '../cell-frame'
 import { useCallback, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Button } from '#/component-library/index.ts'
 import { CommandPaletteView } from '#/components/command-palette-view.tsx'
 import type { CommandPaletteAction } from '#/components/command-palette-view.tsx'
+import { editorCommandAction, editorCommands } from '#/editor/commands/editor-commands.ts'
+import type { EditorCommand } from '#/editor/commands/editor-commands.ts'
 import { LatexCell } from '#/components/latex-cell.tsx'
 import {
   AcceptIcon,
@@ -55,7 +59,7 @@ interface IconSample {
 
 /** Describe one live `LatexCell` state specimen, its starting LaTeX expression, and optional evaluation or diagnostic footer. */
 interface LiveCellStateSample {
-  id: 'empty' | 'focused' | 'editing' | 'selected' | 'computing' | 'error'
+  id: CellFrameState
   cellId: string
   label: string
   detail: string
@@ -81,7 +85,7 @@ const iconSamples: readonly IconSample[] = [
   { id: 'bold', label: 'Bold', shortcut: 'Cmd B', Icon: BoldIcon },
   { id: 'italic', label: 'Italic', shortcut: 'Cmd I', Icon: ItalicIcon },
   { id: 'code', label: 'Inline code', shortcut: 'Cmd E', Icon: CodeIcon },
-  { id: 'search', label: 'Expression search', shortcut: '/', Icon: SearchIcon },
+  { id: 'search', label: 'Expression search', shortcut: '\\', Icon: SearchIcon },
   { id: 'settings', label: 'Page display', Icon: SettingsIcon },
   { id: 'shortcuts', label: 'Movement keys', shortcut: '?', Icon: KeyboardIcon },
   { id: 'copy', label: 'Copy LaTeX', shortcut: 'Cmd C', Icon: CopyIcon },
@@ -97,11 +101,12 @@ const iconSamples: readonly IconSample[] = [
 ]
 
 const liveCellStates: readonly LiveCellStateSample[] = [
+  { id: 'unselected', cellId: 'state-cell-unselected', label: 'Unselected', detail: 'Rendered cell with no selection or editor focus.', initialLatex: 'x+y', Icon: MathIcon },
   {
     id: 'empty',
     cellId: 'state-cell-empty',
     label: 'Empty',
-    detail: 'Type / inside the empty field to open the expression command menu.',
+    detail: 'Type a backslash inside the empty field to open the expression command menu.',
     initialLatex: '',
     Icon: CellEmptyIcon,
   },
@@ -109,7 +114,7 @@ const liveCellStates: readonly LiveCellStateSample[] = [
     id: 'focused',
     cellId: 'state-cell-focused',
     label: 'Focused',
-    detail: 'Cell frame holds focus; arrow keys step structurally into numerators and limits.',
+    detail: 'The rendered contents hold focus. Press Enter to edit.',
     initialLatex: '\\int_{0}^{\\infty} e^{-x^2}\\,dx = \\frac{\\sqrt{\\pi}}{2}',
     Icon: CellFocusedIcon,
   },
@@ -125,7 +130,7 @@ const liveCellStates: readonly LiveCellStateSample[] = [
     id: 'selected',
     cellId: 'state-cell-selected',
     label: 'Selected',
-    detail: 'Included in multi-cell selection or queued to attach to chat (Cmd L).',
+    detail: 'Selected as a whole cell. Enter opens its editor.',
     initialLatex: '\\sum_{k=1}^{n} k^2 = \\frac{n(n+1)(2n+1)}{6}',
     Icon: CellSelectedIcon,
   },
@@ -178,21 +183,14 @@ export function CellStates() {
 
   const handleLatexChange = useCallback(recordCellEdit, [])
 
-  /** Render one headerless cell-state row containing a quiet gutter icon with a tooltip and a live `LatexCell`. */
+  /** Render one headerless cell-state row containing a small bottom-left icon with a tooltip and a live `LatexCell`. */
   function renderLiveStateCell(state: LiveCellStateSample) {
     const StateIcon = state.Icon
     const tooltipText = state.diagnostic === undefined ? `${state.label} — ${state.detail}` : `${state.label} — ${state.diagnostic}`
     return (
-      <div className={`notebook-live-cell notebook-state-${state.id}`} key={state.id}>
-        <IconTooltip label={tooltipText}>
-          <button type="button" className="notebook-cell-gutter" aria-label={`${state.label} cell state`}>
-            <StateIcon />
-          </button>
-        </IconTooltip>
-        <div className="notebook-live-cell-body">
-          <LatexCell cellId={state.cellId} initialLatex={state.initialLatex} onLatexChange={handleLatexChange} />
-        </div>
-      </div>
+      <CellFrame state={state.id} key={state.id} label={tooltipText} icon={<StateIcon />}>
+        <LatexCell cellId={state.cellId} initialLatex={state.initialLatex} onLatexChange={handleLatexChange} />
+      </CellFrame>
     )
   }
 
@@ -248,16 +246,12 @@ export function InlineSuggestion() {
   )
 }
 
-/** Sample the actions the notebook will register. Choosing one records its name. The shortcut text is not bound. */
-const paletteActions: readonly CommandPaletteAction[] = [
-  { id: 'focus-first', label: 'Focus first cell', shortcut: '⌘↑', keywords: ['top', 'start'] },
-  { id: 'focus-last', label: 'Focus last cell', shortcut: '⌘↓', keywords: ['bottom', 'end'] },
-  { id: 'focus-index', label: 'Focus cell by index', keywords: ['go to', 'number'] },
-  { id: 'create-below', label: 'Create cell below', keywords: ['add', 'insert', 'new'] },
-  { id: 'create-above', label: 'Create cell above', keywords: ['add', 'insert', 'new'] },
-  { id: 'create-and-focus', label: 'Create cell and focus it', keywords: ['add', 'new'] },
-  { id: 'delete-current', label: 'Delete current cell', keywords: ['remove'] },
-]
+/** Show one catalog command with its default shortcut label. Choosing it in the palette records its name. The shortcut text is not bound. */
+function samplePaletteAction(command: EditorCommand): CommandPaletteAction {
+  return editorCommandAction(command, {})
+}
+
+const paletteActions: readonly CommandPaletteAction[] = editorCommands.map(samplePaletteAction)
 
 /** Open the command palette and record which sample action was chosen. The notebook cells on this page stay where they are. */
 export function CommandPaletteSpecimen() {
