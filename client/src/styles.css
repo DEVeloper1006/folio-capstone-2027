@@ -52,16 +52,13 @@ body {
 }
 
 .cell {
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  align-items: start;
+  min-width: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
 }
 
-.cell-number {
-  padding: 18px 9px 0 0;
-  color: #999;
-  font-size: 10px;
-  text-align: right;
+.cell:focus-within {
+  border-color: #d4d4d4;
 }
 
 .cell-input {
@@ -76,18 +73,7 @@ body {
 
 .markdown-cell {
   margin: 2px 0 12px;
-  border: 1px solid #e5e5e5;
-  border-radius: 6px;
   background: #fff;
-}
-
-.markdown-cell:focus-within {
-  border-color: #a3a3a3;
-}
-
-.markdown-cell.is-editing {
-  border-color: #7279a8;
-  box-shadow: 0 0 0 2px #7279a810;
 }
 
 .markdown-toolbar {
@@ -365,17 +351,11 @@ math-field {
   width: 100%;
   min-height: 50px;
   padding: 7px 8px;
-  border: 1px solid transparent;
+  border: 0;
   border-radius: 4px;
-  outline: 1px solid #000;
-  outline-offset: 1px;
+  outline: none;
   background: transparent;
   font-size: 21px;
-}
-
-math-field:focus-within {
-  outline: 1px solid #000;
-  outline-offset: 1px;
 }
 
 math-field::part(virtual-keyboard-toggle),
