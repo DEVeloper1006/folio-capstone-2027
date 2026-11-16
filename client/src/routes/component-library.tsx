@@ -11,7 +11,7 @@ import { AgentToolCards } from '#/component-library/primitives/agent-tool-specim
 import { BaseCheckbox, BaseContextMenu, BaseDialog, BaseDisclosure, BaseExpressionSearch, BaseHoverCard, BaseMenu, BasePageWidth, BasePopover, BaseShortcutList, BaseSpacing, BaseTabs, BaseToolbar, BaseTooltip } from '#/component-library/primitives/base-ui-primitives.tsx'
 import { ChatContextAttachments, SelectionToChat } from '#/component-library/primitives/chat-context-specimens.tsx'
 import { FullScreenChat, SidebarChat } from '#/component-library/primitives/chat-surfaces.tsx'
-import { CellStates, CommandPaletteSpecimen, IconSet, InlineSuggestion, SpeechInput } from '#/component-library/primitives/notebook-specimens.tsx'
+import { CellStates, MatrixBuilderSpecimen, CommandPaletteSpecimen, IconSet, InlineSuggestion, SpeechInput } from '#/component-library/primitives/notebook-specimens.tsx'
 import { PageSidebarSpecimen } from '#/component-library/primitives/sidebar-specimens.tsx'
 import { ThemeControls } from '#/theme/theme-controls.tsx'
 import showcaseStylesheetUrl from '../component-library/primitives/primitive-showcase.css?url'
@@ -70,6 +70,7 @@ const notebookSpecimens: readonly PrimitiveSpecimen[] = [
     detail: 'Seven real editable MathLive LatexCells showing unselected, empty, focused, editing, selected, computing, and error states. Click into any formula to navigate or edit it.',
     sample: <CellStates />,
   },
+  { id: 'matrix-builder', title: 'Matrix builder', detail: 'Dimensions, delimiters and sparse coordinates using the same controls as the expression menu.', sample: <MatrixBuilderSpecimen /> },
   {
     id: 'suggestion',
     title: 'Inline suggestion',

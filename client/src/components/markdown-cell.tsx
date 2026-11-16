@@ -11,6 +11,7 @@ import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
+import { previewMacros } from '#/editor/mathlive/mathfield-macros'
 
 /** Receive the cell's controlled Markdown source and report edits to the notebook without replacing its stable identity. `readOnly` shows the rendered note and hides editing. */
 interface MarkdownCellProps {
@@ -25,7 +26,7 @@ interface MarkdownCellProps {
 /** Render stored Markdown, including its mathematics. The caller decides what an empty cell shows. */
 function MarkdownDocument({ markdown }: { markdown: string }) {
   return (
-    <Markdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} skipHtml>
+    <Markdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[[rehypeKatex, { macros: { ...previewMacros } }]]} skipHtml>
       {markdown}
     </Markdown>
   )

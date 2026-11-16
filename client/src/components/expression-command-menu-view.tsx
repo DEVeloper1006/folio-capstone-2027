@@ -4,6 +4,7 @@
  * @file
  */
 
+import { MatrixBuilder } from '#/component-library/matrix-builder'
 import { useEffect, useId, useRef } from 'react'
 import type { ChangeEvent, FocusEvent, MouseEvent, PointerEvent } from 'react'
 import type { CommandMatch, useExpressionCommands } from '#/editor/index.ts'
@@ -23,7 +24,7 @@ export function ExpressionCommandMenuView({ menu }: ExpressionCommandMenuViewPro
   function focusQuery() {
     inputRef.current?.focus()
   }
-  useEffect(focusQuery, [])
+  useEffect(focusQuery, [menu.matrixBuilder])
 
   /** Keep keyboard selection visible when the results extend beyond the menu's scroll area. */
   function revealActiveResult() {
@@ -88,6 +89,12 @@ export function ExpressionCommandMenuView({ menu }: ExpressionCommandMenuViewPro
     )
   }
 
+  if (menu.matrixBuilder)
+    return (
+      <div className="command-menu" onBlur={handleBlur}>
+        <MatrixBuilder initialSparse={menu.matrixBuilder === 'sparse'} onInsert={menu.insertMatrix} onCancel={menu.closeMatrixBuilder} />
+      </div>
+    )
   const selected = menu.results.at(menu.activeIndex)
   return (
     <div className="command-menu" onBlur={handleBlur}>

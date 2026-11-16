@@ -4,6 +4,7 @@
  * @file
  */
 
+import { MatrixBuilder } from '../matrix-builder'
 import { CellFrame } from '../cell-frame'
 import type { CellFrameState } from '../cell-frame'
 import { useCallback, useState } from 'react'
@@ -309,5 +310,22 @@ export function SpeechInput() {
         <span className="notebook-inline-status">{status}</span>
       </div>
     </div>
+  )
+}
+
+/** Exercise the same matrix configuration and preview used by the expression menu. */
+export function MatrixBuilderSpecimen() {
+  const [latex, setLatex] = useState('')
+  const [version, setVersion] = useState(0)
+  /** Restart the specimen's configuration. */
+  function reset() {
+    setLatex('')
+    setVersion(version + 1)
+  }
+  return (
+    <>
+      <MatrixBuilder key={version} onInsert={setLatex} onCancel={reset} />
+      {latex && <InlineLatex latex={latex.replaceAll('#?', String.raw`\placeholder{}`)} display />}
+    </>
   )
 }

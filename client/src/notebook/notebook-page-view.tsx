@@ -274,7 +274,7 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
       void copyCell(id)
       return true
     }
-    if (command === 'workspace.currentPage.cell.deleteSelected' && cellMode !== 'selection') return false
+    if ((command === 'workspace.currentPage.cell.delete' || command === 'workspace.currentPage.cell.deleteSelected') && cellMode !== 'selection') return false
     if (command === 'workspace.currentPage.cell.delete' || command === 'workspace.currentPage.cell.deleteSelected') {
       /** Remove only the selected cell from the latest page. */
       function remove(current: Page) {

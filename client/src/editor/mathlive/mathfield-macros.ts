@@ -24,3 +24,6 @@ export function installMathfieldMacros(mathfield: MathfieldElement) {
 export function expandMathfieldAliases(latex: string) {
   return latex.replaceAll(/\\or(?![a-zA-Z])/g, String.raw`\lor`).replaceAll(/\\and(?![a-zA-Z])/g, String.raw`\land`)
 }
+
+/** Render MathLive's unfilled slots in KaTeX without changing the editable LaTeX stored in the notebook. */
+export const previewMacros = { '\\placeholder': String.raw`\textcolor{gray}{\square}\phantom{#1}` }

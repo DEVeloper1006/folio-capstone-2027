@@ -5,6 +5,7 @@
  */
 
 import katex from 'katex'
+import { previewMacros } from '#/editor/mathlive/mathfield-macros'
 import Markdown from 'react-markdown'
 import rehypeKatex from 'rehype-katex'
 import remarkGfm from 'remark-gfm'
@@ -23,6 +24,7 @@ export function InlineLatex({ latex, display = false, className }: InlineLatexPr
     displayMode: display,
     throwOnError: false,
     strict: 'ignore',
+    macros: { ...previewMacros },
   })
   const combinedClass = className === undefined ? 'chat-latex' : `chat-latex ${className}`
   return <span className={combinedClass} dangerouslySetInnerHTML={{ __html: html }} />
@@ -33,7 +35,7 @@ export function ChatMarkdown({ content, className }: { content: string; classNam
   const combinedClass = className === undefined ? 'chat-markdown' : `chat-markdown ${className}`
   return (
     <div className={combinedClass}>
-      <Markdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} skipHtml>
+      <Markdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[[rehypeKatex, { macros: { ...previewMacros } }]]} skipHtml>
         {content}
       </Markdown>
     </div>

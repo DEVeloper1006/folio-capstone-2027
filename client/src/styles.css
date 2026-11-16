@@ -10,16 +10,20 @@
   box-sizing: border-box;
 }
 
+html {
+  overscroll-behavior-y: none;
+}
+
 body {
   margin: 0;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .notebook-shell {
   position: relative;
   display: flex;
   align-items: stretch;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .notebook-main {
@@ -35,8 +39,8 @@ body {
   align-self: flex-start;
   width: auto;
   min-width: 0;
-  height: 100vh;
-  max-height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
   overflow: hidden;
   background: var(--sunken);
   border-right: 1px solid var(--line);
@@ -211,8 +215,16 @@ body {
   color: var(--ink);
 }
 
+.page-sidebar-row:hover {
+  background: var(--sunken-strong);
+}
+
 .page-sidebar-row.is-open {
   background: var(--accent-soft);
+}
+
+.page-sidebar-row.is-open:hover {
+  background: color-mix(in srgb, var(--accent) 24%, var(--canvas));
 }
 
 .page-sidebar-row.is-open .primitive-icon-button:hover,

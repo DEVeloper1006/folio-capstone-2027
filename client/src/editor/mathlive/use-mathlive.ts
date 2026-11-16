@@ -7,6 +7,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { shortcutKey } from '../commands/shortcut-overrides.ts'
 import type { ShortcutOverrides } from '../commands/shortcut-overrides.ts'
+import { maximumMatrixSize } from '../commands/matrix-commands'
 import { useEffect, useRef } from 'react'
 import type * as MathLive from 'mathlive'
 import type { MathfieldElement } from 'mathlive'
@@ -77,6 +78,7 @@ export function useMathLive({ cellId, initialLatex, onLatexChange, onEditorKeyDo
       mathfield.mathModeSpace = repeatedMathSpace
       editorHostRef.current?.appendChild(mathfield)
       if (mathfield.isConnected) installMathfieldMacros(mathfield)
+      mathfield.maxMatrixCols = maximumMatrixSize
       mathfield.value = initialLatexRef.current
       mathfield.mathVirtualKeyboardPolicy = 'manual'
       mathfield.menuItems = []

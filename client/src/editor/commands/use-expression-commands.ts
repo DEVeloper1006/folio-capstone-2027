@@ -25,6 +25,7 @@ function canOpenCommands(mathfield: MathfieldElement) {
 
 /** Keep menu state local to one cell; opening and cancelling never edits its formula. Accept a replacement search provider without changing menu rendering. */
 export function useExpressionCommands(searchCommands: SearchExpressionCommands = searchExpressionCommands) {
+  const [matrixBuilder, setMatrixBuilder] = useState<'blank' | 'sparse' | null>(null)
   const [session, setSession] = useState<CommandSession | null>(null)
   const [query, setQuery] = useState('')
   const [matches, setMatches] = useState<readonly CommandMatch[]>([])
@@ -72,6 +73,7 @@ export function useExpressionCommands(searchCommands: SearchExpressionCommands =
       restoreFocusRef.current = session.mathfield
     }
     setSession(null)
+    setMatrixBuilder(null)
   }
 
   /** Consume an unmodified backslash before mathematical navigation, saving the selection without inserting query text. */
@@ -101,11 +103,25 @@ export function useExpressionCommands(searchCommands: SearchExpressionCommands =
       closeMenu(false)
       return
     }
+    if (command.id === 'matrix' || command.id === 'matrix-sparse') {
+      setMatrixBuilder(command.id === 'matrix-sparse' ? 'sparse' : 'blank')
+      return
+    }
+    setMatrixBuilder(null)
     const { mathfield, selection } = session
     restoreFocusRef.current = mathfield
     setSession(null)
     mathfield.selection = selection
     mathfield.insert(command.latex, { format: 'latex', mode: 'math', insertionMode: 'replaceSelection', selectionMode: 'placeholder' })
+  }
+
+  /** Insert the builder's validated template at the session's saved cursor. */
+  function insertMatrix(latex: string) {
+    insertCommand({ id: 'matrix-generated', label: 'Matrix', symbol: '[ ]', keywords: [], relevance: 0, latex })
+  }
+  /** Return to search without touching the formula. */
+  function closeMatrixBuilder() {
+    setMatrixBuilder(null)
   }
 
   /** Display a group's direct variants without changing the query or modifying the editor. The group itself stays selectable at the top of that list. */
@@ -152,5 +168,5 @@ export function useExpressionCommands(searchCommands: SearchExpressionCommands =
     event.preventDefault()
   }
 
-  return { isOpen: session !== null, query, results, parent, activeIndex, status, updateQuery, setActiveIndex, handleEditorKeyDown, handleMenuKeyDown, insertCommand, openVariants, backToResults, closeMenu }
+  return { matrixBuilder, insertMatrix, closeMatrixBuilder, isOpen: session !== null, query, results, parent, activeIndex, status, updateQuery, setActiveIndex, handleEditorKeyDown, handleMenuKeyDown, insertCommand, openVariants, backToResults, closeMenu }
 }

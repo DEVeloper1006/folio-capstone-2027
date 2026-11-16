@@ -7,6 +7,7 @@
 import { useId, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
 import katex from 'katex'
+import { previewMacros } from '#/editor/mathlive/mathfield-macros'
 import type { MathfieldElement } from 'mathlive'
 import { expandMathfieldAliases, useExpressionCommands, useMathLive } from '#/editor/index.ts'
 import { ExpressionCommandMenuView } from './expression-command-menu-view.tsx'
@@ -42,7 +43,7 @@ interface StaticLatexProps {
 
 /** Turn stored LaTeX into HTML the server and the browser can both produce. Invalid LaTeX is shown as source text. Display mode is for a notebook cell; inline math stays in the text line. */
 export function renderLatexMarkup(latex: string, displayMode = true) {
-  return katex.renderToString(latex, { displayMode, throwOnError: false, output: 'html' })
+  return katex.renderToString(latex, { displayMode, throwOnError: false, output: 'html', macros: { ...previewMacros } })
 }
 
 /** Show stored LaTeX as KaTeX without a control that starts editing. */

@@ -1,11 +1,12 @@
 /**
- * Connect MathLive fields to the navigation system. Contains selection conversion, cached structure reads, geometry lookup, and DOM event installation and cleanup.
+ * Connect MathLive fields to the navigation system. Contains selection conversion, cached structure reads, line deletion, safe Backspace positioning for invisible groups, geometry lookup, and DOM event installation and cleanup.
  *
  * @file
  */
 
 import type { MathfieldElement } from 'mathlive'
 import type { ShortcutOverrides } from '../commands/shortcut-overrides.ts'
+import { backspacePosition } from './navigation-rules.ts'
 import { getNavigationAction } from './navigation-actions.ts'
 import type { CursorSelection } from './navigation-actions.ts'
 import { createNavigationState, applyNavigationAction } from './navigation-transition.ts'
@@ -68,6 +69,17 @@ export function installNavigation(mathfield: MathfieldElement, beforeKeyDown?: (
       event.preventDefault()
       event.stopImmediatePropagation()
       return
+    }
+    if (event.key === 'Backspace' && event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey && !event.isComposing) {
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      mathfield.executeCommand('deleteAll')
+      resetSelectionHistory()
+      return
+    }
+    if (event.key === 'Backspace' && !event.metaKey && !event.ctrlKey && !event.altKey && mathfield.mode === 'math' && mathfield.selectionIsCollapsed) {
+      const position = backspacePosition(readCachedStructure(), mathfield.position)
+      if (position !== mathfield.position) mathfield.position = position
     }
     if (['Alt', 'Shift', 'Control', 'Meta'].includes(event.key)) return
     const navigationAction = getNavigationAction(event, readOverrides?.())

@@ -224,6 +224,26 @@ export function resolveRule(action: NavigationActionName, context: ActionContext
   return undefined
 }
 
+/** Identify invisible brace and math-style wrappers without treating visible delimiters as transparent. */
+function isTransparentGroup(node: StructureNode) {
+  return /^(?:\{|\\(?:displaystyle|textstyle|scriptstyle|scriptscriptstyle)\b)/.test(node.latex)
+}
+
+/** Enter invisible brace or math-style groups before Backspace so MathLive deletes their last child instead of the entire group. Visible delimiters and structural constructs keep their usual deletion behavior. */
+export function backspacePosition(structure: Structure, cursorOffset: number): number {
+  let position = cursorOffset
+  for (;;) {
+    /** Find the body immediately before this invisible group's ending offset. */
+    function transparentBody(branch: Branch) {
+      const owner = branch.owner
+      return owner?.end === position && branch.end < position && isTransparentGroup(owner)
+    }
+    const body = structure.branches.find(transparentBody)
+    if (!body) return position
+    position = body.end
+  }
+}
+
 /** Group adjacent letters or digits into words. Structures and operators are separate stops; explicit spacing separates neighboring words. */
 function wordSpans(nodes: readonly StructureNode[]): Span[] {
   const words: Span[] = []
@@ -394,17 +414,30 @@ function exitRegion(structure: Structure, branch: Branch, direction: -1 | 1): nu
   return direction === 1 ? branch.owner.end : branch.owner.start
 }
 
-/** Move visually across direct siblings, entering the numerator or superscript instead of traversing every serialized offset. */
+/** Move across visible siblings and editable regions in one keypress, passing through invisible brace/style wrappers. Fractions and superscripts retain their visual entry stops. */
 function moveHorizontal(context: ActionContext, direction: -1 | 1): RuleResult {
   if (context.extend) return extendHorizontal(context, direction)
   const { selection } = context.state
   if (selection.anchor !== selection.focus) return direction === 1 ? Math.max(selection.anchor, selection.focus) : Math.min(selection.anchor, selection.focus)
-  const { branch, node } = adjacentNode(context.structure, context.position, direction)
-  if (!branch) return context.position
-  if (!node) return exitRegion(context.structure, branch, direction) ?? context.position
-  const slots = nodeBranches(context.structure, node)
-  const destination = upperRegion(context.structure, node) ?? (direction === 1 ? slots[0] : slots.at(-1))
-  return destination ? (direction === 1 ? destination.start : destination.end) : direction === 1 ? node.end : node.start
+  let position = context.position
+  const visited = new Set<number>()
+  while (!visited.has(position)) {
+    visited.add(position)
+    const { branch, node } = adjacentNode(context.structure, position, direction)
+    if (!branch) return position
+    if (!node) {
+      const destination = exitRegion(context.structure, branch, direction) ?? position
+      if (!branch.owner || !isTransparentGroup(branch.owner)) return destination
+      position = destination
+      continue
+    }
+    const slots = nodeBranches(context.structure, node)
+    const destination = upperRegion(context.structure, node) ?? (direction === 1 ? slots[0] : slots.at(-1))
+    const next = destination ? (direction === 1 ? destination.start : destination.end) : direction === 1 ? node.end : node.start
+    if (!isTransparentGroup(node)) return next
+    position = next
+  }
+  return position
 }
 
 /** Move one horizontal position left or structurally extend left when Shift is held. */

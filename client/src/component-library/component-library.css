@@ -385,3 +385,29 @@
   border-color: var(--danger);
   background: color-mix(in srgb, var(--danger) 8%, var(--canvas));
 }
+
+.matrix-builder {
+  display: grid;
+  gap: 12px;
+  padding: 8px;
+}
+.matrix-dimensions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.matrix-preview {
+  max-height: 180px;
+  overflow: auto;
+  padding: 8px;
+}
+.matrix-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.matrix-builder textarea {
+  resize: vertical;
+  min-height: 90px;
+  font-family: var(--font-code);
+}

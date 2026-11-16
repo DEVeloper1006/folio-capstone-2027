@@ -103,7 +103,7 @@ const workspaceCommands: readonly EditorCommand[] = [
   ...cellCommands,
   { id: 'workspace.currentPage.cell.createAbove', label: 'Create cell above', keywords: ['add', 'insert', 'new'], when: 'cellFocus' },
   { id: 'workspace.currentPage.cell.deleteSelected', label: 'Delete selected cell', keywords: ['remove'], when: 'cellSelection', shortcut: '⌘D' },
-  { id: 'workspace.currentPage.cell.delete', label: 'Delete current cell', keywords: ['remove'], when: 'cellFocus', shortcut: '⌘⌫' },
+  { id: 'workspace.currentPage.cell.delete', label: 'Delete current cell', keywords: ['remove'], when: 'cellSelection', shortcut: '⌘⌫' },
 ]
 
 /** Copy a cursor binding into the shared command row. The navigation action stays on the binding. */

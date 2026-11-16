@@ -1,5 +1,5 @@
 /**
- * Define every slash-menu command. Contains the hand-written expression templates and MathLive’s symbols, functions, and macros. A symbol uses the same command shape as a template, including variants. An empty search lists only the templates.
+ * Define every expression-menu command. Contains the hand-written expression templates and MathLive’s symbols, functions, and macros. A symbol uses the same command shape as a template, including variants. An empty search lists only the templates.
  *
  * @file
  */
@@ -121,9 +121,12 @@ const expressionTemplateDrafts: readonly ExpressionCommandDraft[] = [
     id: 'matrix',
     label: 'Matrix',
     symbol: '[ ]',
-    keywords: ['matrix', 'pmatrix'],
+    keywords: ['matrix', 'pmatrix', 'nxn', 'n by n', 'custom matrix', 'rows', 'columns'],
     latex: String.raw`\begin{pmatrix} #? & #? \\ #? & #? \end{pmatrix}`,
     variants: [
+      { id: 'matrix-sparse', label: 'Sparse matrix', symbol: '0', keywords: ['sparse', 'nonzero', 'zeros'], latex: '' },
+      { id: 'matrix-symbolic', label: 'Symbolic n×n matrix', symbol: 'n×n', keywords: ['symbolic', 'general', 'ellipsis', 'nxn', 'n by n'], latex: String.raw`\begin{pmatrix}a_{11} & \cdots & a_{1n} \\ \vdots & \ddots & \vdots \\ a_{n1} & \cdots & a_{nn}\end{pmatrix}` },
+      { id: 'matrix-2', label: '2×2 matrix', symbol: '2×2', keywords: ['two by two'], latex: String.raw`\begin{pmatrix}#? & #? \\ #? & #?\end{pmatrix}` },
       { id: 'matrix-3', label: '3×3 matrix', symbol: '3×3', keywords: ['three by three', 'square matrix'], latex: String.raw`\begin{pmatrix} #? & #? & #? \\ #? & #? & #? \\ #? & #? & #? \end{pmatrix}` },
       { id: 'bracket-matrix', label: 'Bracket matrix', symbol: '[a b]', keywords: ['bmatrix', 'square brackets'], latex: String.raw`\begin{bmatrix} #? & #? \\ #? & #? \end{bmatrix}` },
       { id: 'column-vector', label: 'Column vector', symbol: 'col', keywords: ['vector', 'column'], latex: String.raw`\begin{pmatrix} #? \\ #? \\ #? \end{pmatrix}` },

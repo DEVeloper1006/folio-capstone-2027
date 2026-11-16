@@ -13,3 +13,5 @@ export type { SegmentedControlProps, SegmentedOption } from './segmented-control
 export { MarkdownMathField } from './markdown-math-field.tsx'
 export { TextField } from './text-field.tsx'
 export type { TextFieldProps } from './text-field.tsx'
+
+export { MatrixBuilder } from './matrix-builder'

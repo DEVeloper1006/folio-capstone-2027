@@ -9,7 +9,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { QueryClient } from '@tanstack/react-query'
 import { createCellId } from './notebook-cells.ts'
 import { createEmptyPage, nextUntitledTitle } from './page.ts'
-import { createSamplePage } from './sample-page.ts'
+import { createSamplePage, createPracticePages } from './sample-page.ts'
 import type { NotebookCell } from './notebook-cells.ts'
 import type { Page } from './page.ts'
 
@@ -18,6 +18,8 @@ import type { NotebookState as PageList, PageSummary } from '#/state/global-stat
 const listKey = ['notebook', 'pages'] as const
 const storagePrefix = 'folio:notebook:v1:'
 const sample = createSamplePage()
+const practicePages = createPracticePages()
+const initialPages = [sample, ...practicePages]
 
 /** Identify a page independently of the sidebar list. */
 function pageKey(id: string) {
@@ -31,8 +33,8 @@ function summary({ pageId, title }: Page): PageSummary {
 
 /** Seed each router's cache independently, including during server rendering. */
 export function seedNotebook(client: QueryClient) {
-  client.setQueryData(pageKey(sample.pageId), sample)
-  client.setQueryData<PageList>(listKey, { pages: [summary(sample)], openPageId: sample.pageId })
+  for (const page of initialPages) client.setQueryData(pageKey(page.pageId), page)
+  client.setQueryData<PageList>(listKey, { pages: initialPages.map(summary), openPageId: sample.pageId })
 }
 
 /** Save a page before publishing its new value to editors. */
@@ -50,14 +52,33 @@ function writeList(client: QueryClient, list: PageList) {
 /** Read sidebar order and selection saved by this tab. */
 function loadPageList(): PageList {
   const stored = sessionStorage.getItem(storagePrefix + 'list')
-  return stored ? JSON.parse(stored) : { pages: [summary(sample)], openPageId: sample.pageId }
+  const list: PageList = stored ? JSON.parse(stored) : { pages: initialPages.map(summary), openPageId: sample.pageId }
+  const addedKey = storagePrefix + 'practice-pages-added'
+  if (sessionStorage.getItem(addedKey)) return list
+  /** Add starter pages once without restoring any that the user subsequently deletes. */
+  function missing(page: Page) {
+    /** Match a starter page by its stable id. */
+    function matches(entry: PageSummary) {
+      return entry.pageId === page.pageId
+    }
+    return !list.pages.some(matches)
+  }
+  const next = { ...list, pages: [...list.pages, ...practicePages.filter(missing).map(summary)] }
+  sessionStorage.setItem(storagePrefix + 'list', JSON.stringify(next))
+  sessionStorage.setItem(addedKey, 'true')
+  return next
 }
 
 /** Read the stored page, using the bundled example until it is first edited. */
 function loadPage(pageId: string): Page {
   const record = sessionStorage.getItem(storagePrefix + pageId)
   if (record) return JSON.parse(record) as Page
-  if (pageId === sample.pageId) return sample
+  /** Resolve a bundled page that has not yet been edited. */
+  function matches(page: Page) {
+    return page.pageId === pageId
+  }
+  const initial = initialPages.find(matches)
+  if (initial) return initial
   throw new Error('The saved notebook page is missing')
 }
 
@@ -68,7 +89,7 @@ export function usePageList() {
   function restoreNotebook() {
     const list = loadPageList()
     // Hydration seeds the example for SSR. Replace it even when a different page is open.
-    client.setQueryData(pageKey(sample.pageId), loadPage(sample.pageId))
+    for (const page of initialPages) client.setQueryData(pageKey(page.pageId), loadPage(page.pageId))
     if (list.openPageId !== sample.pageId) client.setQueryData(pageKey(list.openPageId), loadPage(list.openPageId))
     client.setQueryData(listKey, list)
   }
