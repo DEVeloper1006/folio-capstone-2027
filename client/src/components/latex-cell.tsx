@@ -8,10 +8,14 @@ import { useEffect, useState } from 'react'
 import { preloadMathLive } from '#/editor/index.ts'
 import { SourceField } from '#/component-library/source-field'
 import type { CellEditorMode } from '#/notebook/page'
+import { MarkdownDocument } from './markdown-cell'
 import { LatexEditor } from './latex-editor.tsx'
 
 /** Supply the cell's identity, starting LaTeX, and notebook edit callback. `readOnly` shows the formula and does not mount MathLive. */
 interface LatexCellProps {
+  caption?: string
+  onCaptionChange?: (caption: string) => void
+  previous?: string
   cellId: string
   editorMode?: CellEditorMode
   initialLatex: string
@@ -22,7 +26,7 @@ interface LatexCellProps {
 }
 
 /** Render one notebook formula and report its edits with this cell's id. A read-only cell ignores activation. */
-export function LatexCell({ editorMode = 'rich', cellId, initialLatex, onLatexChange, editing, onBeginEditing, readOnly = false }: LatexCellProps) {
+export function LatexCell({ caption = '', onCaptionChange, editorMode = 'rich', previous, cellId, initialLatex, onLatexChange, editing, onBeginEditing, readOnly = false }: LatexCellProps) {
   useEffect(preloadMathLive, [])
   const [localEditing, setLocalEditing] = useState(false)
   const active = editing ?? localEditing
@@ -41,6 +45,22 @@ export function LatexCell({ editorMode = 'rich', cellId, initialLatex, onLatexCh
     onLatexChange(cellId, latex)
   }
 
-  if (editorMode === 'source' && active && !readOnly) return <SourceField value={initialLatex} onChange={reportLatexChange} label="LaTeX source" onFinish={editing === undefined ? finishEditing : undefined} />
-  return <LatexEditor editing={active && editorMode === 'rich'} onBeginEditing={beginEditing} initialLatex={initialLatex} onLatexChange={reportLatexChange} readOnly={readOnly} label="LaTeX cell" layout="cell" />
+  return (
+    <>
+      {active && !readOnly && onCaptionChange ? (
+        <input className="math-cell-caption" aria-label="Math cell caption" placeholder="Add caption" value={caption} onChange={(event) => onCaptionChange(event.target.value)} />
+      ) : (
+        caption.trim() && (
+          <div className="math-cell-caption">
+            <MarkdownDocument markdown={caption} />
+          </div>
+        )
+      )}
+      {editorMode === 'source' && active && !readOnly ? (
+        <SourceField previous={previous} value={initialLatex} onChange={reportLatexChange} label="LaTeX source" onFinish={editing === undefined ? finishEditing : undefined} />
+      ) : (
+        <LatexEditor previous={previous} editing={active && editorMode === 'rich'} onBeginEditing={beginEditing} initialLatex={initialLatex} onLatexChange={reportLatexChange} readOnly={readOnly} label="LaTeX cell" layout="cell" />
+      )}
+    </>
+  )
 }

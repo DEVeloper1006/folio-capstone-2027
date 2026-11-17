@@ -27,7 +27,7 @@ interface MarkdownCellProps {
 }
 
 /** Render stored Markdown, including its mathematics. The caller decides what an empty cell shows. */
-function MarkdownDocument({ markdown }: { markdown: string }) {
+export function MarkdownDocument({ markdown }: { markdown: string }) {
   return (
     <Markdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[[rehypeKatex, { macros: { ...previewMacros } }]]} skipHtml>
       {markdown}

@@ -6,6 +6,7 @@
 
 import { useEffect, useId, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react'
+import { useCellAutocomplete } from '#/notebook/use-cell-autocomplete'
 import { MathPreview } from '#/component-library/math-preview'
 import type { MathfieldElement } from 'mathlive'
 import { expandMathfieldAliases, useExpressionCommands, useMathLive } from '#/editor/index.ts'
@@ -15,6 +16,7 @@ import './latex-editor.css'
 
 /** Supply the formula and the callbacks for editing it. `startEditing` opens MathLive immediately; otherwise a click or Enter replaces the static formula. `readOnly` keeps the static formula and does not accept a click. */
 interface LatexEditorProps {
+  previous?: string
   initialLatex: string
   onLatexChange: (latex: string) => void
   readOnly?: boolean
@@ -112,7 +114,7 @@ function usePreviewSelection(editing: boolean, beginEditing: () => void) {
 }
 
 /** Show a formula as static KaTeX, or mount the same MathLive field a notebook cell uses once editing starts. A read-only formula never mounts MathLive. */
-export function LatexEditor({ initialLatex, onLatexChange, readOnly = false, label = 'LaTeX expression', layout = 'cell', startEditing = false, editing, onBeginEditing, onCommit, onCancel, onBoundary, caretEdge }: LatexEditorProps) {
+export function LatexEditor({ previous, initialLatex, onLatexChange, readOnly = false, label = 'LaTeX expression', layout = 'cell', startEditing = false, editing, onBeginEditing, onCommit, onCancel, onBoundary, caretEdge }: LatexEditorProps) {
   const [isEditing, setIsEditing] = useState(startEditing && !readOnly)
 
   /** Replace the static formula with the MathLive field. */
@@ -126,11 +128,11 @@ export function LatexEditor({ initialLatex, onLatexChange, readOnly = false, lab
 
   if (readOnly) return <StaticLatexMarkup latex={initialLatex} label={label} />
   if (!active) return <StaticLatex latex={initialLatex} label={label} onEdit={beginEditing} onPointerDown={beginPointerSelection} />
-  return <LatexMathfield initialLatex={initialLatex} onLatexChange={onLatexChange} label={label} layout={layout} onCommit={onCommit} onCancel={onCancel} onBoundary={onBoundary} caretEdge={caretEdge} onMount={mountSelection} />
+  return <LatexMathfield previous={previous} initialLatex={initialLatex} onLatexChange={onLatexChange} label={label} layout={layout} onCommit={onCommit} onCancel={onCancel} onBoundary={onBoundary} caretEdge={caretEdge} onMount={mountSelection} />
 }
 
 /** Connect one activated formula to MathLive, expression commands, and optional Enter, Escape, and arrow-boundary callbacks. */
-function LatexMathfield({ initialLatex, onLatexChange, label, layout, onCommit, onCancel, onBoundary, caretEdge = 'start', onMount }: LatexEditorProps) {
+function LatexMathfield({ previous, initialLatex, onLatexChange, label, layout, onCommit, onCancel, onBoundary, caretEdge = 'start', onMount }: LatexEditorProps) {
   const onCommitRef = useRef(onCommit)
   const onCancelRef = useRef(onCancel)
   const onBoundaryRef = useRef(onBoundary)
@@ -142,6 +144,28 @@ function LatexMathfield({ initialLatex, onLatexChange, label, layout, onCommit, 
   const fieldId = useId()
   const commands = useExpressionCommands()
 
+  const [field, setField] = useState<MathfieldElement | null>(null)
+  const [atEnd, setAtEnd] = useState(false)
+  const suffix = useCellAutocomplete(previous, initialLatex, atEnd && !commands.isOpen)
+
+  /** Offer completions only while the caret is at the end of the focused formula. */
+  function observeCaret() {
+    if (!field || previous === undefined) return
+    /** Recheck the live field after edits, selection changes and focus transitions. */
+    function update() {
+      setAtEnd(!!field && document.activeElement === field && field.selectionIsCollapsed && field.position === field.lastOffset)
+    }
+    const events = ['focus', 'blur', 'selection-change', 'input']
+    for (const event of events) field.addEventListener(event, update)
+    update()
+    /** Detach listeners when this editor closes. */
+    function detach() {
+      for (const event of events) field?.removeEventListener(event, update)
+    }
+    return detach
+  }
+  useEffect(observeCaret, [field, previous])
+
   /** Forward the formula without the field id. The notebook cell adds its own id before storing the edit. */
   function reportLatexChange(_fieldId: string, latex: string) {
     onLatexChange(latex)
@@ -149,6 +173,7 @@ function LatexMathfield({ initialLatex, onLatexChange, label, layout, onCommit, 
 
   /** Restore a preview pointer selection; fit inline math to its text line and place its initial caret at the requested edge. */
   function configureMathfield(mathfield: MathfieldElement) {
+    setField(mathfield)
     onMount?.(mathfield)
     if (layout !== 'inline') return
     const container = mathfield.shadowRoot?.querySelector('.ML__container')
@@ -164,10 +189,14 @@ function LatexMathfield({ initialLatex, onLatexChange, label, layout, onCommit, 
   /** Let expression commands consume `\` first. Enter commits an inline formula, Escape cancels it, and Left or Right at the formula’s edge returns to the sentence. */
   function handleEditorKeyDown(mathfield: MathfieldElement, event: KeyboardEvent) {
     if (commands.handleEditorKeyDown(mathfield, event)) return true
+    if (event.key === 'Tab' && !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey && suffix && mathfield.selectionIsCollapsed && mathfield.position === mathfield.lastOffset) {
+      mathfield.insert(suffix, { selectionMode: 'after' })
+      return true
+    }
     if (onBoundaryRef.current !== undefined && isPlainHorizontalArrow(event) && mathfield.selectionIsCollapsed) {
       const atStart = event.key === 'ArrowLeft' && mathfield.position === 0
-      const atEnd = event.key === 'ArrowRight' && mathfield.position === mathfield.lastOffset
-      if (atStart || atEnd) {
+      const atFormulaEnd = event.key === 'ArrowRight' && mathfield.position === mathfield.lastOffset
+      if (atStart || atFormulaEnd) {
         onBoundaryRef.current(atStart ? 'start' : 'end', expandMathfieldAliases(mathfield.value))
         return true
       }
@@ -199,7 +228,14 @@ function LatexMathfield({ initialLatex, onLatexChange, label, layout, onCommit, 
 
   return (
     <div className={editorClass}>
-      <div className={fieldClass} ref={editorHostRef} />
+      <div className={suffix ? 'rich-completion' : 'field-content'}>
+        <div className={fieldClass} ref={editorHostRef} />
+        {suffix && (
+          <span className="rich-completion-ghost" aria-hidden="true">
+            <MathPreview latex={suffix} />
+          </span>
+        )}
+      </div>
       {commands.isOpen ? <ExpressionCommandMenuView menu={commands} /> : <ExpressionSelectionMenu hostRef={editorHostRef} />}
     </div>
   )

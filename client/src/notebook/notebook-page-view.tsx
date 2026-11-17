@@ -70,6 +70,13 @@ function NotebookCellEditor({
     }
     notebookCommands(client).updatePage(pageId, update)
   }
+  /** Save this math cell’s Markdown caption with its existing formula. */
+  function changeCaption(caption: string) {
+    notebookCommands(client).updatePage(pageId, (page) => ({
+      ...page,
+      cells: page.cells.map((item) => (item.cellId === cellId && item.kind === 'math' ? { ...item, caption } : item)),
+    }))
+  }
   /** Activate this cell through its normal edit control. */
   function beginEditing() {
     setEditing(cellId)
@@ -81,6 +88,16 @@ function NotebookCellEditor({
   /** Focus the frame to select this whole cell. */
   function selectFromGutter() {
     selectRow(cellId)
+  }
+  /** Keep the nearest Markdown cell with up to eight subsequent math steps as autocomplete context. */
+  function previousSteps() {
+    const cells = notebookCommands(client).getPage(pageId)?.cells.slice(0, index) ?? []
+    const notes: string[] = []
+    for (const step of cells.reverse()) {
+      if (step.kind !== 'math') return [step.markdown.slice(-1600), ...notes.reverse()].join('\n')
+      if (step.latex.trim() && notes.length < 8) notes.push(step.latex.slice(-300))
+    }
+    return notes.reverse().join('\n')
   }
   if (!cell) return null
   return (
@@ -95,7 +112,7 @@ function NotebookCellEditor({
       onSelect={selectFromGutter}
     >
       {cell.kind === 'math' ? (
-        <LatexCell editorMode={editorMode} cellId={cellId} editing={editing} onBeginEditing={beginEditing} initialLatex={cell.latex} onLatexChange={changeSource} />
+        <LatexCell caption={cell.caption} onCaptionChange={changeCaption} previous={editing ? previousSteps() : undefined} editorMode={editorMode} cellId={cellId} editing={editing} onBeginEditing={beginEditing} initialLatex={cell.latex} onLatexChange={changeSource} />
       ) : (
         <MarkdownCell editorMode={editorMode} cellId={cellId} editing={editing} onEditingChange={changeEditing} markdown={cell.markdown} onMarkdownChange={changeSource} />
       )}
@@ -324,7 +341,7 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
       const sourceIndex = current.cells.findIndex(isCurrent)
       const original = current.cells.at(sourceIndex)
       if (sourceIndex < 0 || !original) return current
-      const cell: NotebookCell = original.kind === 'math' ? { cellId, kind: 'math', latex: duplicate ? original.latex : '' } : { cellId, kind: 'markdown', markdown: '' }
+      const cell: NotebookCell = original.kind === 'math' ? { cellId, kind: 'math', ...(duplicate ? { latex: original.latex, caption: original.caption } : { latex: '' }) } : { cellId, kind: 'markdown', markdown: '' }
       const nextCells = [...current.cells]
       nextCells.splice(command.endsWith('createAbove') ? sourceIndex : sourceIndex + 1, 0, cell)
       return { ...current, cells: nextCells }

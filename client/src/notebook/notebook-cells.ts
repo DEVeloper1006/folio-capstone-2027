@@ -17,6 +17,7 @@ export function createCellId() {
 /** Store editable LaTeX in a mathematical cell backed by MathLive. */
 export interface MathNotebookCell extends CellIdentity {
   kind: 'math'
+  caption?: string
   latex: string
 }
 
