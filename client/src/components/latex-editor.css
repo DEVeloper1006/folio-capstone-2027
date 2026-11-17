@@ -7,7 +7,7 @@
   align-items: center;
   justify-content: flex-start;
   min-height: 54px;
-  padding: 7px 8px;
+  padding: 8px 16px;
   cursor: text;
 }
 
@@ -49,7 +49,7 @@
 
 /* Keep full-cell math centered in the row while inline math follows its sentence. */
 .notebook-live-cell:has(> .notebook-live-cell-body > :is(.static-latex, .cell-editor)) {
-  padding-block: 8px;
+  padding: 0;
 }
 
 .cell-input {
@@ -61,7 +61,7 @@
 
 .cell-input math-field {
   min-height: 54px;
-  padding: 7px 8px;
+  padding: 8px 16px;
 }
 
 .cell-input math-field::part(container) {
@@ -112,4 +112,43 @@
 .expression-selection-menu .ui-button svg {
   width: 14px;
   height: 14px;
+}
+
+.field-content {
+  display: contents;
+}
+.rich-completion {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+.rich-completion .cell-input {
+  min-width: 0;
+}
+.rich-completion math-field {
+  width: auto;
+  padding-right: 0;
+}
+.rich-completion-ghost {
+  opacity: 0.45;
+  pointer-events: none;
+  user-select: none;
+}
+
+.math-cell-caption {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 6px 16px;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+.math-cell-caption > p {
+  margin: 0;
 }

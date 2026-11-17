@@ -913,3 +913,22 @@ math-field::part(menu-toggle) {
 .markdown-rich-editor img {
   max-width: 100%;
 }
+
+.source-stack {
+  display: grid;
+}
+.source-stack > * {
+  grid-area: 1 / 1;
+}
+.source-ghost {
+  pointer-events: none;
+  color: var(--ink-muted, gray);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.source-ghost span {
+  visibility: hidden;
+}
+.source-stack textarea {
+  position: relative;
+}
