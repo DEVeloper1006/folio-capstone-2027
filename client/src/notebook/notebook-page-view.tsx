@@ -3,8 +3,12 @@
  *
  * @file
  */
+import './focus-cell-dialog.css'
+import { Dialog } from '@base-ui/react/dialog'
+import { Button } from '#/component-library/button'
+import { TextField } from '#/component-library/text-field'
 import { useImperativeHandle, useRef, useState } from 'react'
-import type { ClipboardEvent, Ref } from 'react'
+import type { ClipboardEvent, FormEvent, Ref } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { PageFrame } from '#/components/page-view'
 import { CellFrame } from '#/component-library/cell-frame'
@@ -137,6 +141,25 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
   const [viewingId, setViewing] = useState<string | null>(null)
   const [selectedId, setSelected] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
+  const [focusPickerOpen, setFocusPickerOpen] = useState(false)
+  const focusPickerTarget = useRef<string | null>(null)
+  /** Mount the chosen editor only after the modal has released focus and made the notebook interactive again. */
+  function finishFocusPicker(open: boolean) {
+    if (open) return
+    const id = focusPickerTarget.current
+    focusPickerTarget.current = null
+    if (id) setEditing(id)
+    else notebookRef.current?.focus()
+  }
+  /** Focus a numbered cell through a dialog supported by both browsers and Electron. */
+  function focusNumberedCell(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const position = Number(new FormData(event.currentTarget).get('position'))
+    const slot = getPage(pageId)?.cells.at(position - 1)
+    if (!Number.isInteger(position) || position < 1 || !slot) return
+    focusPickerTarget.current = slot.cellId
+    setFocusPickerOpen(false)
+  }
   /** Select a row in view mode and give it keyboard focus. */
   function selectRow(id?: string) {
     setEditingId(null)
@@ -282,10 +305,7 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
         setEditing(last ?? null)
         return !!last
       case 'workspace.currentPage.cell.focusAt': {
-        const position = Number(window.prompt('Cell number (1–' + cells.length + ')'))
-        const slot = Number.isInteger(position) && position > 0 ? cells.at(position - 1) : undefined
-        if (!slot) return false
-        setEditing(slot.cellId)
+        setFocusPickerOpen(true)
         return true
       }
     }
@@ -449,6 +469,19 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
       <span className="cell-command-notice" role="status">
         {notice}
       </span>
+      <Dialog.Root open={focusPickerOpen} onOpenChange={setFocusPickerOpen} onOpenChangeComplete={finishFocusPicker}>
+        <Dialog.Portal>
+          <Dialog.Backdrop className="focus-cell-backdrop" />
+          <Dialog.Popup className="focus-cell-dialog" finalFocus={false}>
+            <Dialog.Title className="focus-cell-title">Focus a cell</Dialog.Title>
+            <form onSubmit={focusNumberedCell}>
+              <TextField label="Cell number" name="position" type="number" min={1} max={page.cells.length} required defaultValue={1} />
+              <Button type="submit">Focus</Button>
+              <Dialog.Close className="ui-button ui-button-quiet">Cancel</Dialog.Close>
+            </form>
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
       <PageFrame page={page} interaction="editable" onAddMathCell={addMath} onAddMarkdownCell={addMarkdown} onTitleChange={rename} onPageMetadataChange={setMetadata} content={page.cells.map(renderSlot)} />
     </main>
   )

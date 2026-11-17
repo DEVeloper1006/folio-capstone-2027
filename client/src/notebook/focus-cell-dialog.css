@@ -1,0 +1,33 @@
+/* Position the focus-by-number dialog above the notebook with shared theme colors. */
+.focus-cell-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--backdrop);
+}
+
+.focus-cell-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 61;
+  box-sizing: border-box;
+  width: min(360px, calc(100vw - 32px));
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--raised);
+  color: var(--ink);
+  box-shadow: 0 8px 24px var(--shadow);
+  transform: translate(-50%, -50%);
+}
+
+.focus-cell-title {
+  margin: 0 0 12px;
+  font-size: var(--text-ui-size);
+}
+
+.focus-cell-dialog form {
+  display: grid;
+  gap: 12px;
+}

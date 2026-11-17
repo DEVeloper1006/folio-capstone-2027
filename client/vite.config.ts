@@ -51,7 +51,7 @@ const config = defineConfig({
       },
     },
     nitro({ rollupConfig: { external: [/^@sentry\//] } }),
-    tanstackStart(),
+    tanstackStart({ spa: { enabled: process.env.FOLIO_DESKTOP === '1' } }),
     viteReact(),
   ],
 })

@@ -1,5 +1,5 @@
 /**
- * Store the page list and individual notebook pages in React Query. Restore this tab's notebook after hydration and save changes to session storage.
+ * Store the page list and individual notebook pages in React Query. Restore this tab's notebook after hydration and save changes to session storage in browsers or persistent storage on desktop.
  *
  * @file
  */
@@ -14,6 +14,11 @@ import type { NotebookCell } from './notebook-cells.ts'
 import type { Page } from './page.ts'
 
 import type { NotebookState as PageList, PageSummary } from '#/state/global-states.ts'
+
+/** Persist desktop notebooks across application restarts while preserving browser tab isolation. */
+function notebookStorage() {
+  return window.folioDesktop ? localStorage : sessionStorage
+}
 
 const listKey = ['notebook', 'pages'] as const
 const storagePrefix = 'folio:notebook:v1:'
@@ -39,22 +44,22 @@ export function seedNotebook(client: QueryClient) {
 
 /** Save a page before publishing its new value to editors. */
 function writePage(client: QueryClient, page: Page) {
-  sessionStorage.setItem(storagePrefix + page.pageId, JSON.stringify(page))
+  notebookStorage().setItem(storagePrefix + page.pageId, JSON.stringify(page))
   client.setQueryData(pageKey(page.pageId), page)
 }
 
 /** Save sidebar order and the selected page together. */
 function writeList(client: QueryClient, list: PageList) {
-  sessionStorage.setItem(storagePrefix + 'list', JSON.stringify(list))
+  notebookStorage().setItem(storagePrefix + 'list', JSON.stringify(list))
   client.setQueryData(listKey, list)
 }
 
 /** Read sidebar order and selection saved by this tab. */
 function loadPageList(): PageList {
-  const stored = sessionStorage.getItem(storagePrefix + 'list')
+  const stored = notebookStorage().getItem(storagePrefix + 'list')
   const list: PageList = stored ? JSON.parse(stored) : { pages: initialPages.map(summary), openPageId: sample.pageId }
   const addedKey = storagePrefix + 'practice-pages-added'
-  if (sessionStorage.getItem(addedKey)) return list
+  if (notebookStorage().getItem(addedKey)) return list
   /** Add starter pages once without restoring any that the user subsequently deletes. */
   function missing(page: Page) {
     /** Match a starter page by its stable id. */
@@ -64,14 +69,14 @@ function loadPageList(): PageList {
     return !list.pages.some(matches)
   }
   const next = { ...list, pages: [...list.pages, ...practicePages.filter(missing).map(summary)] }
-  sessionStorage.setItem(storagePrefix + 'list', JSON.stringify(next))
-  sessionStorage.setItem(addedKey, 'true')
+  notebookStorage().setItem(storagePrefix + 'list', JSON.stringify(next))
+  notebookStorage().setItem(addedKey, 'true')
   return next
 }
 
 /** Read the stored page, using the bundled example until it is first edited. */
 function loadPage(pageId: string): Page {
-  const record = sessionStorage.getItem(storagePrefix + pageId)
+  const record = notebookStorage().getItem(storagePrefix + pageId)
   if (record) {
     const page = JSON.parse(record) as Page
     return { ...page, pageMetadata: { ...defaultPageMetadata, ...page.pageMetadata } }
@@ -161,7 +166,7 @@ export function notebookCommands(client: QueryClient) {
     pages.splice(index, 1)
     writeList(client, { pages, openPageId: list.openPageId === id ? pages[Math.min(index, pages.length - 1)].pageId : list.openPageId })
     client.removeQueries({ queryKey: pageKey(id), exact: true })
-    sessionStorage.removeItem(storagePrefix + id)
+    notebookStorage().removeItem(storagePrefix + id)
   }
   /** Read the latest source for clipboard commands without subscribing to future edits. */
   function getPage(id: string) {

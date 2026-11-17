@@ -5,13 +5,39 @@
  */
 import { useEffect, useState } from 'react'
 
+declare global {
+  interface Window {
+    folioDesktop?: {
+      complete: (id: string, body: string) => Promise<{ status: number; body: string }>
+      cancelCompletion: (id: string) => void
+    }
+  }
+}
+
+/** Use the desktop bridge for native requests and the local proxy in a browser. */
+async function requestCompletion(body: string, signal: AbortSignal) {
+  const desktop = window.folioDesktop
+  if (!desktop) return fetch('/folio-local/v1/chat/completions', { method: 'POST', signal, headers: { 'Content-Type': 'application/json' }, body })
+  const id = crypto.randomUUID()
+  /** Stop the main-process request when this suggestion becomes stale. */
+  function cancel() {
+    desktop?.cancelCompletion(id)
+  }
+  signal.throwIfAborted()
+  signal.addEventListener('abort', cancel, { once: true })
+  try {
+    const result = await desktop.complete(id, body)
+    signal.throwIfAborted()
+    return new Response(result.body, { status: result.status })
+  } finally {
+    signal.removeEventListener('abort', cancel)
+  }
+}
+
 /** Ask for only the characters to append; never send unrelated notebook pages. */
 export async function completeLatex(previous: string, prefix: string, signal: AbortSignal) {
-  const response = await fetch('/folio-local/v1/chat/completions', {
-    method: 'POST',
-    signal,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+  const response = await requestCompletion(
+    JSON.stringify({
       model: 'deepseek/deepseek-v4.1-flash',
       temperature: 0.2,
       max_tokens: 160,
@@ -25,7 +51,8 @@ export async function completeLatex(previous: string, prefix: string, signal: Ab
         { role: 'user', content: JSON.stringify({ previous, prefix }) },
       ],
     }),
-  })
+    signal,
+  )
   if (!response.ok) return ''
   const suffix = (await response.json()).choices?.[0]?.message?.content
   return typeof suffix === 'string' && suffix.trim() !== 'NONE' && !suffix.includes('```') && !(prefix && suffix.startsWith(prefix)) ? suffix.trimEnd() : ''

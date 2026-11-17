@@ -21,3 +21,7 @@ todos.json
 .reports/
 *.folioink
 *.pkdrawing
+
+# Electron renderer bundles and packaged applications.
+desktop/renderer/
+desktop/release/

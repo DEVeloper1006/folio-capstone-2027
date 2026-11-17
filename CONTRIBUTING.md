@@ -80,3 +80,7 @@ Before requesting review, run the relevant checks above. For editor behavior, al
 - Preserve unrelated changes and the source documents in `.mac/`.
 - Let pnpm update its lockfile and tooling regenerate `src/routeTree.gen.ts`; do not hand-edit generated output or dependencies.
 - Keep changes focused and explain the reason for framework changes, new dependencies, or new interaction conventions in the review description.
+
+## Electron desktop
+
+The `desktop/` package builds the shared frontend in SPA mode and packages it with Electron. See [desktop/README.md](desktop/README.md) for setup commands, storage behavior, autocomplete credentials and platform limitations. Browser development retains the existing Vite workflow.
