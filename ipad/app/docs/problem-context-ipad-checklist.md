@@ -31,3 +31,7 @@ Use a disposable notebook. The installed build must include compiled `Encoder.ml
 - Include the iPad model, OS version, build/commit and expected versus actual result.
 
 The new automatic-group workflow needs direct device verification. Passing existing tests for adjacent workflows does not establish its interaction correctness.
+
+## Worksheet notation and action feedback
+
+Follow the supported examples and interference scenarios in [worksheet math workflows](worksheet-math-workflows.md). Every Verify & Solve / Verify & Compute tap must visibly produce a result, a computing indicator or an actionable error; repeated taps must reveal reused answers. Test two separate exercises on one page and the new function/differential notation before treating this increment as accepted.

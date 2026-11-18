@@ -1,3 +1,5 @@
+> Superseded in part by [worksheet math workflows](worksheet-math-workflows.md): scope detection now stores semantic rows beyond polynomial equalities and uses independent column histories; contextual execution supports the listed function and differential forms. See that document for the current support limits.
+
 # Problem grouping and contextual computation
 
 ## Current implementation boundary

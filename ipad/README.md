@@ -67,6 +67,8 @@ The app includes Pencil input, recognition review, LaTeX rendering and local com
 
 The current math-context increment automatically infers page-local problems from nearby stored equation ASTs and substitutes earlier accepted definitions into a selected equation. Users verify the detected source summary before solving. See [problem grouping and contextual computation](app/docs/problem-context-compute.md), the [iPad interaction checklist](app/docs/problem-context-ipad-checklist.md), the [growing major-version regression checklist](app/docs/problem-context-regression.md), and the [build checkpoints and rollback record](app/docs/problem-context-checkpoints.md). Contextual solving currently supports single-symbol definitions and at most one unresolved variable in linear or quadratic equations; general MathJSON, function definitions and systems remain unsupported.
 
+For current function, derivative, differential and partial notation, supported examples, source references and limits, see [worksheet math workflows](app/docs/worksheet-math-workflows.md). Contextual actions reveal saved answers immediately and use only definitions in the reviewed problem scope.
+
 ### Handwriting recognition assets
 
 The validated Core ML models are generated local resources and are not ordinary Git source. Obtain the existing validated export artifacts, then run:

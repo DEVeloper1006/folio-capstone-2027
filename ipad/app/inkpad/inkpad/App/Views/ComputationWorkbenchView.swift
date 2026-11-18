@@ -1,3 +1,4 @@
+/* Reviews operation-specific worksheet inputs, resolves only the current problem context, and saves source-validated results. */
 import SwiftUI
 import SwiftData
 
@@ -105,7 +106,7 @@ struct ComputationWorkbenchView:View {
                 }
             }
         }
-        .onAppear { if let source { openingSnapshot=try? PolynomialResultStore.snapshot(source) } }
+        .onAppear { ProblemContextMathService.refresh(page:page);if let source { openingSnapshot=try? PolynomialResultStore.snapshot(source) } }
         .onChange(of:request) { _,_ in task?.cancel();errorText="";latestID=nil }
         .onChange(of:operation) { old,new in
             if [.limit,.limitLeft,.limitRight].contains(new) && ![.limit,.limitLeft,.limitRight].contains(old) { point="0" }
@@ -213,7 +214,11 @@ struct ComputationWorkbenchView:View {
                 return
             }
             try await Task.sleep(for:.milliseconds(220));try Task.checkCancellation()
-            let value=try await Calc1MathService.inspect(input);try Task.checkCancellation()
+            let resolved:MathComputationRequest
+            if let source,input.inputA==source.acceptedLatex,source.problemGroupID != nil {
+                resolved=try ProblemContextMathService.plan(input,page:page,target:source).request
+            } else { resolved=try WorksheetMathNotation.resolved(input) }
+            let value=try await Calc1MathService.inspect(resolved);try Task.checkCancellation()
             guard request==input else { return };review=value
             if value.kind=="limit",let side=value.direction {
                 let chosen:MathOperation=side=="left" ? .limitLeft:.limitRight
@@ -254,9 +259,12 @@ struct ComputationWorkbenchView:View {
         task=Task { @MainActor in
             defer { busy=false }
             do {
-                let answer=try await MathComputationWorker.shared.compute(input);try Task.checkCancellation()
+                let plan=try linked ? source.map{try ProblemContextMathService.plan(input,page:page,target:$0)}:nil
+                let computed=try await MathComputationWorker.shared.compute(plan?.request ?? input);try Task.checkCancellation()
+                let answer=MathComputationAnswer(request:computed.request,inputLatex:input.inputA,outputLatex:computed.outputLatex,
+                    steps:(plan?.summaries ?? [])+computed.steps,engineVersion:computed.engineVersion)
                 guard request==input else { return }
-                let result=try MathResultStore.save(answer,page:page,source:linked ? source:nil,expected:linked ? openingSnapshot:nil,context:context)
+                let result=try MathResultStore.save(answer,page:page,source:linked ? source:nil,expected:linked ? openingSnapshot:nil,context:context,sourceContext:plan?.sources ?? [],contextGroupID:plan?.groupID)
                 sessionIDs.insert(result.stableID);latestID=result.stableID;stage = .result
             } catch is CancellationError { }
             catch { errorText=error.localizedDescription }

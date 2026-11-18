@@ -55,3 +55,12 @@ Add confirmed cases here as grouping, AST interpretation and cross-row computati
 - [ ] Keep unsupported integral, symbolic matrix, proof, hint and tutoring behavior clearly bounded; do not imply MockMathEngine actions are verified computation.
 - [ ] Verify supported arithmetic, polynomial, equation, calculus and numeric matrix examples listed in the app's coverage docs.
 
+
+## Worksheet notation and contextual action
+
+- [ ] Direct compute shows progress/cancel, immediate output, expanded card and visible failure; repeated saves reveal the answer.
+- [ ] Numbered questions, separate columns and repeated function names isolate scopes; edits in another group do not invalidate this group.
+- [ ] Function signatures and bound variables survive storage; derivative and integral requests resolve only same-scope accepted definitions.
+- [ ] f-prime, double-prime, dy/dx and explicit first partial notation follow the supported workflows in `worksheet-math-workflows.md`.
+- [ ] Bare differentials and unsupported differential equations never become accidental multiplication or ordinary equations.
+- [ ] Source changes during asynchronous calculus execution reject save and preserve notebook ink.

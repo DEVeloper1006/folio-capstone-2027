@@ -129,7 +129,7 @@ function realLogs(a){if(a.k==='f')return F(a.v,a.v==='log'?F('abs',realLogs(a.a)
 function approximateTeX(value){const s=Number(value.toPrecision(11)).toString(),parts=s.split('e');return parts.length===2?parts[0]+'\\times 10^{'+Number(parts[1])+'}':s;}
 function compute(q,n){
  if(!q||typeof q.operation!=='string')fail('Choose an operation.');
- const operations=new Set('inspect derivative secondDerivative integral definiteIntegral numericalIntegral evaluate limit limitLeft limitRight tangentLine normalLine implicitDerivative averageRate averageValue areaBetween volumeDisk volumeShell volumeWasher arcLength rootInterval simplify expand arithmetic'.split(' '));
+ const operations=new Set('inspect partialDerivative derivative secondDerivative integral definiteIntegral numericalIntegral evaluate limit limitLeft limitRight tangentLine normalLine implicitDerivative averageRate averageValue areaBetween volumeDisk volumeShell volumeWasher arcLength rootInterval simplify expand arithmetic'.split(' '));
  if(!operations.has(q.operation))fail('This operation is not available in the elementary engine.');
  if(q.operation==='implicitDerivative'){
   const sides=q.inputA.split('=');if(sides.length!==2)fail('Enter an equation in x and y, e.g. x^2+y^2=1.');
@@ -141,14 +141,14 @@ function compute(q,n){
  let parsed;
  const equation=q.inputA.split('=');
  if(equation.length===2&&inputOperation==='rootInterval')parsed={body:B('-',parse(equation[0]),parse(equation[1])),meta:{kind:'expression'}};
- else if(equation.length===2&&['derivative','secondDerivative','evaluate','tangentLine','normalLine','limit','limitLeft','limitRight','averageRate','averageValue','areaBetween','volumeDisk','volumeShell','volumeWasher','arcLength','integral','definiteIntegral','numericalIntegral'].includes(inputOperation)){
+ else if(equation.length===2&&['partialDerivative','derivative','secondDerivative','evaluate','tangentLine','normalLine','limit','limitLeft','limitRight','averageRate','averageValue','areaBetween','volumeDisk','volumeShell','volumeWasher','arcLength','integral','definiteIntegral','numericalIntegral'].includes(inputOperation)){
   const header=equation[0].trim(),declaration=header.match(/^[fgh]\s*\(\s*([A-Za-z])\s*\)$/);
   if(header==='y'||declaration)parsed={body:parse(equation[1]),meta:{kind:'function',variable:declaration?.[1]}};
  }
  if(!parsed)parsed=fullInput(q.inputA);
- const {body:a,meta}=parsed,vars=variables(a);let v=meta.variable||([...vars][0])||(!['e','i'].includes(q.variable)?q.variable:null)||'x';
+ const {body:a,meta}=parsed,vars=variables(a);let v=(inputOperation==='partialDerivative'?q.variable:null)||meta.variable||([...vars][0])||(!['e','i'].includes(q.variable)?q.variable:null)||'x';
  if(v==='i'||v==='e')fail('e and i are reserved constants; use x, t or another real variable.');
- if(!/^[A-Za-z]$/.test(v)||vars.size>1||[...vars].some(z=>z!==v))fail('Use one independent Latin-letter variable. Multivariable expressions are not supported in this menu.');
+ if(!/^[A-Za-z]$/.test(v)||(inputOperation!=='partialDerivative'&&(vars.size>1||[...vars].some(z=>z!==v))))fail('Use one independent Latin-letter variable. Multivariable expressions are not supported in this menu.');
  function validateConstants(tree){if(!variables(tree).size){scalar(tree,'Constant');return;}if(tree.a)validateConstants(tree.a);if(tree.b)validateConstants(tree.b);}
  validateConstants(a);
  const usesPoint=['evaluate','limit','limitLeft','limitRight','tangentLine','normalLine'].includes(inputOperation),usesInterval=['definiteIntegral','numericalIntegral','averageRate','averageValue','areaBetween','volumeDisk','volumeShell','volumeWasher','arcLength','rootInterval'].includes(inputOperation);
@@ -168,7 +168,7 @@ function compute(q,n){
  const valueAt=(expression,x)=>ensureSolved(n(expression,{[v]:n(cas(x))}));
  const approximate=(ast,lo,hi,extra='')=>{const result=numericalIntegral(ast,lo,hi,v);steps=['Numerical approximation (adaptive Simpson, radians).'+extra,'Estimated quadrature error '+result.error.toExponential(2)+'; '+result.evaluations+' evaluations. This estimate is not a proof of exactness.','Continuity was conservatively checked on the finite interval; unresolved domains are rejected.'];return '\\approx '+approximateTeX(result.value);};
  switch(q.operation){
- case'derivative':case'secondDerivative':{
+ case'partialDerivative':case'derivative':case'secondDerivative':{
   const order=q.operation==='secondDerivative'?2:1,conditions=[];
   function boundaries(t){
    if(t.k==='f'&&t.v==='abs'&&variables(t.a).size)conditions.push(t.a);
@@ -176,7 +176,7 @@ function compute(q,n){
    if(t.a)boundaries(t.a);if(t.b)boundaries(t.b);
   }boundaries(a);
   out=derive(order).toTeX().replace(/\\mathrm\{log\}/g,'\\ln');
-  steps=['Differentiate symbolically using product, quotient and chain rules; trig functions use radians.','The derivative applies only where the original expression and derivative are real and defined.'];
+  steps=[q.operation==='partialDerivative'?'Differentiate with respect to '+v+' holding the other independent variables constant.':'Differentiate symbolically using product, quotient and chain rules; trig functions use radians.','The derivative applies only where the original expression and derivative are real and defined.'];
   if(conditions.length){const unique=[...new Set(conditions.map(cas))];out+='\\quad\\text{for }'+unique.map(t=>n(t).toTeX()+'\\ne0').join(',\\;');steps.push('This formula is stated away from zeros of absolute-value or fractional-power arguments. Additional zero points need separate one-sided derivative analysis; differentiability there is not assumed.');}
   break;
  }
