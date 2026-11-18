@@ -192,7 +192,7 @@ private nonisolated enum PolynomialLexer {
     }
 }
 
-nonisolated indirect enum PolynomialAST {
+nonisolated indirect enum PolynomialAST: Codable {
     case number(ExactRational), variable(String), add(Self, Self), multiply(Self, Self), divide(Self, Self), negate(Self), power(Self, Int)
     var variables: Set<String> {
         switch self {

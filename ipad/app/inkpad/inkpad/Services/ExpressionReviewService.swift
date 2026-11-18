@@ -1,3 +1,4 @@
+/* Accepts reviewed transcriptions, refreshes inferred problem scopes and saves recognition benchmark samples. */
 import Foundation
 import SwiftData
 
@@ -53,8 +54,11 @@ enum ExpressionReviewService {
         step.ghostLaTeX = value; step.label = value; step.recognitionState = .ready; step.status = .unchecked
         step.explanation = "Transcription reviewed by you. Mathematics has not been verified."
         step.updatedAt = Date(); page.notebook?.lastEditedAt = Date()
+        let previousContext=page.steps.map { ($0,$0.problemGroupID,$0.problemIntentRaw,$0.problemASTJSON) }
+        ProblemContextMathService.refresh(page:page)
         do { try context.save() }
         catch {
+            for (row,group,meaning,ast) in previousContext { row.problemGroupID=group;row.problemIntentRaw=meaning;row.problemASTJSON=ast }
             step.acceptedLatex = old.0; step.acceptedFingerprint = old.1; step.acceptedAt = old.2
             step.ghostLaTeX = old.3; step.label = old.4; step.recognitionStateRaw = old.5
             step.statusRaw = old.6; step.explanation = old.7; step.updatedAt = old.8

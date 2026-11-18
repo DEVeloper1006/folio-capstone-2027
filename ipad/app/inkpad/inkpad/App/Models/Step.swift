@@ -1,4 +1,4 @@
-/* A notebook row that stores handwriting, recognition, computation results, explicit problem membership and its user-confirmed mathematical role. */
+/* A notebook row that stores handwriting, recognition, results, cached equation ASTs, inferred problem membership and user boundary corrections. */
 import SwiftData
 import Foundation
 import CoreGraphics
@@ -32,6 +32,8 @@ final class Step {
     var updatedAt: Date = Date()
     var problemGroupID: UUID? = nil
     var problemIntentRaw: String? = nil
+    var problemASTJSON: String? = nil
+    var problemStartsNewScope: Bool? = nil
     var page: Page?
     @Relationship(deleteRule: .cascade, inverse: \StepRevision.step)
     var revisions: [StepRevision] = []

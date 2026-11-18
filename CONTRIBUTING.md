@@ -28,7 +28,7 @@ The optional [editor comparison](editor-comparison/README.md) runs separately on
 
 The [iPad guide](ipad/README.md) covers `ipad/app/`, Xcode builds and staging validated local recognition assets. Research prototypes live in `research/folio-ipad-labs/` and have separate dependencies; they do not replace `client/`. Preserve imported baseline tests; the pause on adding or extending tests still applies. Run platform builds from their own folders and keep model exports, notebook data and local backups out of Git.
 
-For the iPad's problem grouping and future cross-row math work, maintain the [architecture notes](ipad/app/docs/problem-context-compute.md), [device interaction checklist](ipad/app/docs/problem-context-ipad-checklist.md), [major-version regression checklist](ipad/app/docs/problem-context-regression.md), and [build checkpoints and rollback record](ipad/app/docs/problem-context-checkpoints.md) with each implementation stage.
+For the iPad's automatic AST-based problem context and cross-row math work, maintain the [architecture notes](ipad/app/docs/problem-context-compute.md), [device interaction checklist](ipad/app/docs/problem-context-ipad-checklist.md), [major-version regression checklist](ipad/app/docs/problem-context-regression.md), and [build checkpoints and rollback record](ipad/app/docs/problem-context-checkpoints.md) with each implementation stage.
 
 ## Code patterns
 

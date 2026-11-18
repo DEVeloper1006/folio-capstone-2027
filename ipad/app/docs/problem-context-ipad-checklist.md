@@ -1,74 +1,33 @@
-# iPad interaction guide: grouped math rows
+# iPad interaction guide: automatic problem context
 
-This guide covers explicit row grouping and the first bounded contextual equation workflow. It checks that only user-selected definitions from the current problem are used.
+Use a disposable notebook. The installed build must include compiled `Encoder.mlmodelc`, `Decoder.mlmodelc`, `tokenizer-table.json` and `model-manifest.json`; see `../../README.md` for model staging. No grouping or role setup is required.
 
-## Before starting
+## Main workflow
 
-1. Build and install the `inkpad` Debug app on an iPad running iOS 26.2 or later.
-2. Before installing a local-recognition build, stage the validated TexTeller assets using `prepare-local-recognition.py` as described in `../../README.md`, then rebuild. Inspect the built `.app` and require `Encoder.mlmodelc`, `Decoder.mlmodelc`, `tokenizer-table.json` and `model-manifest.json` before installation. A successful compile alone does not establish that recognition resources are bundled. Recognition accuracy is not a prerequisite for the group controls: the test rows can be corrected in the review editor.
-3. Use a disposable notebook or make a notebook backup before trying persistence and reopen steps.
-4. Create at least three recognized rows on the same page, for example `t = 10`, `y = 2x + 11`, and `t + 6y = 15`. Accept each transcription after checking it.
+1. Write nearby separate rows: `t = 10`, `y = 2x + 11`, `t + 6y = 15`.
+2. Recognize the handwriting. Correct misread text and accept the three transcriptions.
+3. Open the final row preview. Confirm **Detected problem** lists the intended rows and **Using** lists the definitions above.
+4. Tap **Verify & Solve**. Expect `x = -61/12` and an explanation naming the source rows.
+5. Edit a definition; the old answer must become outdated. Correct and accept the new transcription before recomputing.
+6. Reopen the notebook and confirm context is still detected, source summaries are correct, and unchanged answers remain current.
 
-## Scenarios
+## Corrections and boundaries
 
-### Join two rows
-
-1. Open the handwriting preview and find the first accepted row.
-2. Tap **Group with another row**, then choose the second row.
-3. Confirm the row reports that it is grouped with one other row.
-4. Check the second row's preview; it should show the same relationship count.
-
-Expected: only the association changes. Ink, accepted LaTeX, row order, and existing row-scoped results remain visible and intact.
-
-### Join existing groups
-
-1. Make a group with rows one and two.
-2. From row three, group it with row two.
-3. Confirm all three rows report two other rows in the group.
-
-Expected: both previous associations become one group, without duplicate or missing rows.
-
-### Separate one row
-
-1. From the middle row in a three-row group, tap **Start a separate problem**.
-2. Confirm that row reports no group, while the other two remain grouped.
-3. Group the separated row with the third row and confirm the two become grouped.
-
-Expected: ungrouping affects only the chosen row; joining reuses the destination group's relationship.
-
-### Save and reopen
-
-1. Group two rows, close the notebook, then reopen it.
-2. Open the handwriting preview again and inspect both rows.
-
-Expected: the group remains after the page is saved and reopened. If it does not, capture the app version and the exact close/reopen steps.
-
-### Substitute and solve a grouped equation
-
-1. Write and accept `t = 10`, `y = 2x + 11`, and `t + 6y = 15` on three rows.
-2. Group the rows. Mark the first two rows as **Definition** and the final equation as **Equation to solve**.
-3. In the final row, review the listed source rows, then tap **Substitute & Solve**.
-4. Confirm the result is `x = -61/12` and that the explanation identifies the definitions used.
-5. Change, move or ungroup a definition and check that the saved result becomes outdated.
-
-Expected: the app uses only accepted, explicitly marked definitions from the same group that appear above the target. It rejects duplicate definitions, cycles, multiple unresolved variables, unsupported syntax and degree above two instead of guessing.
-
-### Keep separate problems separate
-
-1. Add a fourth row that uses `x` but belongs to a different exercise.
-2. Leave it ungrouped and open its compute flow.
-
-Expected: sharing a variable name does not create a group or introduce another row into the calculation.
+- Write an unrelated exercise farther down the page or in another column. It must not inherit the previous problem's definitions.
+- Put text or unsupported notation between two exercises. Context must stop at that row.
+- If nearby exercises are incorrectly joined, choose **Wrong problem? → Separate here** on the first row of the second exercise. Reopen the notebook and confirm the correction persists. **Use automatic context** removes it.
+- Leave a needed definition unaccepted. The target must explain that the definition needs review and must not compute using its draft.
+- Edit target text without accepting it. The contextual solve action must be disabled until acceptance.
+- Try a new definition of the same symbol. It should start a fresh inferred scope rather than overwrite the earlier exercise silently.
+- Try circular definitions, multiple unresolved variables and an equation above degree two. No unsupported result should be saved; source ink and editable transcriptions must remain.
+- Confirm writing, erasing, lasso, undo, insertion, result movement and notebook reopening still work.
 
 ## Feedback to send
 
-Please report:
+- Which step first required unexpected effort?
+- Did **Detected problem** include precisely the rows you intended? Include their transcriptions and a screenshot for wrong grouping.
+- Did the **Using** summary make the substitution clear before solving?
+- Was **Separate here** sufficient to correct a mistake, and did it survive reopening?
+- Include the iPad model, OS version, build/commit and expected versus actual result.
 
-- iPad model, iPadOS version and app build/commit.
-- Whether **Group with another row** and **Start a separate problem** were easy to find while writing with Pencil.
-- Whether the menu listed the intended row numbers and whether row numbering was clear.
-- Any association that changed unexpectedly after joining or separating rows.
-- Whether group membership survived leaving and reopening the notebook.
-- The recognized LaTeX and a screenshot if a row's handwriting or expression changed during grouping.
-- Whether the role picker and definition source summary were clear; include the rows and intended result if the contextual solve did not match your expectation.
-
+The new automatic-group workflow needs direct device verification. Passing existing tests for adjacent workflows does not establish its interaction correctness.

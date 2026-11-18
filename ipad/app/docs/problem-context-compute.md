@@ -4,11 +4,15 @@
 
 The iPad notebook persists handwritten expression rows as `Step` models. Each row keeps its ink, recognition draft, accepted transcription, revisions and row-scoped computation results. `Step.problemGroupID` adds an optional, user-controlled association between rows on the same page. It does not change the ink segmentation region: one row still means one expression-recognition input.
 
-In the handwriting preview, use **Group with another row** to connect rows. If either row already belongs to a group, the action joins both groups. **Start a separate problem** removes only the current row; the remaining rows retain their association. The relation is saved with the page. Rows without a group remain independent.
+Folio now infers problem context automatically after recognition, transcription acceptance and preview reopening. The normal flow is **review handwriting → verify the detected definitions → solve**. No grouping menu or per-row role picker is required. The target preview shows the detected row numbers and the exact definitions used, followed by **Verify & Solve**. Edited but unaccepted target text cannot compute; each used definition must also have an accepted transcription.
 
-For each grouped row, select **Definition** or **Equation to solve** in **Use this row as**. Folio uses only accepted definitions that appear above the selected equation in the same group. The contextual **Substitute & Solve** action shows which definitions it will use, then calls the existing native linear/quadratic polynomial solver. The result stores a manifest of every active row in the problem group, including each row's stable ID, accepted transcription/revision, ink fingerprint, meaning, group and position. Editing, adding, reordering, reclassifying or ungrouping a row makes the result outdated.
+`Step.problemASTJSON` caches a Codable statement containing the input text and native left/right ASTs. The cache is reused only for the exact current accepted transcription (or recognition draft before acceptance). The inference service walks active rows in page order, records `problemIntentRaw` and `problemGroupID`, and treats a single-symbol left side that does not reference itself on the right as a candidate definition. A group ID is the stable ID of its first row, so refreshing unchanged context does not invalidate results.
 
-This first contextual solver accepts the existing bounded polynomial grammar (rational/decimal constants, one-letter symbols, arithmetic, parentheses, fractions and integer powers 0–20), and requires at most one unresolved variable after substitution. The final equation must be degree two or lower. Definitions must be explicitly selected, have one variable on the left, occur earlier than the target and avoid duplicate/circular dependencies. Function definitions, arbitrary MathJSON operations, multiple unknowns, inequalities, matrices and unsupported syntax remain outside this path. A shared group does not imply mathematical correctness.
+Scopes stop at unread/unsupported rows, large vertical gaps (greater than max(96 points, twice the larger adjacent row height)), different columns (horizontal intervals separated by more than 80 points), repeated definition names, a new definition after a target equation, page boundaries or a saved **Separate here** correction. These are deterministic heuristics, not proof that rows belong to one exercise. Nearby unrelated equations can still be inferred together, so the source summary is part of verification. **Wrong problem? → Separate here** records `problemStartsNewScope`; **Use automatic context** removes that correction. Changing old manual groups is expected: the new inference replaces those associations when the notebook preview opens.
+
+The solver follows symbol dependencies through earlier definitions in the same scope. It accepts rational/decimal constants, one-letter symbols, arithmetic, parentheses, fractions and integer powers 0–20, at most one unresolved variable after substitution and final degree at most two. Duplicate/circular dependencies and unsupported notation remain rejected. General MathJSON operations, function definitions, inequalities, matrices and multi-unknown systems are outside this path.
+
+Every contextual result stores a full group manifest with stable row IDs, acceptance state, accepted revisions/transcriptions, ink fingerprints, inferred meaning and position. Source edits or scope changes make the old result outdated. Cache/schema additions are optional SwiftData fields; successful compile is not proof of migration on every historic notebook store.
 
 ## Existing math services and parser boundary
 
@@ -16,20 +20,18 @@ The web client has `client/src/math/latex-ast.ts`, which uses the pinned Cortex 
 
 The iPad continues to use its native bounded math services and the existing local calculus adapter. The new context path parses mixed-symbol expressions into the existing polynomial AST, substitutes explicit definitions, then sends the resulting one-variable equation to the existing solver. The example `t = 10`, `y = 2x + 11`, `t + 6y = 15` is supported within those constraints. This does not make the whole row grammar general-purpose: existing operation coverage remains as documented in `calc1-support.md`, `exact-algebra.md`, and `math-coverage-roadmap.md`.
 
-## Next implementation stages
+## Follow-on work
 
-1. **AST and semantic classification (implemented, bounded):** the iPad reuses its native polynomial AST. A per-row picker records the user's choice between definition and constraint; function definitions and general equality inference are not implemented.
-2. **Problem-local symbol environment (implemented, bounded):** resolve explicitly marked earlier single-symbol definitions only inside the selected row's group. Duplicate definitions and dependency cycles are rejected. Results retain a manifest of the full group and become outdated after a source, group, role or ordering change.
-3. **Contextual operation (implemented, bounded):** show the target row's supported **Substitute & Solve** action only when a one-variable, degree-two-or-lower answer can be computed, and list the definition rows used.
-4. **Broader operation planning (future):** generalize context actions after extending and reviewing the AST grammar. Never silently include rows from another group.
-5. **Compact alternative-operation menu (future):** the current contextual action lives in the grouped row preview, while the existing general compute workbench remains. Simplify its operation selection after observing the first workflow on iPad; keep advanced parameters available.
+- Extend semantic interpretation beyond the bounded polynomial AST, including function stores, after defining their execution and provenance contract.
+- Collect device feedback on automatic scope boundaries and provide richer corrections if the simple separation control is insufficient.
+- Simplify the general alternative-operation workbench; contextual solve already uses the direct verification path.
 
 Do not replace PencilKit, row recognition, SwiftData notebook relationships, or native math services as part of these stages. Schema changes need a migration and reopen check. Each stage should have a rollback point and a documented list of supported forms before it is described as complete.
 
 ## Data and provenance rules
 
 - A group is page-local; it does not carry definitions to another page.
-- Only a row the user explicitly marks as a definition may enter the symbol environment; ambiguous equalities are not auto-classified.
+- Candidate definitions are inferred from AST equality structure. Display used definitions for verification; unsupported syntax never enters the symbol environment.
 - Recognition acceptance confirms the transcription only, not mathematical correctness.
 - A result that uses multiple rows must record every source row's stable ID, accepted LaTeX, accepted revision number and fingerprint, plus group and order.
 - A changed or ungrouped source invalidates any result depending on it; unrelated row results remain current.

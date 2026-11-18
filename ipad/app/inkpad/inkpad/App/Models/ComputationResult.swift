@@ -65,7 +65,7 @@ final class ComputationResult {
             && source.acceptedFingerprint == sourceFingerprint
             && source.latestAcceptedRevisionNumber == sourceRevisionNumber else { return false }
         guard sourceContextJSON != "[]" else { return true }
-        guard let sourceContextGroupID,source.problemGroupID==sourceContextGroupID,source.problemIntent == .constraint,
+        guard let sourceContextGroupID,source.problemGroupID==sourceContextGroupID,source.problemIntent != .automatic,
               let references=try? JSONDecoder().decode([ComputationSourceReference].self,from:Data(sourceContextJSON.utf8)),
               let steps=source.page?.steps else { return false }
         let currentRows=steps.filter{$0.isActive && $0.problemGroupID==sourceContextGroupID}.sorted{$0.sortIndex<$1.sortIndex}

@@ -11,29 +11,29 @@ Add confirmed cases here as grouping, AST interpretation and cross-row computati
 - [ ] Two adjacent independent rows remain separate recognition inputs; fractions, exponents and matrices remain representable.
 - [ ] Recognition without staged local model assets gives the documented setup failure; a build alone is not evidence of handwriting accuracy.
 
-## Explicit problem grouping (implemented increment)
+## Automatic problem grouping
 
-- [ ] Group two rows from the recognition preview; both rows show the relationship.
-- [ ] Join two existing groups; all intended members share one group.
-- [ ] Remove one row from a group; only that row becomes independent.
-- [ ] Remove a middle row; remaining group members stay together.
-- [ ] Save and reopen the page; group IDs persist.
-- [ ] Same variable in unrelated rows does not automatically group them.
-- [ ] Grouping does not alter ink, accepted transcription, row order or current row-scoped computation source.
-- [ ] Empty/single-row pages provide no invalid group action.
+- [ ] Nearby definitions and a dependent target automatically share one scope after recognition; no setup menu appears.
+- [ ] The preview shows detected source rows and only offers verification/solve for supported context.
+- [ ] Text, unread rows, large gaps, column boundaries and page boundaries stop context.
+- [ ] Repeated definition names and definitions after a target start fresh scopes.
+- [ ] **Separate here** corrects a wrong inference and survives reopen; **Use automatic context** removes the override.
+- [ ] Reopening unchanged context retains stable group IDs and current result manifests.
+- [ ] Group inference leaves ink, recognition segmentation and accepted transcriptions intact.
+- [ ] Existing notebooks migrate with optional AST cache/boundary fields; old manual associations are refreshed automatically.
 
 ## AST and semantic analysis
 
 - [ ] Future expansion: parse all supported numbers, symbols, arithmetic precedence, implicit multiplication, fractions, powers, roots, parentheses and relations into a portable stable AST/MathJSON. The current iPad path only accepts its documented bounded polynomial grammar.
-- [ ] Require the user to mark each grouped row as a definition or target equation; never infer those roles from equality alone.
-- [ ] Parse `t = 10`, `y = 2x + 11`, and target `t + 6y = 15` into bounded native ASTs and show the selected definitions before calculation.
+- [ ] Infer candidate definitions and targets from equation ASTs and show the used sources for user verification.
+- [ ] Persist exact-input AST caches for `t = 10`, `y = 2x + 11`, and target `t + 6y = 15`; invalidate caches when transcription changes and show detected definitions before calculation.
 - [ ] Preserve unknown symbols; do not label prose or undeclared function calls as math without evidence.
 - [ ] Reject unsupported syntax with a localized message and preserve source ink/transcription.
 - [ ] Future expansion: round-trip supported AST to displayed math without changing grouping or relation semantics.
 
 ## Problem-local definitions and contextual solving
 
-- [ ] In one explicit group, mark `t = 10` and `y = 2x + 11` as definitions and target `t + 6y = 15` as the equation; confirm the contextual action returns `x = -61/12` (manual device case still pending).
+- [ ] Write nearby `t = 10`, `y = 2x + 11` and target `t + 6y = 15`; confirm the contextual action returns `x = -61/12` (manual device case still pending).
 - [ ] Verify the result records every used definition's row ID, accepted revision, fingerprint, group and position.
 - [ ] Adding, deleting, reordering or reclassifying any active row in the group makes an existing contextual result outdated.
 - [ ] Ensure definitions from another group or page are never inherited.
