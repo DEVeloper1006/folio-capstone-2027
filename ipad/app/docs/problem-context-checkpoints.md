@@ -36,7 +36,13 @@ The baseline is the known-good rollback point. No notebook store or source histo
 - Manual new-flow interaction: not verified. The simulator CUA bridge stopped accepting actions while setting up a scratch notebook, and no physical iPad was available. Use the interaction checklist; report the recognized rows and exact button/menu behavior.
 - Build output warnings are existing: deprecated iOS 26 `coordinateSpace` use in `CanvasSmoke.swift` and skipped App Intents metadata because the app target does not link AppIntents.
 
-## Rollback
+## Physical iPad installation with local model — November 18, 2026
+
+The initial device installation omitted the ignored model assets and could not provide local recognition. Corrected by staging the original validated exports from `/Users/jasimraza/Desktop/capstone/folio-ipad-labs/results/on-device-texteller` with `ipad/app/scripts/prepare-local-recognition.py`; the script verified package hashes and the pinned model/adapter. Rebuilt for device `00008103-001A28121AE9401E` using `/private/tmp/folio-ipad-connected` derived data. Build log: `/private/tmp/folio-ipad-bundled-model-build.log` — **BUILD SUCCEEDED**.
+
+Before reinstalling, inspected the built app and confirmed `Encoder.mlmodelc` (171,805,182 bytes), `Decoder.mlmodelc` (423,831,708 bytes), `tokenizer-table.json` (206,339 bytes) and `model-manifest.json` (295 bytes). Installation and ordinary app launch both succeeded on the physical iPad Air. This verifies packaging and launch, not a new handwriting inference or grouping interaction run. Model assets remain ignored and uncommitted. Future local-recognition installs must check the actual app bundle before installation.
+
+## Rollback instructions
 
 The feature is isolated on `feat/problem-context-compute`. Checkpoint 1 is committed as `db389e7`; checkpoint 2 is committed as `591eb97`. To return to the untouched baseline, switch to `main` at `7ace848`. To retain the feature locally while returning to baseline work, leave the feature branch intact and switch branches; do not reset a shared branch. No remote branch, pull request or deployment has been created.
 

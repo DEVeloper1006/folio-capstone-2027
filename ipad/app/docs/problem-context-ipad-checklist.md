@@ -5,7 +5,7 @@ This guide covers explicit row grouping and the first bounded contextual equatio
 ## Before starting
 
 1. Build and install the `inkpad` Debug app on an iPad running iOS 26.2 or later.
-2. Confirm the validated local TexTeller assets have been staged if using local handwriting recognition. Recognition accuracy is not a prerequisite for the group controls: the test rows can be corrected in the review editor.
+2. Before installing a local-recognition build, stage the validated TexTeller assets using `prepare-local-recognition.py` as described in `../../README.md`, then rebuild. Inspect the built `.app` and require `Encoder.mlmodelc`, `Decoder.mlmodelc`, `tokenizer-table.json` and `model-manifest.json` before installation. A successful compile alone does not establish that recognition resources are bundled. Recognition accuracy is not a prerequisite for the group controls: the test rows can be corrected in the review editor.
 3. Use a disposable notebook or make a notebook backup before trying persistence and reopen steps.
 4. Create at least three recognized rows on the same page, for example `t = 10`, `y = 2x + 11`, and `t + 6y = 15`. Accept each transcription after checking it.
 
