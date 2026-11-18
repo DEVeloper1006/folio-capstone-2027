@@ -1,3 +1,4 @@
+/* A notebook row that stores its handwriting, recognition lifecycle, revisions, computation results and optional problem-group membership. */
 import SwiftData
 import Foundation
 import CoreGraphics
@@ -29,6 +30,7 @@ final class Step {
     var acceptedAt: Date? = nil
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
+    var problemGroupID: UUID? = nil
     var page: Page?
     @Relationship(deleteRule: .cascade, inverse: \StepRevision.step)
     var revisions: [StepRevision] = []

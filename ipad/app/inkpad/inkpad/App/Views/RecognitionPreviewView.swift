@@ -1,4 +1,6 @@
+/* The handwriting review interface for checking transcriptions, grouping related rows and starting row-scoped computations. */
 import SwiftUI
+import SwiftData
 
 struct RecognitionPreviewView: View {
     let steps: [Step]
@@ -60,6 +62,7 @@ struct RowComputationPresentation:Identifiable {
 }
 
 struct ExpressionReviewRow:View {
+    @Environment(\.modelContext) private var context
     let step:Step
     let alternatives:[String]
     let duration:Int
@@ -82,6 +85,7 @@ struct ExpressionReviewRow:View {
                 Text(matchesAccepted ? "Reviewed":"Check transcription").font(.caption).foregroundStyle(.secondary)
             }
             if !step.ghostLaTeX.isEmpty {
+                problemGroupControls
                 MathJaxWebView(steps:[TypesetStep(latex:draft,markdown:"",status:nil)]).frame(height:120)
                 HStack {
                     Text(matchesAccepted ? "Ready to compute":"Does this match what you wrote?").font(.callout)
@@ -137,6 +141,46 @@ struct ExpressionReviewRow:View {
         .onChange(of:step.ghostLaTeX) { _,value in draft=value }
         .onChange(of:step.strokeFingerprint) { _,_ in draft=step.ghostLaTeX;editing=false;computation=nil }
     }
+    @ViewBuilder private var problemGroupControls:some View {
+        if let page=step.page {
+            VStack(alignment:.leading,spacing:8) {
+                Text("Related rows").font(.subheadline.weight(.semibold))
+                if let groupID=step.problemGroupID {
+                    Text("Grouped with \(page.steps.filter { $0.isActive && $0.problemGroupID == groupID }.count - 1) other row(s)")
+                        .font(.caption).accessibilityIdentifier("problemGroupStatus-\(step.stableID.uuidString)")
+                    Button("Start a separate problem",role:.destructive) { setProblemGroup(nil) }
+                        .accessibilityIdentifier("ungroupProblemRow-\(step.stableID.uuidString)")
+                } else {
+                    Menu("Group with another row") {
+                        ForEach(page.steps.filter { $0.isActive && $0.stableID != step.stableID }.sorted { $0.sortIndex < $1.sortIndex },id:\.stableID) { other in
+                            Button("Row \(other.sortIndex + 1)") { groupProblem(with:other) }
+                        }
+                    }.disabled(page.steps.filter { $0.isActive && $0.stableID != step.stableID }.isEmpty)
+                        .accessibilityIdentifier("groupProblemRow-\(step.stableID.uuidString)")
+                    Text("Group rows that belong to one question. Definitions and calculations stay separate until you group them.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    /// Assign both selected rows and any existing groups to one problem, then save the page.
+    private func groupProblem(with other:Step) {
+        guard let page=step.page else { return }
+        let groupID=step.problemGroupID ?? other.problemGroupID ?? UUID()
+        let previousIDs=Set([step.problemGroupID,other.problemGroupID].compactMap{$0})
+        for member in page.steps where member.stableID == step.stableID || member.stableID == other.stableID || member.problemGroupID.map(previousIDs.contains) == true {
+            member.problemGroupID=groupID
+        }
+        try? context.save()
+    }
+
+    /// Keep this row independent from its former problem and persist the change.
+    private func setProblemGroup(_ groupID:UUID?) {
+        step.problemGroupID=groupID
+        try? context.save()
+    }
+
     private var stateLabel:String {
         switch step.recognitionState {
         case .collecting:"Ink changed. Review a new recognition before computing."
