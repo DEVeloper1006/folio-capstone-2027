@@ -22,24 +22,30 @@ Add confirmed cases here as grouping, AST interpretation and cross-row computati
 - [ ] Grouping does not alter ink, accepted transcription, row order or current row-scoped computation source.
 - [ ] Empty/single-row pages provide no invalid group action.
 
-## AST and semantic analysis (roadmap; not implemented)
+## AST and semantic analysis
 
-- [ ] Parse numbers, symbols, arithmetic precedence, implicit multiplication, fractions, powers, roots, parentheses and supported relations into stable AST/MathJSON.
-- [ ] Distinguish `t = 10` as a candidate value definition, `y = 2x + 11` as a candidate function/relation, and `x^2 + 3x = 4` as a candidate constraint; request user intent when ambiguous.
+- [ ] Future expansion: parse all supported numbers, symbols, arithmetic precedence, implicit multiplication, fractions, powers, roots, parentheses and relations into a portable stable AST/MathJSON. The current iPad path only accepts its documented bounded polynomial grammar.
+- [ ] Require the user to mark each grouped row as a definition or target equation; never infer those roles from equality alone.
+- [ ] Parse `t = 10`, `y = 2x + 11`, and target `t + 6y = 15` into bounded native ASTs and show the selected definitions before calculation.
 - [ ] Preserve unknown symbols; do not label prose or undeclared function calls as math without evidence.
 - [ ] Reject unsupported syntax with a localized message and preserve source ink/transcription.
-- [ ] Round-trip supported AST to displayed math without changing grouping or relation semantics.
+- [ ] Future expansion: round-trip supported AST to displayed math without changing grouping or relation semantics.
 
-## Problem-local definitions and contextual solving (roadmap; not implemented)
+## Problem-local definitions and contextual solving
 
-- [ ] In one explicit group, resolve `t = 10`, `y = 2x + 11`, then target `t + 6y = 15` to `x = -61/12`; verify `y = 5/6` and `t = 10`.
+- [ ] In one explicit group, mark `t = 10` and `y = 2x + 11` as definitions and target `t + 6y = 15` as the equation; confirm the contextual action returns `x = -61/12` (manual device case still pending).
+- [ ] Verify the result records every used definition's row ID, accepted revision, fingerprint, group and position.
+- [ ] Adding, deleting, reordering or reclassifying any active row in the group makes an existing contextual result outdated.
 - [ ] Ensure definitions from another group or page are never inherited.
 - [ ] Detect duplicate/conflicting definitions and dependency cycles; ask the user to resolve them.
+- [ ] Reject multiple unresolved variables, degree above two and unsupported syntax with a clear recoverable message.
 - [ ] Changing or removing any contributing definition marks dependent results stale.
 - [ ] Record every source row and accepted revision/fingerprint used by a contextual result.
 - [ ] Keep unsupported equations, multiple unknowns and unsupported functions out of the linear/quadratic solver; do not approximate silently.
 
 ## Compute interface and existing service regression
+
+- [ ] Future UI work: evaluate and simplify the general compute workbench's operation menu after collecting iPad feedback; retain access to existing advanced operation choices.
 
 - [ ] Inline suggestion starts with the accepted source row and asks only for required inputs.
 - [ ] Changing operation, variable or bounds refreshes review and does not retain a stale answer.

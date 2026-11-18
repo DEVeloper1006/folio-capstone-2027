@@ -1,6 +1,6 @@
 # iPad interaction guide: grouped math rows
 
-This guide covers the first grouping increment. It checks that grouping is an explicit, persisted organization action and does not silently alter recognized math or computation scope.
+This guide covers explicit row grouping and the first bounded contextual equation workflow. It checks that only user-selected definitions from the current problem are used.
 
 ## Before starting
 
@@ -43,13 +43,15 @@ Expected: ungrouping affects only the chosen row; joining reuses the destination
 
 Expected: the group remains after the page is saved and reopened. If it does not, capture the app version and the exact close/reopen steps.
 
-### Check compute isolation
+### Substitute and solve a grouped equation
 
-1. Start a computation from one accepted row in a group.
-2. Inspect the displayed source and operation suggestion.
-3. Run an existing supported operation such as simplifying `y = 2x + 11` only if the current service accepts the input.
+1. Write and accept `t = 10`, `y = 2x + 11`, and `t + 6y = 15` on three rows.
+2. Group the rows. Mark the first two rows as **Definition** and the final equation as **Equation to solve**.
+3. In the final row, review the listed source rows, then tap **Substitute & Solve**.
+4. Confirm the result is `x = -61/12` and that the explanation identifies the definitions used.
+5. Change, move or ungroup a definition and check that the saved result becomes outdated.
 
-Expected for this increment: compute remains row-scoped. The app does not substitute `t = 10` or use other grouped rows automatically. This is an explicit current limitation, not a failed grouping test.
+Expected: the app uses only accepted, explicitly marked definitions from the same group that appear above the target. It rejects duplicate definitions, cycles, multiple unresolved variables, unsupported syntax and degree above two instead of guessing.
 
 ### Keep separate problems separate
 
@@ -68,5 +70,5 @@ Please report:
 - Any association that changed unexpectedly after joining or separating rows.
 - Whether group membership survived leaving and reopening the notebook.
 - The recognized LaTeX and a screenshot if a row's handwriting or expression changed during grouping.
-- Whether you expected compute to use the other rows; include the exact rows and expected result. Cross-row substitution is not implemented in this increment.
+- Whether the role picker and definition source summary were clear; include the rows and intended result if the contextual solve did not match your expectation.
 

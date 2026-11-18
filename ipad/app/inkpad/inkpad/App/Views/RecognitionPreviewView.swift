@@ -73,9 +73,14 @@ struct ExpressionReviewRow:View {
     @State private var draft=""
     @State private var editing=false
     @State private var computation:RowComputationPresentation?
+    @State private var problemError=""
     private var matchesAccepted:Bool { step.isAccepted && draft.trimmingCharacters(in:.whitespacesAndNewlines)==step.acceptedLatex }
     private var canReview:Bool { ![.collecting,.recognizing,.failed].contains(step.recognitionState) }
     private var results:[ComputationResult] { step.computationResults.filter{!$0.isRemoved}.sorted{$0.createdAt>$1.createdAt} }
+    private var contextualCalculation:ProblemContextCalculation? {
+        guard let page=step.page,step.problemIntent == .constraint else { return nil }
+        return try? ProblemContextMathService.calculate(page:page,target:step)
+    }
     var body:some View {
         VStack(alignment:.leading,spacing:12) {
             HStack {
@@ -148,8 +153,21 @@ struct ExpressionReviewRow:View {
                 if let groupID=step.problemGroupID {
                     Text("Grouped with \(page.steps.filter { $0.isActive && $0.problemGroupID == groupID }.count - 1) other row(s)")
                         .font(.caption).accessibilityIdentifier("problemGroupStatus-\(step.stableID.uuidString)")
+                    Picker("Use this row as",selection:problemIntentSelection) {
+                        ForEach(ProblemStatementIntent.allCases) { intent in Text(intent.title).tag(intent) }
+                    }.accessibilityIdentifier("problemStatementIntent-\(step.stableID.uuidString)")
                     Button("Start a separate problem",role:.destructive) { setProblemGroup(nil) }
                         .accessibilityIdentifier("ungroupProblemRow-\(step.stableID.uuidString)")
+                    if let calculation=contextualCalculation {
+                        Text("Uses: "+calculation.substitutions.joined(separator:"; ").replacingOccurrences(of:"Substitute ",with:""))
+                            .font(.caption).accessibilityIdentifier("problemSubstitutionSources-\(step.stableID.uuidString)")
+                        Button("Substitute & Solve",action:saveContextualCalculation)
+                            .buttonStyle(.borderedProminent).accessibilityIdentifier("substituteAndSolve-\(step.stableID.uuidString)")
+                    } else if step.problemIntent == .constraint {
+                        Text("No supported substitution found. Check that earlier accepted rows in this group are marked Definition.")
+                            .font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("problemContextUnavailable-\(step.stableID.uuidString)")
+                    }
+                    if !problemError.isEmpty { Text(problemError).font(.caption).foregroundStyle(.red).accessibilityIdentifier("problemContextError") }
                 } else {
                     Menu("Group with another row") {
                         ForEach(page.steps.filter { $0.isActive && $0.stableID != step.stableID }.sorted { $0.sortIndex < $1.sortIndex },id:\.stableID) { other in
@@ -162,6 +180,18 @@ struct ExpressionReviewRow:View {
                 }
             }
         }
+    }
+
+    private var problemIntentSelection:Binding<ProblemStatementIntent> {
+        Binding(get:readProblemIntent,set:updateProblemIntent)
+    }
+
+    /// Read the current row meaning for the preview's picker.
+    private func readProblemIntent()->ProblemStatementIntent { step.problemIntent }
+
+    /// Persist the user's explicit choice about whether this row defines a symbol or states an equation to solve.
+    private func updateProblemIntent(_ intent:ProblemStatementIntent) {
+        step.problemIntent=intent;problemError="";try? context.save()
     }
 
     /// Assign both selected rows and any existing groups to one problem, then save the page.
@@ -179,6 +209,18 @@ struct ExpressionReviewRow:View {
     private func setProblemGroup(_ groupID:UUID?) {
         step.problemGroupID=groupID
         try? context.save()
+    }
+
+    /// Save the contextual answer only if the target and every grouped definition still match the reviewed snapshots.
+    private func saveContextualCalculation() {
+        guard let page=step.page else { return }
+        do {
+            guard let calculation=contextualCalculation else { throw PolynomialError.invalid("Select an equation that uses an earlier supported definition in this group.") }
+            let expected=try PolynomialResultStore.snapshot(step)
+            _=try MathResultStore.save(calculation.answer,page:page,source:step,expected:expected,context:context,
+                sourceContext:calculation.sources,contextGroupID:calculation.groupID)
+            problemError=""
+        } catch { problemError=error.localizedDescription }
     }
 
     private var stateLabel:String {

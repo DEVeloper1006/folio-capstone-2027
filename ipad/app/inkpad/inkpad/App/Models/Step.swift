@@ -1,4 +1,4 @@
-/* A notebook row that stores its handwriting, recognition lifecycle, revisions, computation results and optional problem-group membership. */
+/* A notebook row that stores handwriting, recognition, computation results, explicit problem membership and its user-confirmed mathematical role. */
 import SwiftData
 import Foundation
 import CoreGraphics
@@ -31,6 +31,7 @@ final class Step {
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
     var problemGroupID: UUID? = nil
+    var problemIntentRaw: String? = nil
     var page: Page?
     @Relationship(deleteRule: .cascade, inverse: \StepRevision.step)
     var revisions: [StepRevision] = []
@@ -82,6 +83,11 @@ final class Step {
         set { sourceRaw = newValue.rawValue }
     }
 
+    var problemIntent:ProblemStatementIntent {
+        get { ProblemStatementIntent(rawValue:problemIntentRaw ?? "automatic") ?? .automatic }
+        set { problemIntentRaw=newValue.rawValue }
+    }
+
     var bounds: CGRect {
         get { CGRect(x: boundsX, y: boundsY, width: boundsWidth, height: boundsHeight) }
         set {
@@ -100,4 +106,16 @@ enum StepRecognitionState: String, Codable {
 
 enum StepSource: String, Codable {
     case seeded, manual, inferred
+}
+
+enum ProblemStatementIntent:String,CaseIterable,Identifiable {
+    case automatic,definition,constraint
+    var id:String { rawValue }
+    var title:String {
+        switch self {
+        case .automatic:"Choose meaning"
+        case .definition:"Definition"
+        case .constraint:"Equation to solve"
+        }
+    }
 }

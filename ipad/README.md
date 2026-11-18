@@ -65,7 +65,7 @@ xcodebuild -project ipad/app/inkpad/inkpad.xcodeproj \
 
 The app includes Pencil input, recognition review, LaTeX rendering and local computation. Symbolic computation does not require the Python/SymPy server or a Mac recognition endpoint. Native app details live in `ipad/app/docs/`.
 
-The current math-context increment adds explicit, page-local grouping of recognized rows in the handwriting preview. See [problem grouping and contextual computation](app/docs/problem-context-compute.md), the [iPad interaction checklist](app/docs/problem-context-ipad-checklist.md), the [growing major-version regression checklist](app/docs/problem-context-regression.md), and the [build checkpoints and rollback record](app/docs/problem-context-checkpoints.md). Grouping is organizational only in this increment; it does not yet substitute definitions across rows.
+The current math-context increment adds explicit, page-local grouping of recognized rows and bounded substitution from earlier accepted definitions into a selected equation. See [problem grouping and contextual computation](app/docs/problem-context-compute.md), the [iPad interaction checklist](app/docs/problem-context-ipad-checklist.md), the [growing major-version regression checklist](app/docs/problem-context-regression.md), and the [build checkpoints and rollback record](app/docs/problem-context-checkpoints.md). Contextual solving currently supports single-symbol definitions and at most one unresolved variable in linear or quadratic equations; general MathJSON, function definitions and systems remain unsupported.
 
 ### Handwriting recognition assets
 
