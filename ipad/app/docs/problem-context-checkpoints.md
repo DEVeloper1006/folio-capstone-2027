@@ -79,7 +79,18 @@ Before reinstalling, inspected the built app and confirmed `Encoder.mlmodelc` (1
 - [Mini-demo and test guide](integration-mini-demo.md) gives expected answers, exact workflow, demo scope and remaining gaps. Physical-iPad live handwriting accuracy, full domain classification, improper convergence, arbitrary piecewise expressions and universal u/du transformations are not claimed.
 - Rollback: `c83f1c1` for the earlier worksheet-calculus checkpoint. Preserve notebook backups before switching schema versions. No push/merge/deployment or automated test-source changes.
 
+## Publication handoff — November 19, 2026
+
+The user authorized committing and pushing this work on November 19. The publication target is `origin/feat/problem-context-compute` in `DEVeloper1006/folio-capstone-2027`; this authorization does not merge into main or deploy a release.
+
+- Latest implementation checkpoint: `f2a3ba6` (integration families and solved-value chains). Earlier stages: `c83f1c1` (worksheet notation/visible results), `5c9f71d` (automatic context), `591eb97` (bounded contextual solve), `db389e7` (explicit grouping). Baseline: `7ace848`.
+- Current handoff: [architecture and notation](worksheet-math-workflows.md), [mini demo and expected answers](integration-mini-demo.md), [iPad interactions](problem-context-ipad-checklist.md), and [growing regression checklist](problem-context-regression.md).
+- Verification remains as recorded above: successful simulator/device builds, final 104-case unit run, six existing compute/integral UI cases, 96 independent calculus cases, and manual end-to-end demo plus dependency invalidation. This documentation-only publication update does not rerun or broaden those checks.
+- Earlier full-suite canvas/result-drag failures and physical handwriting/layout gaps remain documented; they are not relabeled as resolved by the focused passing runs.
+- `/private/tmp` build logs and xcresult paths are local execution evidence, not tracked or portable artifacts. Validated model exports, compiled apps, personal notebook data and credentials stay out of Git. A fresh checkout must stage validated local recognition resources using `prepare-local-recognition.py`, then inspect the built app bundle before installing.
+- Maintain the repository pause on new or extended automated test sources until Saad resumes test development. Preserve notebook backups before switching builds with schema changes.
+
 ## Rollback instructions
 
-The feature is isolated on `feat/problem-context-compute`. Checkpoint 1 is committed as `db389e7`; checkpoint 2 is committed as `591eb97`. To return to the untouched baseline, switch to `main` at `7ace848`. To retain the feature locally while returning to baseline work, leave the feature branch intact and switch branches; do not reset a shared branch. No remote branch, pull request or deployment has been created.
+The feature is isolated on `feat/problem-context-compute`. Checkpoint 1 is committed as `db389e7`; checkpoint 2 is committed as `591eb97`. To return to the untouched baseline, switch to `main` at `7ace848`. To retain the feature while returning to baseline work, leave the feature branch intact and switch branches; do not reset a shared branch. See the publication handoff above for the authorized remote branch. No merge or deployment is part of this handoff.
 
