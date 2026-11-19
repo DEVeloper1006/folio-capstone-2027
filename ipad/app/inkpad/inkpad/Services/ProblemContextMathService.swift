@@ -39,9 +39,9 @@ enum ProblemContextMathService {
         for row in page.steps where !row.isActive { row.problemGroupID=nil;row.problemIntent = .automatic }
     }
 
-    /// Capture every active row in the problem so later additions, role changes, edits, moves or ungrouping invalidate dependent results.
-    static func manifest(page:Page,groupID:UUID)->[ComputationSourceReference] {
-        page.steps.filter{$0.isActive && $0.problemGroupID==groupID}.sorted{$0.sortIndex<$1.sortIndex}.map { row in
+    /// Capture the current problem prefix through a target so source edits invalidate answers while later working stays independent.
+    static func manifest(page:Page,groupID:UUID,through target:Step?=nil)->[ComputationSourceReference] {
+        page.steps.filter{$0.isActive && $0.problemGroupID==groupID && (target == nil || $0.sortIndex<=target!.sortIndex)}.sorted{$0.sortIndex<$1.sortIndex}.map { row in
             ComputationSourceReference(stableID:row.stableID,acceptedRevisionNumber:row.latestAcceptedRevisionNumber,
                 acceptedFingerprint:row.acceptedFingerprint,acceptedLatex:row.acceptedLatex,problemGroupID:groupID,
                 rowIndex:row.sortIndex,intentRaw:row.problemIntent.rawValue,isAccepted:row.isAccepted,strokeFingerprint:row.strokeFingerprint)
@@ -53,6 +53,7 @@ enum ProblemContextMathService {
         let sources:[ComputationSourceReference]
         let groupID:UUID
         let summaries:[String]
+        let resultSources:[ComputationResultReference]
     }
 
     /// Expand only earlier definitions in this stored problem scope; preserve the calculus variable as a bound parameter.
@@ -65,6 +66,17 @@ enum ProblemContextMathService {
             let notation=try WorksheetMathNotation.read(row.isAccepted ? row.acceptedLatex:row.ghostLaTeX)
             if let name=notation.name { definitions[name]=(notation,row) }
         }
+        var derived:[String:ComputationResultReference]=[:]
+        for row in page.steps.filter({$0.isActive && $0.problemGroupID==groupID && $0.sortIndex<target.sortIndex}) {
+            guard let result=row.computationResults.filter({!$0.isRemoved && $0.operationRaw==MathOperation.solveEquation.rawValue && $0.isCurrent}).sorted(by:{$0.createdAt>$1.createdAt}).first,
+                  let notation=try? WorksheetMathNotation.read(result.outputLatex),notation.kind == .definition,notation.arguments.isEmpty,let name=notation.name,
+                  let ast=try? PolynomialIntegrationService().expressionAST(notation.body),ast.variables.isEmpty,
+                  (try? ast.polynomial()) != nil else { continue }
+            guard definitions[name]==nil else { throw PolynomialError.invalid("This problem has more than one binding for \(name). Review its definitions and solved results.") }
+            definitions[name]=(notation,row)
+            derived[name]=ComputationResultReference(stableID:result.stableID,sourceID:row.stableID,outputLatex:result.outputLatex,requestJSON:result.requestJSON)
+        }
+        var usedResults:[ComputationResultReference]=[]
         var request=original
         var summaries:[String]=[],used=Set<UUID>(),stack=Set<String>(),budget=400
         let boundVariable=targetNotation.variable ?? original.variable
@@ -82,7 +94,10 @@ enum ProblemContextMathService {
             budget-=1
             guard budget>0,expression.count<=10000,stack.count<24 else { throw PolynomialError.invalid("The problem's definitions are too deeply nested.") }
             var output=expression
-            for name in definitions.keys.sorted() {
+            for name in definitions.keys.sorted(by:{ lhs,rhs in
+                let leftCall = !definitions[lhs]!.0.arguments.isEmpty,rightCall = !definitions[rhs]!.0.arguments.isEmpty
+                return leftCall == rightCall ? lhs<rhs:leftCall
+            }) {
                 let (definition,row)=definitions[name]!
                 if definition.arguments.isEmpty && protected.contains(name) { continue }
                 let pattern=definition.arguments.isEmpty ? "(?<![A-Za-z\\\\])"+name+"(?![A-Za-z])":"(?<![A-Za-z\\\\])"+name+"\\(([^()]*)\\)"
@@ -107,7 +122,9 @@ enum ProblemContextMathService {
                     } else {
                         stack.insert(name);body=try expand(body,protected:protected);stack.remove(name)
                     }
-                    if used.insert(row.stableID).inserted { summaries.append("Row \(row.sortIndex+1): \(row.acceptedLatex)") }
+                    if let result=derived[name],!usedResults.contains(result) {
+                        usedResults.append(result);summaries.append("Solved Row \(row.sortIndex+1): \(result.outputLatex)")
+                    } else if used.insert(row.stableID).inserted { summaries.append("Row \(row.sortIndex+1): \(row.acceptedLatex)") }
                     output.replaceSubrange(range,with:"("+body+")")
                 }
             }
@@ -133,7 +150,14 @@ enum ProblemContextMathService {
             protected.formUnion(definition.arguments)
         }
         request.inputA=try expand(request.inputA,protected:protected)
+        if request.operation == .solveEquation,let variable=AlgebraComputationService().suggestedVariable(request.inputA) {
+            request.variable=variable
+        }
         if request.operation.needsB { request.inputB=try expand(request.inputB,protected:protected) }
+        if request.operation.needsPoint { request.point=try expand(request.point,protected:[]) }
+        if request.operation.needsInterval {
+            request.lower=try expand(request.lower,protected:[]);request.upper=try expand(request.upper,protected:[])
+        }
         // Names of declared functions may be recognized elsewhere, but their values never enter this scope.
         var functionNames=Set(["f","g","h"])
         for row in page.steps where row.isActive {
@@ -144,7 +168,7 @@ enum ProblemContextMathService {
                 throw PolynomialError.invalid("Function \(name) has no supported definition in this problem. Other problems are kept separate.")
             }
         }
-        return Plan(request:request,sources:manifest(page:page,groupID:groupID),groupID:groupID,summaries:summaries)
+        return Plan(request:request,sources:manifest(page:page,groupID:groupID,through:target),groupID:groupID,summaries:summaries,resultSources:usedResults)
     }
 
 }

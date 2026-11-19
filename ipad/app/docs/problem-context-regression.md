@@ -64,3 +64,13 @@ Add confirmed cases here as grouping, AST interpretation and cross-row computati
 - [ ] f-prime, double-prime, dy/dx and explicit first partial notation follow the supported workflows in `worksheet-math-workflows.md`.
 - [ ] Bare differentials and unsupported differential equations never become accidental multiplication or ordinary equations.
 - [ ] Source changes during asynchronous calculus execution reject save and preserve notebook ink.
+
+## Integration and derived-result chains
+
+- [ ] Solve an exact scalar, reuse it as a later integral bound/point, and retain both row and result-level provenance.
+- [ ] Accepting later rows does not invalidate an unchanged earlier prefix; changing a source/removing a solved result invalidates its dependents.
+- [ ] Reject ambiguous multi-root/complex/approximate solved-value reuse and definitions conflicting with a saved result.
+- [ ] Check the u-sub, three radical families, rational partial-fraction and domain examples in `integration-mini-demo.md`.
+- [ ] Split finite integrals at affine abs corners or explicit valid points; retain per-segment values/error estimates and reversed-limit sign.
+- [ ] Splitting at 0 does not turn integral of 1/x from −1 to 1 into zero. No improper convergence claim is inferred.
+- [ ] Reopen the notebook with source-result dependency JSON; freshness and downstream invalidation still work.

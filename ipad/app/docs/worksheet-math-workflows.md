@@ -1,3 +1,5 @@
+> Integration/result-chaining update: [mini-demo and test guide](integration-mini-demo.md) supersedes the former full-group-manifest boundary and documents current solved-value reuse, radical families and finite interval splitting.
+
 # Worksheet math: notation, problem scope and visible computation
 
 ## Evidence and design decisions

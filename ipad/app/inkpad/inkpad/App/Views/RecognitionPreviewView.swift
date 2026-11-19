@@ -89,6 +89,9 @@ struct ExpressionReviewRow:View {
         case .integral:
             guard let page=step.page,let group=step.problemGroupID,page.steps.filter({$0.isActive && $0.problemGroupID==group}).count>1 else { return nil }
             return notation.text.contains("_") ? .definiteIntegral:.integral
+        case .expression:
+            guard WorksheetMathNotation.captures(#"^[A-Za-z]\([^()]+\)$"#,notation.text.filter{!$0.isWhitespace}) != nil else { return nil }
+            return .simplify
         case .equation:
             guard let page=step.page,let group=step.problemGroupID,page.steps.filter({$0.isActive && $0.problemGroupID==group}).count>1 else { return nil }
             return .solveEquation
@@ -241,7 +244,7 @@ struct ExpressionReviewRow:View {
                 let answer=MathComputationAnswer(request:computed.request,inputLatex:expected.inputLatex,outputLatex:computed.outputLatex,
                     steps:plan.summaries+computed.steps,engineVersion:computed.engineVersion)
                 let result=try MathResultStore.save(answer,page:page,source:step,expected:expected,context:context,
-                    sourceContext:plan.sources,contextGroupID:plan.groupID)
+                    sourceContext:plan.sources,contextGroupID:plan.groupID,sourceResults:plan.resultSources)
                 latestContextID=result.stableID;showingResults=true
             } catch is CancellationError { problemError="Calculation cancelled." }
             catch { problemError=error.localizedDescription }

@@ -129,7 +129,7 @@ function realLogs(a){if(a.k==='f')return F(a.v,a.v==='log'?F('abs',realLogs(a.a)
 function approximateTeX(value){const s=Number(value.toPrecision(11)).toString(),parts=s.split('e');return parts.length===2?parts[0]+'\\times 10^{'+Number(parts[1])+'}':s;}
 function compute(q,n){
  if(!q||typeof q.operation!=='string')fail('Choose an operation.');
- const operations=new Set('inspect partialDerivative derivative secondDerivative integral definiteIntegral numericalIntegral evaluate limit limitLeft limitRight tangentLine normalLine implicitDerivative averageRate averageValue areaBetween volumeDisk volumeShell volumeWasher arcLength rootInterval simplify expand arithmetic'.split(' '));
+ const operations=new Set('inspect splitIntegral partialDerivative derivative secondDerivative integral definiteIntegral numericalIntegral evaluate limit limitLeft limitRight tangentLine normalLine implicitDerivative averageRate averageValue areaBetween volumeDisk volumeShell volumeWasher arcLength rootInterval simplify expand arithmetic'.split(' '));
  if(!operations.has(q.operation))fail('This operation is not available in the elementary engine.');
  if(q.operation==='implicitDerivative'){
   const sides=q.inputA.split('=');if(sides.length!==2)fail('Enter an equation in x and y, e.g. x^2+y^2=1.');
@@ -141,7 +141,7 @@ function compute(q,n){
  let parsed;
  const equation=q.inputA.split('=');
  if(equation.length===2&&inputOperation==='rootInterval')parsed={body:B('-',parse(equation[0]),parse(equation[1])),meta:{kind:'expression'}};
- else if(equation.length===2&&['partialDerivative','derivative','secondDerivative','evaluate','tangentLine','normalLine','limit','limitLeft','limitRight','averageRate','averageValue','areaBetween','volumeDisk','volumeShell','volumeWasher','arcLength','integral','definiteIntegral','numericalIntegral'].includes(inputOperation)){
+ else if(equation.length===2&&['splitIntegral','partialDerivative','derivative','secondDerivative','evaluate','tangentLine','normalLine','limit','limitLeft','limitRight','averageRate','averageValue','areaBetween','volumeDisk','volumeShell','volumeWasher','arcLength','integral','definiteIntegral','numericalIntegral'].includes(inputOperation)){
   const header=equation[0].trim(),declaration=header.match(/^[fgh]\s*\(\s*([A-Za-z])\s*\)$/);
   if(header==='y'||declaration)parsed={body:parse(equation[1]),meta:{kind:'function',variable:declaration?.[1]}};
  }
@@ -151,7 +151,7 @@ function compute(q,n){
  if(!/^[A-Za-z]$/.test(v)||(inputOperation!=='partialDerivative'&&(vars.size>1||[...vars].some(z=>z!==v))))fail('Use one independent Latin-letter variable. Multivariable expressions are not supported in this menu.');
  function validateConstants(tree){if(!variables(tree).size){scalar(tree,'Constant');return;}if(tree.a)validateConstants(tree.a);if(tree.b)validateConstants(tree.b);}
  validateConstants(a);
- const usesPoint=['evaluate','limit','limitLeft','limitRight','tangentLine','normalLine'].includes(inputOperation),usesInterval=['definiteIntegral','numericalIntegral','averageRate','averageValue','areaBetween','volumeDisk','volumeShell','volumeWasher','arcLength','rootInterval'].includes(inputOperation);
+ const usesPoint=['evaluate','limit','limitLeft','limitRight','tangentLine','normalLine'].includes(inputOperation),usesInterval=['splitIntegral','definiteIntegral','numericalIntegral','averageRate','averageValue','areaBetween','volumeDisk','volumeShell','volumeWasher','arcLength','rootInterval'].includes(inputOperation);
  const parameter=(value,label,fallback)=>{if(value!=null&&!String(value).trim())fail('Enter the '+label+'.');return parse(value??fallback);};
  const expr=cas(a),rawPoint=meta.pointAST||(usesPoint?parameter(q.point,'point','2'):N(2)),lower=meta.lowerAST||(usesInterval?parameter(q.lower,'lower limit','0'):N(0)),upper=meta.upperAST||(usesInterval?parameter(q.upper,'upper limit','1'):N(1));
  const resolved={...q,variable:v,point:cas(rawPoint),lower:cas(lower),upper:cas(upper)};
@@ -159,12 +159,56 @@ function compute(q,n){
  if(q.operation==='inspect'){if(usesPoint)scalar(rawPoint,'Point',['limit','limitLeft','limitRight'].includes(inputOperation));if(usesInterval){scalar(lower,'Lower limit');scalar(upper,'Upper limit');}return{latex,steps:[],review:{variable:v,integrand:latex,kind:meta.kind,lower:meta.lowerAST?n(cas(lower)).toTeX().replace(/\\mathrm\{log\}/g,'\\ln'):null,upper:meta.upperAST?n(cas(upper)).toTeX().replace(/\\mathrm\{log\}/g,'\\ln'):null,point:meta.pointAST?n(cas(rawPoint)).toTeX().replace(/\\mathrm\{log\}/g,'\\ln'):null,direction:meta.direction||null}};}
  if(meta.kind==='limit'&&!['limit','limitLeft','limitRight'].includes(q.operation))fail('Choose a limit operation for this row, or remove the limit notation to work with the function itself.');
  if(meta.kind==='integral'||meta.kind==='definiteIntegral'){
-  if(!['integral','definiteIntegral','numericalIntegral','averageValue','volumeDisk','volumeShell'].includes(q.operation))fail('Choose an integration operation for this full integral, or enter the function without its integral sign.');
+  if(!['splitIntegral','integral','definiteIntegral','numericalIntegral','averageValue','volumeDisk','volumeShell'].includes(q.operation))fail('Choose an integration operation for this full integral, or enter the function without its integral sign.');
   if(meta.kind==='definiteIntegral'&&q.operation==='integral')fail('This row has limits. Choose Definite integral.');
  }
  const derive=order=>n.diff(expr,v,order);
  const ensureSolved=e=>{if(/(?:integrate|limit|sum)\(/.test(e.text()))fail('The symbolic engine could not resolve this expression. For a finite definite integral, try Numerical integral.');return e;};
- function anti(expression){let result=ensureSolved(n.integrate(expression,v));const check=n.simplify('('+n.diff(result,v).text()+')-('+expression+')');if(check.text()!=='0')fail('The proposed antiderivative could not be verified by differentiation. Try Numerical integral for finite limits.');return result;}
+ let integrationMethod=[];
+ // Recognize only the canonical a²−x² radical family. The domain-qualified derivative identity is algebraic, not a numeric sampling check.
+ function trigRadical(expression){
+  let tree;try{tree=parse(expression,true);}catch{return null;}
+  let root=tree,inverse=false;
+  if(tree.k==='b'&&tree.v==='/'&&n(cas(tree.a)).text()==='1'){root=tree.b;inverse=true;}
+  if(root.k!=='b'||root.v!=='^'||variables(root.b).size||scalar(root.b,'Power')!==0.5)return null;
+  const rad=cas(root.a);let family,square;
+  const constant=expression=>{try{const text=n.simplify(expression).text(),ast=parse(text,true);return variables(ast).size?null:{text,value:scalar(ast,'Radius squared')};}catch{return null;}};
+  const minus=constant('('+rad+')+'+v+'^2'),plus=constant('('+rad+')-'+v+'^2');
+  if(minus&&minus.value>0){family='circle';square=minus.text;}
+  else if(plus&&plus.value>0){family='plus';square=plus.text;}
+  else if(plus&&plus.value<0){family='outside';square=n('(-1)*('+plus.text+')').text();}
+  else return null;
+  const radius=n.sqrt(square).text(),r='sqrt('+rad+')';let formula,domain,substitution;
+  if(family==='circle'){
+   formula=inverse?'asin('+v+'/('+radius+'))':'('+v+'*'+r+'+('+square+')*asin('+v+'/('+radius+')))/2';
+   domain='−('+radius+') < '+v+' < '+radius;
+   substitution=v+' = ('+radius+') sin(theta), theta in [−pi/2, pi/2].';
+  }else{
+   const log='log(abs('+v+'+'+r+'))';
+   formula=inverse?log:'('+v+'*'+r+(family==='plus'?'+':'-')+'('+square+')*'+log+')/2';
+   domain=family==='plus'?'all real '+v:'|'+v+'| > '+radius+' on each separate connected interval';
+   substitution=v+' = ('+radius+') '+(family==='plus'?'tan':'sec')+'(theta); choose a branch consistent with the real domain.';
+  }
+  integrationMethod=['Trig substitution: '+substitution,'Integrate the transformed trigonometric expression and substitute back.',
+   'Verified by the chain rule with the matched quadratic identity r² = '+rad+' and r>0. Antiderivative domain: '+domain+'.'];
+  return n(formula);
+ }
+ function anti(expression){
+  const trig=trigRadical(expression);if(trig)return trig;
+  let tree;try{tree=parse(expression,true);}catch{fail('The integrand could not be parsed.');}
+  const rational=t=>t.k==='n'||t.k==='v'||(t.k==='b'&&['+','-','*','/','^'].includes(t.v)&&rational(t.a)&&rational(t.b));
+  let result,valid=false;
+  try{result=ensureSolved(n.integrate(expression,v));valid=!/(^|[^A-Za-z])i([^A-Za-z]|$)/.test(result.text())&&n.simplify('('+n.diff(result,v).text()+')-('+expression+')').text()==='0';}catch{}
+  if(!valid&&rational(tree)){
+   try{
+    const decomposed=n.partfrac(expression,v);result=ensureSolved(n.integrate(decomposed.text(),v));
+    valid=!/(^|[^A-Za-z])i([^A-Za-z]|$)/.test(result.text())&&n.simplify('('+n.diff(result,v).text()+')-('+expression+')').text()==='0';
+    if(valid)integrationMethod=['Rewrite the rational integrand by partial fractions: '+decomposed.toTeX()+'.'];
+   }catch{}
+  }
+  if(!valid)fail('The proposed antiderivative could not be verified by differentiation. Try Numerical integral for finite limits.');
+  return result;
+ }
  const valueAt=(expression,x)=>ensureSolved(n(expression,{[v]:n(cas(x))}));
  const approximate=(ast,lo,hi,extra='')=>{const result=numericalIntegral(ast,lo,hi,v);steps=['Numerical approximation (adaptive Simpson, radians).'+extra,'Estimated quadrature error '+result.error.toExponential(2)+'; '+result.evaluations+' evaluations. This estimate is not a proof of exactness.','Continuity was conservatively checked on the finite interval; unresolved domains are rejected.'];return '\\approx '+approximateTeX(result.value);};
  switch(q.operation){
@@ -180,7 +224,7 @@ function compute(q,n){
   if(conditions.length){const unique=[...new Set(conditions.map(cas))];out+='\\quad\\text{for }'+unique.map(t=>n(t).toTeX()+'\\ne0').join(',\\;');steps.push('This formula is stated away from zeros of absolute-value or fractional-power arguments. Additional zero points need separate one-sided derivative analysis; differentiability there is not assumed.');}
   break;
  }
- case'integral':{const result=anti(expr);let tree;try{tree=parse(result.text(),true);if([...variables(tree)].some(x=>x!==v))throw new Error();}catch{fail('No supported elementary antiderivative. For a finite interval, choose Numerical definite integral.');}out=n(cas(realLogs(tree))).toTeX().replace(/\\mathrm\{log\}/g,'\\ln')+' + '+(v==='C'?'C_{1}':'C');steps=['Symbolic antiderivative verified by simplifying F′ − f to zero.','Natural logarithms are written with absolute values for real antiderivatives. Valid on intervals where the original function is defined.'];break;}
+ case'integral':{const result=anti(expr);let tree;try{tree=parse(result.text(),true);if([...variables(tree)].some(x=>x!==v))throw new Error();}catch{fail('No supported elementary antiderivative. For a finite interval, choose Numerical definite integral.');}out=n(cas(realLogs(tree))).toTeX().replace(/\\mathrm\{log\}/g,'\\ln')+' + '+(v==='C'?'C_{1}':'C');steps=integrationMethod.concat(['Symbolic antiderivative verified by simplifying F′ − f to zero.','Natural logarithms are written with absolute values for real antiderivatives. Valid on intervals where the original function is defined.']);if(integrationMethod.some(x=>x.startsWith('Trig substitution:')))steps=integrationMethod;break;}
  case'definiteIntegral':case'averageValue':case'volumeDisk':case'volumeShell':case'volumeWasher':{
   const lo=scalar(lower,'Lower limit'),hi=scalar(upper,'Upper limit');interval(a,Math.min(lo,hi),Math.max(lo,hi),v);
   if(['volumeDisk','volumeShell','volumeWasher'].includes(q.operation)&&hi<lo)fail('Volume needs lower ≤ upper.');
@@ -200,8 +244,35 @@ function compute(q,n){
   }
   const F=anti(f),atLow=valueAt(F.text(),lower),atHigh=valueAt(F.text(),upper);let r=n.simplify('('+atHigh.text()+')-('+atLow.text()+')');
   if(q.operation==='averageValue')r=n('('+r.text()+')/(('+cas(upper)+')-('+cas(lower)+'))');
-  ensureSolved(r);const resultAST=parse(r.text(),true);scalar(resultAST,'Result');out=r.toTeX().replace(/\\mathrm\{log\}/g,'\\ln');steps=['Symbolic antiderivative checked by differentiation.','Use the fundamental theorem on a continuity-checked finite interval: F(upper) − F(lower).'];
+  ensureSolved(r);const resultAST=parse(r.text(),true);scalar(resultAST,'Result');out=r.toTeX().replace(/\\mathrm\{log\}/g,'\\ln');steps=integrationMethod.concat(['Symbolic antiderivative checked by differentiation.','Use the fundamental theorem on a continuity-checked finite interval: F(upper) − F(lower).']);if(integrationMethod.some(x=>x.startsWith('Trig substitution:')))steps=integrationMethod.concat(['Apply F(upper) − F(lower) on the continuity-checked real interval.']);
+  steps.push('Antiderivative F('+v+') = '+F.toTeX()+'.');steps.push('F('+n(cas(upper)).toTeX()+') = '+atHigh.toTeX()+'; F('+n(cas(lower)).toTeX()+') = '+atLow.toTeX()+'.');
   if(q.operation==='averageValue')steps.push('Divide by upper − lower for the average value.');if(q.operation==='volumeDisk')steps.push('Disk method about the x-axis: π ∫ f(x)² dx.');if(q.operation==='volumeWasher')steps.push('Washers about the x-axis: π ∫ (R² − r²) dx, with nonnegative radii and R ≥ r.');if(q.operation==='volumeShell')steps.push('Shell method about the y-axis: 2π ∫ x |f(x)| dx with x ≥ 0.');break;}
+ case'splitIntegral':{
+  const low=scalar(lower,'Lower limit'),high=scalar(upper,'Upper limit'),lo=Math.min(low,high),hi=Math.max(low,high),points=[];
+  if((q.inputB||'').trim()){
+   for(const value of q.inputB.split(','))points.push(scalar(parse(value),'Split point'));
+  }else{
+   function corners(t){
+    if(t.k==='f'&&t.v==='abs'){
+     const text=cas(t.a),slope=n.diff(text,v).text();
+     try{const slopeAST=parse(slope,true);if(!variables(slopeAST).size){const m=scalar(slopeAST,'Slope');if(m!==0){const b=scalar(parse(n(text,{[v]:0}).text(),true),'Intercept'),point=-b/m;if(point>lo&&point<hi)points.push(point);}}}catch{}
+    }
+    if(t.a)corners(t.a);if(t.b)corners(t.b);
+   }corners(a);
+  }
+  if(points.length>8||points.some(x=>x<=lo||x>=hi))fail('Use at most eight distinct split points strictly inside the interval.');
+  const ordered=[lo,...[...new Set(points)].sort((a,b)=>a-b),hi];
+  if((q.inputB||'').trim()&&new Set(points).size!==points.length)fail('Each split point must be distinct.');
+  let value=0,error=0,count=0;steps=['Finite interval split into '+(ordered.length-1)+' continuity-checked segment(s). A pole or improper endpoint is rejected, not skipped.'];
+  for(let i=0;i<ordered.length-1;i++){
+   let part;try{part=numericalIntegral(a,ordered[i],ordered[i+1],v);}catch(error){fail('Cannot integrate segment ['+ordered[i]+', '+ordered[i+1]+']. Splitting does not remove a pole or improper endpoint. '+error.message);}value+=part.value;error+=part.error;count+=part.evaluations;
+   if(count>60000)fail('Split integration exceeded its total evaluation budget.');
+   steps.push('['+ordered[i]+', '+ordered[i+1]+']: approximately '+part.value.toPrecision(11));
+  }
+  if(high<low)value=-value;
+  steps.push('Sum the signed segments. Estimated quadrature error '+error.toExponential(2)+'; '+count+' evaluations. This is not an improper-integral convergence test.');
+  out='\\approx '+approximateTeX(value);break;
+ }
  case'numericalIntegral':out=approximate(a,scalar(lower,'Lower limit'),scalar(upper,'Upper limit'));break;
  case'evaluate':{const x=scalar(rawPoint,'Evaluation point');numeric(a,x,v);out=valueAt(expr,rawPoint).toTeX().replace(/\\mathrm\{log\}/g,'\\ln');steps=['Substitute '+v+' at the reviewed point, in radians.','Only finite real values are accepted.'];break;}
  case'limit':case'limitLeft':case'limitRight':{scalar(rawPoint,'Approach point',true);let dir=meta.direction||({limitLeft:'left',limitRight:'right'}[q.operation])||'both';resolved.operation=dir==='left'?'limitLeft':dir==='right'?'limitRight':'limit';

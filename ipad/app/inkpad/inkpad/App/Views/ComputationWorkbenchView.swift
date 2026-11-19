@@ -55,7 +55,7 @@ struct ComputationWorkbenchView:View {
     }
     private var saved:[ComputationResult] { RowComputationScope.results(on:page,source:source,sessionIDs:sessionIDs) }
     private var currentResult:ComputationResult? { saved.first { $0.stableID==latestID } }
-    private var isIntegration:Bool { [.integral,.definiteIntegral,.numericalIntegral].contains(operation) }
+    private var isIntegration:Bool { [.splitIntegral,.integral,.definiteIntegral,.numericalIntegral].contains(operation) }
     private var hasReadBounds:Bool { review?.kind=="definiteIntegral" && operation.needsInterval }
     private var hasReadPoint:Bool { review?.kind=="limit" && [.limit,.limitLeft,.limitRight].contains(operation) }
 
@@ -170,9 +170,9 @@ struct ComputationWorkbenchView:View {
     }
     @ViewBuilder private var parameterFields:some View {
         if operation.needsB {
-            Section(operation == .compose ? "Inner expression B (A is applied to B)":operation.isMatrix ? "Second matrix":operation == .volumeWasher ? "Inner radius r(x)":"Second expression / curve") {
+            Section(operation == .splitIntegral ? "Split points (optional; comma-separated)":operation == .compose ? "Inner expression B (A is applied to B)":operation.isMatrix ? "Second matrix":operation == .volumeWasher ? "Inner radius r(x)":"Second expression / curve") {
                 if operation.isMatrix { MatrixInputEditor(text:$matrixB,identifier:"matrixB") }
-                else { TextField("Expression B",text:$algebraB,axis:.vertical).accessibilityIdentifier("mathExpressionB").focused($focusedInput,equals:.secondExpression) }
+                else { TextField(operation == .splitIntegral ? "Auto-detect linear absolute-value corners, or enter 0, 1":"Expression B",text:$algebraB,axis:.vertical).accessibilityIdentifier("mathExpressionB").focused($focusedInput,equals:.secondExpression) }
             }.disabled(busy).textInputAutocapitalization(.never).autocorrectionDisabled()
         }
         if operation.needsPoint && !hasReadPoint {
@@ -264,7 +264,7 @@ struct ComputationWorkbenchView:View {
                 let answer=MathComputationAnswer(request:computed.request,inputLatex:input.inputA,outputLatex:computed.outputLatex,
                     steps:(plan?.summaries ?? [])+computed.steps,engineVersion:computed.engineVersion)
                 guard request==input else { return }
-                let result=try MathResultStore.save(answer,page:page,source:linked ? source:nil,expected:linked ? openingSnapshot:nil,context:context,sourceContext:plan?.sources ?? [],contextGroupID:plan?.groupID)
+                let result=try MathResultStore.save(answer,page:page,source:linked ? source:nil,expected:linked ? openingSnapshot:nil,context:context,sourceContext:plan?.sources ?? [],contextGroupID:plan?.groupID,sourceResults:plan?.resultSources ?? [])
                 sessionIDs.insert(result.stableID);latestID=result.stableID;stage = .result
             } catch is CancellationError { }
             catch { errorText=error.localizedDescription }

@@ -15,6 +15,13 @@ struct ComputationSourceReference:Codable,Equatable,Sendable {
     let strokeFingerprint:String
 }
 
+struct ComputationResultReference:Codable,Equatable,Sendable {
+    let stableID:UUID
+    let sourceID:UUID
+    let outputLatex:String
+    let requestJSON:String
+}
+
 @Model
 final class ComputationResult {
     var stableID: UUID = UUID()
@@ -27,6 +34,7 @@ final class ComputationResult {
     var engineVersion: String = ""
     var requestJSON: String = ""
     var sourceContextJSON:String = "[]"
+    var sourceResultsJSON:String = "[]"
     var sourceContextGroupID:UUID? = nil
     var explanationStepsJSON: String = "[]"
     var createdAt: Date = Date()
@@ -59,7 +67,11 @@ final class ComputationResult {
     }
     var explanationSteps:[String] { (try? JSONDecoder().decode([String].self,from:Data(explanationStepsJSON.utf8))) ?? [] }
     var computationRequest:MathComputationRequest? { try? JSONDecoder().decode(MathComputationRequest.self,from:Data(requestJSON.utf8)) }
-    var isCurrent: Bool {
+    var isCurrent: Bool { validatedCurrent(visiting:[]) }
+
+    /// Validate earlier-row dependencies recursively with cycle/depth protection; later working cannot invalidate an earlier prefix.
+    private func validatedCurrent(visiting:Set<UUID>)->Bool {
+        guard !visiting.contains(stableID),visiting.count<32 else { return false }
         guard let source else { return false }
         guard !isRemoved && source.isAccepted && source.acceptedLatex == inputLatex
             && source.acceptedFingerprint == sourceFingerprint
@@ -68,14 +80,21 @@ final class ComputationResult {
         guard let sourceContextGroupID,source.problemGroupID==sourceContextGroupID,source.problemIntent != .automatic,
               let references=try? JSONDecoder().decode([ComputationSourceReference].self,from:Data(sourceContextJSON.utf8)),
               let steps=source.page?.steps else { return false }
-        let currentRows=steps.filter{$0.isActive && $0.problemGroupID==sourceContextGroupID}.sorted{$0.sortIndex<$1.sortIndex}
+        let currentRows=steps.filter{$0.isActive && $0.problemGroupID==sourceContextGroupID && $0.sortIndex<=source.sortIndex}.sorted{$0.sortIndex<$1.sortIndex}
         guard currentRows.count==references.count else { return false }
-        return zip(references,currentRows).allSatisfy { reference,row in
+        let rowsMatch=zip(references,currentRows).allSatisfy { reference,row in
             reference.stableID==row.stableID && row.latestAcceptedRevisionNumber==reference.acceptedRevisionNumber
                 && row.acceptedFingerprint==reference.acceptedFingerprint && row.acceptedLatex==reference.acceptedLatex
                 && row.problemGroupID==reference.problemGroupID && row.sortIndex==reference.rowIndex
                 && row.problemIntent.rawValue==reference.intentRaw && row.isAccepted==reference.isAccepted
                 && row.strokeFingerprint==reference.strokeFingerprint
+        }
+        guard rowsMatch,let resultReferences=try? JSONDecoder().decode([ComputationResultReference].self,from:Data(sourceResultsJSON.utf8)) else { return false }
+        return resultReferences.allSatisfy { reference in
+            guard let row=steps.first(where:{$0.stableID==reference.sourceID}),row.sortIndex<source.sortIndex,
+                  let result=row.computationResults.first(where:{$0.stableID==reference.stableID}),
+                  result.outputLatex==reference.outputLatex,result.requestJSON==reference.requestJSON else { return false }
+            return result.validatedCurrent(visiting:visiting.union([stableID]))
         }
     }
 }

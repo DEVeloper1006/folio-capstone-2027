@@ -1,3 +1,4 @@
+/* Runs bounded calculus inspection and execution in isolated, time-limited workers with versioned integration verification. */
 import Foundation
 import WebKit
 import UIKit
@@ -14,7 +15,7 @@ nonisolated struct Calc1InputReview:Codable,Equatable,Sendable {
 
 @MainActor
 enum Calc1MathService {
-    static let version="native-math-calc1-v1-nerdamer-2.0.1"
+    static let version="native-math-calc1-v2-nerdamer-2.0.1"
     static func supports(_ operation:MathOperation)->Bool { !operation.isMatrix && !operation.isNativeAlgebraExtension && ![.factor,.solveEquation,.polynomialAdd,.polynomialSubtract,.polynomialMultiply,.polynomialDivide,.equivalent].contains(operation) }
     static func compute(_ request:MathComputationRequest) async throws->MathComputationAnswer {
         let reply=try await Calc1WorkerRunner().run(request)

@@ -109,3 +109,7 @@ Verified before opening the migration PR with Xcode 26.2 (17C52):
 - Updated Markdown passed the repository's local formatter and the migration edits passed `git diff --check`.
 
 Build warnings remain: an existing canvas smoke helper uses deprecated `coordinateSpace`; Xcode skips optional App Intents metadata; the web build reports chunk-size/module-directive warnings. Neither build failed. This migration did not run new model inference, install on a physical iPad, validate Pencil gestures again, or execute every research prototype. Prior device validation remains evidence for the original app checkpoint, not a new device test of the relocated checkout.
+
+### Integration mini demo
+
+See the [rehearsed solve → integrate → evaluate workflow and test guide](app/docs/integration-mini-demo.md) for current integration examples, scope, expected answers and demo limits.

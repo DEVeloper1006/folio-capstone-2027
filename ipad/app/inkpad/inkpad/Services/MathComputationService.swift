@@ -3,7 +3,7 @@ import Foundation
 
 nonisolated enum MathOperation:String,Codable,CaseIterable,Identifiable,Sendable {
     case rref,rank,determinant,inverse,transpose,matrixAdd,matrixSubtract,matrixMultiply,solve
-    case partialDerivative,derivative,expand,evaluate,integral,definiteIntegral
+    case splitIntegral,partialDerivative,derivative,expand,evaluate,integral,definiteIntegral
     case arithmetic,simplify,factor,solveEquation,polynomialAdd,polynomialSubtract,polynomialMultiply,polynomialDivide,equivalent
     case solveInequality,solveAbsolute,compose,complexCalculate,complexConjugate,complexModulus
     case trace,matrixScale,matrixPower,nullspace,columnSpace,rowSpace
@@ -12,12 +12,12 @@ nonisolated enum MathOperation:String,Codable,CaseIterable,Identifiable,Sendable
     var isComplex:Bool {[.complexCalculate,.complexConjugate,.complexModulus].contains(self)}
     var isNativeAlgebraExtension:Bool {isComplex || [.solveInequality,.solveAbsolute,.compose].contains(self)}
     var isAlgebra:Bool {isNativeAlgebraExtension || [.arithmetic,.simplify,.factor,.solveEquation,.polynomialAdd,.polynomialSubtract,.polynomialMultiply,.polynomialDivide,.equivalent,.areaBetween,.volumeWasher].contains(self)}
-    var isCalculus:Bool { [.partialDerivative,.derivative,.expand,.evaluate,.integral,.definiteIntegral,.limit,.limitLeft,.limitRight,.secondDerivative,.tangentLine,.normalLine,.implicitDerivative,.averageRate,.averageValue,.numericalIntegral,.areaBetween,.volumeDisk,.volumeShell,.volumeWasher,.arcLength,.rootInterval].contains(self) }
+    var isCalculus:Bool { [.splitIntegral,.partialDerivative,.derivative,.expand,.evaluate,.integral,.definiteIntegral,.limit,.limitLeft,.limitRight,.secondDerivative,.tangentLine,.normalLine,.implicitDerivative,.averageRate,.averageValue,.numericalIntegral,.areaBetween,.volumeDisk,.volumeShell,.volumeWasher,.arcLength,.rootInterval].contains(self) }
     var isMatrix:Bool { !isAlgebra && !isCalculus }
     var topic:Int { isMatrix ? 0:(isAlgebra || self == .expand) ? 1:2 }
-    var needsInterval:Bool { [.definiteIntegral,.numericalIntegral,.averageRate,.averageValue,.areaBetween,.volumeDisk,.volumeShell,.volumeWasher,.arcLength,.rootInterval].contains(self) }
+    var needsInterval:Bool { [.splitIntegral,.definiteIntegral,.numericalIntegral,.averageRate,.averageValue,.areaBetween,.volumeDisk,.volumeShell,.volumeWasher,.arcLength,.rootInterval].contains(self) }
     var needsPoint:Bool { [.evaluate,.limit,.limitLeft,.limitRight,.tangentLine,.normalLine,.matrixScale,.matrixPower].contains(self) }
-    var needsB:Bool { [.compose,.matrixAdd,.matrixSubtract,.matrixMultiply,.polynomialAdd,.polynomialSubtract,.polynomialMultiply,.polynomialDivide,.equivalent,.areaBetween,.volumeWasher].contains(self) }
+    var needsB:Bool { [.splitIntegral,.compose,.matrixAdd,.matrixSubtract,.matrixMultiply,.polynomialAdd,.polynomialSubtract,.polynomialMultiply,.polynomialDivide,.equivalent,.areaBetween,.volumeWasher].contains(self) }
     var title:String {
         switch self {
         case .solveInequality:"Solve polynomial inequality";case .solveAbsolute:"Solve absolute-value equation";case .compose:"Compose A(B(x))"
@@ -29,6 +29,7 @@ nonisolated enum MathOperation:String,Codable,CaseIterable,Identifiable,Sendable
         case .arithmetic:"Calculate";case .simplify:"Simplify";case .factor:"Factor rational linear factors";case .solveEquation:"Solve linear / quadratic equation"
         case .polynomialAdd:"Add polynomials";case .polynomialSubtract:"Subtract polynomials";case .polynomialMultiply:"Multiply polynomials";case .polynomialDivide:"Divide polynomials";case .equivalent:"Check polynomial equivalence"
         case .trace:"Trace";case .matrixScale:"Scale matrix";case .matrixPower:"Integer matrix power";case .nullspace:"Nullspace basis";case .columnSpace:"Column-space basis";case .rowSpace:"Row-space basis"
+        case .splitIntegral:"Split definite integral"
         case .partialDerivative:"Partial derivative"
         case .rref:"RREF";case .rank:"Rank";case .determinant:"Determinant";case .inverse:"Inverse";case .transpose:"Transpose"
         case .matrixAdd:"Matrix addition";case .matrixSubtract:"Matrix subtraction";case .matrixMultiply:"Matrix multiplication"

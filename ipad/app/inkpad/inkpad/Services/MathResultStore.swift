@@ -6,15 +6,24 @@ import PencilKit
 
 @MainActor
 enum MathResultStore {
-    /// Persist an answer after validating its source snapshot and optional full problem-group manifest.
-    static func save(_ answer:MathComputationAnswer,page:Page,source:Step?,expected:IntegrationSourceSnapshot?,context:ModelContext,sourceContext:[ComputationSourceReference]=[],contextGroupID:UUID?=nil) throws -> ComputationResult {
+    /// Persist an answer after validating its source snapshot, optional problem-prefix manifest and earlier solved-result dependencies.
+    static func save(_ answer:MathComputationAnswer,page:Page,source:Step?,expected:IntegrationSourceSnapshot?,context:ModelContext,sourceContext:[ComputationSourceReference]=[],contextGroupID:UUID?=nil,sourceResults:[ComputationResultReference]=[]) throws -> ComputationResult {
         try Task.checkCancellation()
         let encoded=try answer.request.encoded()
         let contextEncoder=JSONEncoder();contextEncoder.outputFormatting=[.sortedKeys]
         let contextJSON=String(decoding:try contextEncoder.encode(sourceContext),as:UTF8.self)
+        let resultsJSON=String(decoding:try contextEncoder.encode(sourceResults),as:UTF8.self)
+        for reference in sourceResults {
+            guard let source,let row=page.steps.first(where:{$0.stableID==reference.sourceID}),row.sortIndex<source.sortIndex,
+                  row.problemGroupID==source.problemGroupID,
+                  let result=row.computationResults.first(where:{$0.stableID==reference.stableID}),result.isCurrent,
+                  result.outputLatex==reference.outputLatex,result.requestJSON==reference.requestJSON else {
+                throw PolynomialError.invalid("An earlier solved result changed. Recompute that row first.")
+            }
+        }
         if !sourceContext.isEmpty {
             guard let contextGroupID,let source,source.problemGroupID==contextGroupID,
-                  sourceContext==ProblemContextMathService.manifest(page:page,groupID:contextGroupID) else {
+                  sourceContext==ProblemContextMathService.manifest(page:page,groupID:contextGroupID,through:source) else {
                 throw PolynomialError.invalid("A grouped problem row changed. Review the problem rows and compute again.")
             }
         } else if contextGroupID != nil { throw PolynomialError.invalid("A contextual result needs at least one grouped definition source.") }
@@ -49,9 +58,9 @@ enum MathResultStore {
                 value.page=page;page.steps.append(value);context.insert(value);context.insert(revision);step=value;created=value
             }
         }
-        if let existing=step.computationResults.first(where:{$0.isCurrent && $0.requestJSON==encoded && $0.sourceContextJSON==contextJSON && $0.sourceContextGroupID==contextGroupID && $0.engineVersion==answer.engineVersion}) { return existing }
+        if let existing=step.computationResults.first(where:{$0.isCurrent && $0.requestJSON==encoded && $0.sourceContextJSON==contextJSON && $0.sourceResultsJSON==resultsJSON && $0.sourceContextGroupID==contextGroupID && $0.engineVersion==answer.engineVersion}) { return existing }
         let result=ComputationResult(mathAnswer:answer,source:step,requestJSON:encoded)
-        result.sourceContextJSON=contextJSON;result.sourceContextGroupID=contextGroupID
+        result.sourceContextJSON=contextJSON;result.sourceResultsJSON=resultsJSON;result.sourceContextGroupID=contextGroupID
         result.source=step;step.computationResults.append(result);context.insert(result)
         page.notebook?.lastEditedAt=Date()
         do { try context.save() }
