@@ -1,0 +1,295 @@
+/* Organize Folio around pages, direct writing actions, and an optional graph beside the notes. Reuse theme colors and shared controls. */
+.notebook-shell {
+  font-family: var(--font-ui);
+}
+.notebook-shell .ui-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  appearance: none;
+  font-size: 13px;
+  line-height: 1.4;
+  min-height: 32px;
+  border-radius: 6px;
+}
+.notebook-shell .ui-button-default {
+  background: var(--canvas);
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  padding: 6px 11px;
+}
+.notebook-shell .ui-button-default:hover {
+  background: var(--sunken-strong);
+}
+.notebook-shell .ui-button-quiet {
+  color: var(--muted);
+}
+.notebook-shell .ui-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.workspace-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--line-subtle);
+  background: var(--canvas);
+}
+.workspace-location {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.workspace-location svg {
+  flex-shrink: 0;
+}
+.workspace-location span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.workspace-panels {
+  min-width: 0;
+}
+.workspace-notes .notebook {
+  padding: 58px 48px 120px;
+}
+.workspace-notes .page {
+  gap: 18px;
+}
+.workspace-notes .page-title {
+  font-size: 32px;
+  letter-spacing: -0.035em;
+  line-height: 1.3;
+  margin-bottom: 18px;
+}
+.workspace-notes .page-empty {
+  font-size: 14px;
+  line-height: 1.7;
+}
+.workspace-notes .page-start-actions,
+.workspace-notes .add-cell-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 4px 0 0;
+}
+.workspace-notes .page-start-actions .ui-button-default {
+  background: var(--primary);
+  color: var(--on-primary);
+  border-color: var(--primary);
+}
+.workspace-notes .notebook-state-unselected {
+  border-color: transparent;
+}
+.workspace-notes .notebook-state-unselected:hover {
+  border-color: var(--line);
+}
+.workspace-notes .markdown-rendered {
+  font-family: var(--font-ui);
+  font-size: var(--text-reading-size);
+  line-height: 1.8;
+}
+.workspace-notes .page-menu {
+  top: 18px;
+  right: 22px;
+}
+.workspace-graph {
+  min-width: 0;
+  container-type: inline-size;
+  container-name: graph-panel;
+}
+.workspace-panels[data-graph-open='true'] {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.95fr) minmax(420px, 1.15fr);
+  height: calc(100dvh - 56px);
+}
+.workspace-panels[data-graph-open='true'] > .workspace-notes,
+.workspace-panels[data-graph-open='true'] > .workspace-graph {
+  overflow: auto;
+  min-height: 0;
+}
+.workspace-panels[data-graph-open='true'] > .workspace-graph {
+  border-left: 1px solid var(--line);
+}
+.workspace-panels[data-graph-open='true'] .notebook {
+  padding: 42px 28px 100px;
+}
+.workspace-panels[data-graph-open='true'] .page-title {
+  font-size: 27px;
+}
+.page-sidebar-brand {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+}
+.notebook-shell .page-sidebar {
+  padding: 22px 12px 12px;
+  gap: 12px;
+  font-size: 13px;
+}
+.page-sidebar-shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 0 4px;
+}
+.page-sidebar-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 34px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.page-sidebar-shortcut:hover {
+  color: var(--ink);
+  background: var(--sunken-strong);
+}
+.page-sidebar-shortcut kbd {
+  margin-left: auto;
+  font-family: inherit;
+  color: var(--faint);
+  font-size: 11px;
+}
+.notebook-shell .page-sidebar-heading {
+  padding: 0 10px;
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.notebook-shell .page-sidebar-select {
+  min-height: 32px;
+}
+.notebook-shell .page-sidebar-row.is-open {
+  background: var(--sunken-strong);
+  box-shadow: inset 2px 0 var(--primary);
+}
+.notebook-shell .page-sidebar-row.is-open .page-sidebar-select {
+  font-weight: 550;
+}
+.page-sidebar-actions {
+  opacity: 0;
+}
+.page-sidebar-row:hover .page-sidebar-actions,
+.page-sidebar-row:focus-within .page-sidebar-actions,
+.page-sidebar-row.is-open .page-sidebar-actions {
+  opacity: 1;
+}
+.page-sidebar-slot[data-mode='collapsed'] .page-sidebar-shortcut {
+  justify-content: center;
+  padding: 6px;
+}
+.page-sidebar-slot[data-mode='collapsed'] .page-sidebar-shortcuts {
+  width: 32px;
+}
+.page-sidebar-shortcut:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.command-palette-help {
+  display: flex;
+  gap: 18px;
+  padding: 12px 18px;
+  font-size: 11px;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+}
+@media (max-width: 1100px) {
+  .workspace-panels[data-graph-open='true'] {
+    grid-template-columns: minmax(260px, 0.9fr) minmax(350px, 1.1fr);
+  }
+  .workspace-toolbar {
+    padding: 0 16px;
+    gap: 8px;
+  }
+}
+@media (max-width: 850px) {
+  .workspace-panels[data-graph-open='true'] {
+    display: block;
+    height: auto;
+  }
+  .workspace-panels[data-graph-open='true'] > .workspace-graph {
+    position: fixed;
+    z-index: 6;
+    inset: 56px 0 0 auto;
+    width: min(480px, 100vw);
+    background: var(--canvas);
+    box-shadow: -8px 0 24px var(--shadow);
+  }
+  .workspace-location {
+    display: none;
+  }
+  .workspace-toolbar {
+    justify-content: flex-end;
+  }
+  .workspace-notes .notebook {
+    padding: 36px 22px 70px;
+  }
+}
+.notebook-graph {
+  margin: 0;
+}
+.notebook-graph-image {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.notebook-graph img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.notebook-graph figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.notebook-graph figcaption span {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.notebook-graph-image:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-sidebar-slot {
+    transition: none;
+  }
+}
+
+/* Reserve the status bar's height so it never covers sidebar settings or graph controls. */
+.notebook-shell[data-status-bar='true'] .page-sidebar-slot {
+  height: calc(100dvh - 28px);
+  max-height: calc(100dvh - 28px);
+}
+.notebook-shell[data-status-bar='true'] .workspace-panels[data-graph-open='true'] {
+  height: calc(100dvh - 84px);
+}

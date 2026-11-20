@@ -3,13 +3,26 @@
  *
  * @file
  */
-const { app, BrowserWindow, ipcMain, Menu, net, protocol, shell } = require('electron')
+const { app, BrowserWindow, ipcMain, Menu, net, protocol, shell, dialog } = require('electron')
 const { existsSync } = require('node:fs')
 const path = require('node:path')
+const { installNotebook } = require('./notebook.cjs')
+const { installExport } = require('./export.cjs')
+const { installSettings } = require('./settings.cjs')
 const { pathToFileURL } = require('node:url')
 
 app.setName('Folio')
-protocol.registerSchemesAsPrivileged([{ scheme: 'folio', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } }])
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'folio',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+    },
+  },
+])
 let mainWindow
 const pendingCompletions = new Map()
 
@@ -30,7 +43,8 @@ async function serve(request) {
   if (!existsSync(asset)) return new Response(null, { status: 404 })
   const response = await net.fetch(pathToFileURL(asset).href)
   const headers = new Headers(response.headers)
-  headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'")
+  // Plotly rasterizes a local blob image when capturing a graph view.
+  headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'")
   return new Response(response.body, { status: response.status, headers })
 }
 
@@ -57,13 +71,67 @@ async function complete(event, id, body) {
   try {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
-      headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'deepseek/deepseek-v4.1-flash', temperature: 0.2, max_tokens: 160, reasoning: { enabled: false }, messages: payload.messages }),
+      headers: {
+        Authorization: 'Bearer ' + key,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'deepseek/deepseek-v4.1-flash',
+        temperature: 0.2,
+        max_tokens: 160,
+        reasoning: { enabled: false },
+        messages: payload.messages,
+      }),
       signal: controller.signal,
     })
     return { status: response.status, body: await response.text() }
   } catch {
     return { status: 502, body: '{}' }
+  } finally {
+    clearTimeout(timeout)
+    pendingCompletions.delete(id)
+  }
+}
+
+/** Forward bounded structured math-help requests only to the local Ollama service. */
+async function assist(event, id, body) {
+  if (event.sender !== mainWindow?.webContents || event.senderFrame !== event.sender.mainFrame || !event.senderFrame.url.startsWith('folio://app/')) throw new Error('Untrusted assistant sender')
+  if (typeof id !== 'string' || id.length > 64 || pendingCompletions.has(id)) throw new Error('Invalid assistant ID')
+  if (typeof body !== 'string' || body.length > 64000) throw new Error('Invalid assistant body')
+  const payload = JSON.parse(body)
+  /** Permit only the two plain-text messages required by the assistant contract. */
+  function invalidMessage(message) {
+    return !message || !['system', 'user'].includes(message.role) || typeof message.content !== 'string' || message.content.length > 24000
+  }
+  if (
+    typeof payload.model !== 'string' ||
+    payload.model.length > 120 ||
+    !/^[a-zA-Z0-9_.:/-]+$/.test(payload.model) ||
+    !Array.isArray(payload.messages) ||
+    payload.messages.length !== 2 ||
+    payload.messages.some(invalidMessage) ||
+    !payload.format ||
+    typeof payload.format !== 'object' ||
+    Array.isArray(payload.format)
+  )
+    throw new Error('Invalid assistant request')
+  const controller = new AbortController()
+  pendingCompletions.set(id, controller)
+  /** Bound local inference time and release the renderer when the model stalls. */
+  function expire() {
+    controller.abort()
+  }
+  const timeout = setTimeout(expire, 120000)
+  try {
+    const response = await fetch('http://127.0.0.1:11434/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({ model: payload.model, messages: payload.messages, format: payload.format, stream: false, think: false, options: { temperature: 0.1, num_ctx: 32768, num_predict: 1800 } }),
+    })
+    return { status: response.status, body: await response.text() }
+  } catch {
+    return { status: 502, body: JSON.stringify({ error: controller.signal.aborted ? 'Local model request was cancelled or exceeded two minutes.' : 'Cannot reach Ollama. Start Ollama and check math.model in settings.' }) }
   } finally {
     clearTimeout(timeout)
     pendingCompletions.delete(id)
@@ -77,7 +145,17 @@ function openExternal(url) {
 
 /** Create one isolated editor window and retain native edit shortcuts. */
 function createWindow() {
-  mainWindow = new BrowserWindow({ width: 1280, height: 900, title: 'Folio', webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } })
+  mainWindow = new BrowserWindow({
+    width: 1280,
+    height: 900,
+    title: 'Folio',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  })
   /** Open requested links in the browser instead of creating privileged windows. */
   function openWindow({ url }) {
     openExternal(url)
@@ -104,7 +182,15 @@ function createWindow() {
 /** Install the protocol and desktop handlers before opening the first window. */
 async function ready() {
   protocol.handle('folio', serve)
+  /** Resolve the current window for trusted settings IPC and external-file notifications. */
+  function settingsWindow() {
+    return mainWindow
+  }
+  installSettings(app, ipcMain, shell, settingsWindow)
+  installExport(ipcMain, dialog, settingsWindow)
+  installNotebook(app, ipcMain, dialog, shell, settingsWindow)
   ipcMain.handle('folio:complete', complete)
+  ipcMain.handle('folio:assist', assist)
   /** Cancel only requests owned by the current top-level notebook. */
   function cancel(event, id) {
     if (event.sender === mainWindow?.webContents && event.senderFrame === event.sender.mainFrame) pendingCompletions.get(id)?.abort()

@@ -9,14 +9,14 @@ import type { ChangeEvent } from 'react'
 import { Button, TextField } from '#/component-library/index.ts'
 import { editorCommandShortcut, editorCommandShortcutIsCustom, editorCommands } from '#/editor/commands/editor-commands.ts'
 import type { EditorCommand } from '#/editor/commands/editor-commands.ts'
-import { formatShortcut, shortcutKeys } from '#/editor/commands/shortcut-label.ts'
+import { formatShortcut, shortcutKeys, shortcutBinding } from '#/editor/commands/shortcut-label.ts'
 
 /** Receive the recorded shortcut labels and report a new label, a reset, or a request to open the palette. */
 interface CommandSettingsViewProps {
   overrides: Readonly<Record<string, string>>
   paletteOpen: boolean
   lastCommandLabel?: string
-  onShortcutChange: (commandId: string, shortcut: string) => void
+  onShortcutChange: (commandId: string, shortcut: string, binding: string) => void
   onResetShortcut: (commandId: string) => void
   onOpenCommandPalette: () => void
 }
@@ -54,7 +54,7 @@ export function CommandSettingsView({ overrides, paletteOpen, onShortcutChange, 
   }
   useEffect(stopRecordingForPalette, [paletteOpen])
 
-  /** Store the next key combination as the recording command's shortcut label. Escape cancels, and Backspace or Delete clears the label. */
+  /** Store the next key combination as the recording command's shortcut label. Unmodified Escape cancels, and unmodified Backspace or Delete clears the label. */
   function listenForShortcut() {
     if (recordingId === null || paletteOpen) return
     const commandId = recordingId
@@ -64,12 +64,13 @@ export function CommandSettingsView({ overrides, paletteOpen, onShortcutChange, 
       if (event.isComposing || isModifierKey(event.key)) return
       event.preventDefault()
       event.stopPropagation()
-      if (event.key === 'Escape') {
+      const unmodified = !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey
+      if (event.key === 'Escape' && unmodified) {
         setRecordingId(null)
         return
       }
-      const shortcut = event.key === 'Backspace' || event.key === 'Delete' ? '' : formatShortcut(event)
-      onShortcutChange(commandId, shortcut)
+      const clear = unmodified && (event.key === 'Backspace' || event.key === 'Delete')
+      onShortcutChange(commandId, clear ? '' : formatShortcut(event), clear ? '' : shortcutBinding(event))
       setRecordingId(null)
     }
 
@@ -146,7 +147,8 @@ export function CommandSettingsView({ overrides, paletteOpen, onShortcutChange, 
 
   return (
     <div className="command-settings">
-      <h1>Keyboard shortcuts</h1>
+      <h2>Keyboard shortcuts</h2>
+      <p className="command-settings-lead">Click a keybinding and press its new shortcut. Escape cancels; Backspace removes a binding.</p>
       <div className="command-settings-actions">
         <Button onClick={openPalette}>Open command palette</Button>
       </div>

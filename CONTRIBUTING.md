@@ -7,6 +7,7 @@ This guide covers setup, code patterns, and checking changes. Read [AGENTS.md](A
 - React and strict TypeScript, with TanStack Start and TanStack Router.
 - Vite for development and builds; Nitro for the production Node server.
 - MathLive for editable LaTeX fields; plain CSS for styling.
+- Plotly.js's strict bundle for interactive 2D/3D graphs; math.js for bounded scalar expression parsing and evaluation. Both run locally without a graphing service or AI model.
 - React state for the current notebook. Zustand is installed but is not currently used.
 - pnpm for dependencies. Node.js and pnpm versions are not pinned yet.
 
@@ -31,9 +32,13 @@ The [iPad guide](ipad/README.md) covers `ipad/app/`, Xcode builds and staging va
 ## Code patterns
 
 - `src/routes/`: page components and the document shell.
+- `src/routes/workspace.css`: page toolbar, sidebar refinements, direct writing actions, and the optional graph tool panel. Reuse the existing page writer and command dispatcher; layout changes must preserve cell and graph data.
+- `src/notebook/notebook-blocks.ts`: subtree operations on the ordered cell list. Optional `depth` is a preorder level (old cells are level zero). Every move includes descendants, rejects self/descendant destinations, and preserves content and stable ids. Graph updates and sibling insertion must retain depth. Deleted subtrees and restore anchors persist in `Page.deletedBlocks`; restore must not roll back newer text edits.
 - `src/components/`: React UI components, including the MathLive cell wrapper.
 - `src/editor/`: public editor entry in `index.ts`, with `navigation/`, `structure/`, `commands/`, `mathlive/`, and `samples/` underneath.
 - `src/styles.css`: application styles.
+- `src/graph/`: page-owned graph state and sampling, shared form controls, and the browser-only Plotly lifecycle. Keep expression validation in `graph-model.ts`. Graph cells store a PNG snapshot with editable graph source and the captured axes/camera/aspect ratio. Capture from the live renderer; save image and source atomically through the notebook page writer. Editing an inserted graph stays local until Update view.
+- 3D capture validates Plotly's rendered scene camera because the public layout can lag the last scroll frame. Recheck this adapter when upgrading Plotly; an incompatible renderer must report an error rather than insert a different viewpoint. Clone saved layouts before handing them to Plotly, which mutates layout objects.
 
 Use small functions with named exports and keep React components focused on rendering and lifecycle work. Use the existing `#/` alias for imports from `src/` and relative paths within a module.
 
@@ -76,7 +81,7 @@ Before requesting review, run the relevant checks above. For editor behavior, al
 ## Current scope and maintenance
 
 - The home page is a navigation playground with 20 sample expressions. Movement behavior is experimental, not a final product specification.
-- Cell contents live in memory and reset on refresh; there is no persistence layer yet.
+- Notebook pages persist as Markdown files in a local Roots folder on Electron; browser previews use session storage. `desktop/notebook.cjs` journals filesystem changes, retains Folio metadata in `.folio/`, and refuses stale writes over external edits. `notebook-storage.ts` validates migration and backup data and is bundled for Electron during the desktop build. Sidebar folders and heading outlines reuse the page store; PDF/Markdown export uses native save dialogs.
 - Preserve unrelated changes and the source documents in `.mac/`.
 - Let pnpm update its lockfile and tooling regenerate `src/routeTree.gen.ts`; do not hand-edit generated output or dependencies.
 - Keep changes focused and explain the reason for framework changes, new dependencies, or new interaction conventions in the review description.
@@ -84,3 +89,9 @@ Before requesting review, run the relevant checks above. For editor behavior, al
 ## Electron desktop
 
 The `desktop/` package builds the shared frontend in SPA mode and packages it with Electron. See [desktop/README.md](desktop/README.md) for setup commands, storage behavior, autocomplete credentials and platform limitations. Browser development retains the existing Vite workflow.
+
+Settings use searchable graphical controls and the shared shortcut recorder (`client/src/settings/`), backed by one validated JSON document. Save complete edits through the existing writer; keep incomplete text and custom-subject drafts local. Desktop reads and atomically replaces the fixed user-data `settings.json` through narrow preload IPC in `desktop/settings.cjs`; expected-source checks reject stale writes. External saves reload through the same validator. Apply only validated preferences to the existing theme tokens and shortcut cache. Keep document content and per-page display metadata out of global settings. Browser previews persist the same document in local storage.
+
+Math assistance lives in `client/src/math-help/`. Keep subject guidance and validated single-argument notation separate from model transport. The desktop bridge sends bounded JSON requests only to local Ollama; the settings file owns model selection and the custom mode library. Hints never insert computed steps, proposals require explicit acceptance, and context changes invalidate pending results. Preserve these contracts when replacing the model.
+
+Subject selection lives in the bottom status bar; a single Hint button and dismissible hint live inside the selected block. Subject detection is automatic unless a section has a manual choice. Requests include the complete current page with selected problem/block markers; oversized context is rejected, never silently truncated. Keep hint responses conceptual. The normal writing flow has no step-input panel, notation drawer, or mode-generation controls; custom subjects remain editable under Settings → Math help.

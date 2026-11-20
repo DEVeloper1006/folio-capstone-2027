@@ -1,5 +1,5 @@
 /**
- * Hold the shortcut labels recorded in settings for this browser session. Contains the map the formula key listener reads. Reloading restores the catalog defaults.
+ * Define the shared shortcut override map read by formula and workspace key listeners. The settings loader restores persisted bindings into this cache; missing overrides use catalog defaults.
  *
  * @file
  */

@@ -25,3 +25,6 @@ todos.json
 # Electron renderer bundles and packaged applications.
 desktop/renderer/
 desktop/release/
+
+# Generated shared notebook validator bundled by desktop/build.mjs.
+desktop/notebook-format.cjs

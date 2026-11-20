@@ -1,0 +1,111 @@
+/* Nest folders and page outlines inside Folio's existing sidebar; keep disclosures separate from page activation and preserve readable keyboard focus. */
+.page-tree-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 6px;
+}
+.page-tree-heading .page-sidebar-heading {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+.page-tree-children,
+.page-outline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.page-tree-children {
+  margin-left: 13px;
+  padding-left: 6px;
+  border-left: 1px solid var(--line-subtle);
+}
+.page-tree-toggle {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  padding: 4px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.page-tree-toggle[aria-expanded='true'] svg,
+.page-folder-row [aria-expanded='true'] .folder-chevron {
+  transform: rotate(90deg);
+}
+.page-folder-row.is-location {
+  background: var(--sunken);
+}
+.page-folder-row .page-sidebar-select {
+  gap: 6px;
+}
+.page-outline-link {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: var(--muted);
+  padding: 6px 8px;
+  cursor: pointer;
+  font: 12px/1.4 var(--font-ui);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.page-outline-link:hover {
+  color: var(--ink);
+  background: var(--sunken);
+}
+.page-outline-empty {
+  color: var(--muted);
+  padding: 8px 20px;
+  font: 12px/1.4 var(--font-ui);
+}
+.page-tree-toggle:focus-visible,
+.page-outline-link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+  border-radius: 4px;
+}
+.folder-dialog {
+  width: min(420px, 90vw);
+}
+.folder-dialog form,
+.folder-dialog label {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.folder-dialog input,
+.folder-dialog select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--canvas);
+  color: var(--ink);
+  font: inherit;
+}
+.folder-dialog-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.notebook [data-heading-target] {
+  scroll-margin-top: 24px;
+  outline: 2px solid var(--focus);
+  outline-offset: 6px;
+  border-radius: 2px;
+}
+
+.folder-dialog-actions {
+  flex-wrap: wrap;
+}
+.roots-path {
+  overflow-wrap: anywhere;
+  font-family: monospace;
+}

@@ -74,13 +74,13 @@ function inlineMarkdown(node: JSONContent, _helpers: MarkdownRendererHelpers, co
 function blockMarkdown(node: JSONContent) {
   return node.attrs?.latex ? `$$\n${String(node.attrs.latex)}\n$$` : ''
 }
-const extensions = [StarterKit, Markdown, InlineMath.extend({ addNodeView: formulaView, renderMarkdown: inlineMarkdown }), BlockMath.extend({ addNodeView: formulaView, renderMarkdown: blockMarkdown }), TaskList, TaskItem.configure({ nested: true }), TableKit, Image]
+export const markdownExtensions = [StarterKit, Markdown, InlineMath.extend({ addNodeView: formulaView, renderMarkdown: inlineMarkdown }), BlockMath.extend({ addNodeView: formulaView, renderMarkdown: blockMarkdown }), TaskList, TaskItem.configure({ nested: true }), TableKit, Image]
 
 /** Edit rendered prose without replacing the document on each keystroke. Source updates from commands are applied only when they differ from the last emitted Markdown. */
 export function MarkdownRichField({ value, onChange, onFinish }: { value: string; onChange: (value: string) => void; onFinish?: () => void }) {
   const source = useRef(value)
   const editor: Editor | null = useEditor({
-    extensions,
+    extensions: markdownExtensions,
     content: value,
     contentType: 'markdown',
     immediatelyRender: false,

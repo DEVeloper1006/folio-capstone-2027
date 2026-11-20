@@ -8,15 +8,17 @@ import { IconTooltip } from './primitives/icon-tooltip'
 
 export type CellFrameState = 'unselected' | 'selected' | 'focused' | 'editing' | 'empty' | 'computing' | 'error'
 
-/** Render a state-colored row with a labeled gutter action and room for either cell editor. */
-export function CellFrame({ state, icon, label, onSelect, children, ...props }: ComponentProps<'div'> & { state: CellFrameState; icon: ReactNode; label: string; onSelect?: () => void }) {
+/** Render a state-colored row with room for either cell editor and an optional labeled gutter action. */
+export function CellFrame({ state, icon, label, onSelect, children, ...props }: ComponentProps<'div'> & { state: CellFrameState; icon?: ReactNode; label?: string; onSelect?: () => void }) {
   return (
     <div {...props} className={`notebook-live-cell notebook-state-${state}`} data-cell-state={state}>
-      <IconTooltip label={label}>
-        <button type="button" className="notebook-cell-gutter" aria-label={label} onClick={onSelect}>
-          {icon}
-        </button>
-      </IconTooltip>
+      {label && (
+        <IconTooltip label={label}>
+          <button type="button" className="notebook-cell-gutter" aria-label={label} onClick={onSelect}>
+            {icon}
+          </button>
+        </IconTooltip>
+      )}
       <div className="notebook-live-cell-body">{children}</div>
     </div>
   )

@@ -1,0 +1,283 @@
+/* Lay out the page-owned graph workspace using Folio's shared colors and controls. */
+.graph-workspace {
+  padding: 20px;
+  color: var(--ink);
+}
+.graph-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.graph-header > div:first-child {
+  flex: 1;
+  min-width: 60px;
+}
+.graph-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+.graph-header p,
+.graph-help,
+.graph-caption {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.graph-header p {
+  margin: 0;
+}
+.graph-insert {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 16px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.graph-body {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.graph-controls {
+  max-height: calc(100dvh - 150px);
+  overflow-y: auto;
+  padding-right: 8px;
+}
+.graph-expression {
+  border-inline-start: 3px solid;
+  padding: 10px;
+  margin-bottom: 12px;
+  background: var(--sunken);
+  border-radius: 4px;
+}
+.graph-expression input[type='text'],
+.graph-expression input:not([type]) {
+  font-family: var(--font-code);
+}
+.graph-row-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  margin-top: 8px;
+}
+.graph-row-actions label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.graph-controls h3 {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  margin: 18px 0 12px;
+}
+.graph-error {
+  color: var(--danger, #b42318);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.graph-range-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.graph-domain-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.graph-parameter {
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.graph-parameter-value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+.graph-parameter-value .ui-field {
+  width: 80px;
+}
+.graph-parameter-value .ui-field-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.graph-parameter input[type='range'] {
+  width: 100%;
+  accent-color: var(--primary);
+  margin: 10px 0;
+}
+.graph-controls .ui-field-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.graph-display {
+  min-width: 0;
+  position: sticky;
+  top: 16px;
+}
+.graph-figure {
+  position: relative;
+  min-height: 360px;
+}
+.graph-canvas {
+  width: 100%;
+  height: max(360px, calc(100dvh - 180px));
+}
+.graph-figure > p {
+  position: absolute;
+  inset: 40% 24px auto;
+  background: var(--canvas);
+  padding: 12px;
+}
+.graph-caption {
+  margin: 10px 0 0;
+}
+.graph-help {
+  margin-top: 16px;
+}
+.graph-compose {
+  margin: 16px 0 18px;
+}
+.graph-compose > label {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-secondary);
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+.graph-compose > div {
+  display: flex;
+  gap: 6px;
+}
+.graph-compose input {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  background: var(--canvas);
+  color: var(--ink);
+  border-radius: 6px;
+  padding: 9px 10px;
+  font: 13px var(--font-code);
+}
+.graph-compose input:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.graph-compose p {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 8px 0 0;
+}
+.graph-settings {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+}
+.graph-controls summary {
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px 0;
+  font-size: 12px;
+}
+.graph-controls summary:hover {
+  color: var(--ink);
+}
+.graph-controls summary:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.graph-slider-settings {
+  font-size: 11px;
+}
+.graph-slider-settings .graph-range-fields {
+  margin-top: 10px;
+}
+.graph-empty {
+  min-height: 440px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--muted);
+  background: var(--sunken);
+  border: 1px dashed var(--line-strong);
+  border-radius: 10px;
+  padding: 24px;
+}
+.graph-empty h3 {
+  color: var(--ink-secondary);
+  font-size: 17px;
+  font-weight: 500;
+  margin: 16px 0 8px;
+}
+.graph-empty p {
+  font-size: 13px;
+  line-height: 1.8;
+  margin: 0;
+}
+@container graph-panel (max-width: 700px) {
+  .graph-body {
+    display: flex;
+    flex-direction: column;
+  }
+  .graph-controls {
+    width: 100%;
+    max-height: none;
+    box-sizing: border-box;
+  }
+  .graph-display {
+    width: 100%;
+    position: static;
+    order: -1;
+  }
+  .graph-figure {
+    min-height: 280px;
+  }
+  .graph-canvas {
+    height: 280px;
+  }
+  .graph-empty {
+    min-height: 200px;
+  }
+  .graph-body {
+    gap: 12px;
+  }
+  .graph-workspace {
+    padding: 20px 18px;
+  }
+  .graph-expression {
+    padding: 8px 10px;
+    margin-bottom: 8px;
+  }
+  .graph-row-actions {
+    margin-top: 4px;
+  }
+  .graph-controls {
+    padding-right: 0;
+  }
+  .graph-compose {
+    margin-top: 4px;
+    margin-bottom: 12px;
+  }
+}

@@ -1,0 +1,67 @@
+/* Render an isolated, theme-independent print page without workspace controls. */
+.folio-print-document {
+  position: fixed;
+  left: -100000px;
+  top: 0;
+  width: 700px;
+  color: #111;
+  background: white;
+  font:
+    12pt/1.6 Georgia,
+    serif;
+}
+.folio-print-document section {
+  margin-bottom: 18px;
+}
+.folio-print-document img {
+  max-width: 100%;
+  height: auto;
+}
+.folio-print-document figure {
+  margin: 16px 0;
+  break-inside: avoid;
+}
+.folio-print-document figcaption {
+  white-space: pre-wrap;
+  font: 10pt/1.5 monospace;
+}
+.folio-print-document h1,
+.folio-print-document h2,
+.folio-print-document h3 {
+  break-after: avoid;
+}
+.folio-print-document table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.folio-print-document td,
+.folio-print-document th {
+  border: 1px solid #aaa;
+  padding: 6px;
+}
+.folio-print-document pre {
+  white-space: pre-wrap;
+}
+.folio-print-document .markdown-rendered {
+  color: #111;
+}
+@media print {
+  @page {
+    size: A4;
+    margin: 18mm;
+  }
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+  body > * {
+    display: none !important;
+  }
+  body > .folio-print-document {
+    display: block !important;
+    position: static;
+    width: auto;
+  }
+}

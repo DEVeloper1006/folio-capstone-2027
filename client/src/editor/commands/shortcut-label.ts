@@ -46,3 +46,15 @@ export function shortcutKeys(shortcut: string) {
   if (remainder) keys.push(remainder)
   return keys
 }
+
+/** Serialize a recorded keyboard event into the readable binding format persisted by settings. */
+export function shortcutBinding(event: ShortcutKeyInput) {
+  const names: Record<string, string> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', ' ': 'space', '+': 'plus', '-': 'minus' }
+  const parts: string[] = []
+  if (event.metaKey) parts.push('cmd')
+  if (event.ctrlKey) parts.push('ctrl')
+  if (event.altKey) parts.push('alt')
+  if (event.shiftKey) parts.push('shift')
+  parts.push(names[event.key] ?? event.key.toLowerCase())
+  return parts.join('+')
+}

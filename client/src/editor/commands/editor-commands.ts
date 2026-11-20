@@ -67,6 +67,8 @@ export function workspaceCommandForKey(event: ShortcutKeyInput, overrides: Short
 
 /** Notebook commands that are not formula cursor movements, in the order the shortcut list shows them before the cursor commands. */
 const workspaceCommands: readonly EditorCommand[] = [
+  { id: 'workspace.math.help', label: 'Give me a hint', keywords: ['math', 'help', 'hint'], when: 'workspace' },
+  { id: 'workspace.settings.open', label: 'Open settings', keywords: ['config', 'preferences', 'theme', 'keybindings'], when: 'workspace', shortcut: '⌘,' },
   { id: 'workspace.command.open', label: 'Open the command menu', keywords: ['palette', 'search', 'commands'], when: 'workspace', shortcut: '⌘K' },
   { id: 'workspace.page.create', label: 'New page', keywords: ['add', 'page'], when: 'notebookFocus', shortcut: '⌘N' },
   { id: 'workspace.currentPage.cell.focusFirst', label: 'Focus first cell', keywords: ['top', 'start'], when: 'notebookFocus', shortcut: '⌘↑' },
@@ -85,6 +87,7 @@ const workspaceCommands: readonly EditorCommand[] = [
   { id: 'workspace.page.display', label: 'Open page display settings', keywords: [], when: 'notebookFocus' },
   { id: 'workspace.page.editRich', label: 'Use rich cell editing', keywords: ['wysiwyg', 'rendered', 'markdown', 'math'], when: 'notebookFocus' },
   { id: 'workspace.page.editSource', label: 'Use source cell editing', keywords: ['plaintext', 'latex', 'markdown'], when: 'notebookFocus' },
+  { id: 'workspace.page.undoDelete', label: 'Undo block deletion', keywords: ['restore'], when: 'notebookFocus', shortcut: '⌘Z' },
   { id: 'workspace.page.full', label: 'Use full page width', keywords: [], when: 'notebookFocus' },
   { id: 'workspace.page.narrow', label: 'Use narrow page width', keywords: [], when: 'notebookFocus' },
   { id: 'workspace.page.scrollTop', label: 'Scroll to top of page', keywords: [], when: 'notebookFocus' },

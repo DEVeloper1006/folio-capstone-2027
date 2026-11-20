@@ -84,6 +84,11 @@ export function CommandPaletteView({ actions, open, onClose, onRun }: CommandPal
 
   /** Move through matches, run the highlighted action, or close the palette. */
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === 'Tab') {
+      event.preventDefault()
+      inputRef.current?.focus()
+      return
+    }
     if (event.key === 'Escape') {
       event.preventDefault()
       onClose()
@@ -136,7 +141,7 @@ export function CommandPaletteView({ actions, open, onClose, onRun }: CommandPal
 
   return (
     <div className="command-palette-backdrop" onMouseDown={handleBackdropMouseDown}>
-      <div className="command-palette" role="dialog" aria-modal="true" aria-label="Commands" onKeyDown={handleKeyDown}>
+      <div className="command-palette" role="dialog" aria-modal="true" aria-label="Search pages and commands" onKeyDown={handleKeyDown}>
         <div className="command-palette-search">
           <input
             ref={inputRef}
@@ -145,19 +150,24 @@ export function CommandPaletteView({ actions, open, onClose, onRun }: CommandPal
             aria-expanded={matches.length > 0}
             aria-controls={listId}
             aria-activedescendant={matches[selectedIndex] ? `${listId}-${matches[selectedIndex].id}` : undefined}
-            aria-label="Search commands"
-            placeholder="Search commands…"
+            aria-label="Search pages and commands"
+            placeholder="Find a page or a command…"
             value={query}
             onChange={handleQueryChange}
           />
         </div>
         {matches.length === 0 ? (
-          <p className="command-palette-empty">No matching commands</p>
+          <p className="command-palette-empty">No results. Try a page title, “new page,” or “graph.”</p>
         ) : (
           <div id={listId} className="command-palette-results" role="listbox" aria-label="Commands">
             {matches.map(renderAction)}
           </div>
         )}
+        <div className="command-palette-help">
+          <span>↑ ↓ to navigate</span>
+          <span>↵ to open</span>
+          <span>esc to close</span>
+        </div>
       </div>
     </div>
   )

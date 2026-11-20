@@ -1,5 +1,5 @@
 /**
- * Remember shortcut labels chosen in settings for this browser session. Contains the override map and the functions that write or clear one command's label. Cursor commands read this map when a formula handles a key. Reloading the page restores the catalog defaults.
+ * Subscribe to the shared shortcut labels applied from the settings file and expose command-palette rows. The setters support temporary shortcut recording in component-library previews; persistent notebook changes go through the settings page.
  *
  * @file
  */

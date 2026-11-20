@@ -1,5 +1,5 @@
 /**
- * Render the notebook page list. Contains the icon that creates a page, each page's title, the overflow menu and right-click menu, the controls that resize, collapse, or hide the list, and the settings menu at the bottom. This view does not store the pages or the shortcut labels.
+ * Render Folio's page navigation with visible search and new-page actions, page menus, resizing, and settings. New pages focus their document title; existing pages can be renamed in the sidebar. This view does not store page contents.
  *
  * @file
  */
@@ -9,14 +9,21 @@ import type { ChangeEvent, CSSProperties, KeyboardEvent, PointerEvent as ReactPo
 import { ContextMenu } from '@base-ui/react/context-menu'
 import { Menu } from '@base-ui/react/menu'
 import { Tooltip } from '@base-ui/react/tooltip'
-import { CellEditingIcon, DeleteIcon, GearIcon, KeyboardIcon, MoreActionsIcon, PageIcon, PlusIcon, SearchIcon, SidebarCollapseIcon, SidebarExpandIcon, SidebarHideIcon, SidebarShowIcon } from '#/component-library/icons/folio-icons.tsx'
+import { CellEditingIcon, DeleteIcon, GearIcon, KeyboardIcon, MoreActionsIcon, PageIcon, PlusIcon, SearchIcon, SidebarCollapseIcon, SidebarExpandIcon, SidebarShowIcon } from '#/component-library/icons/folio-icons.tsx'
 import { IconTooltip } from '#/component-library/primitives/icon-tooltip.tsx'
-import type { Page } from '#/notebook/page.ts'
+import type { PageSummary, NotebookFolder } from '#/state/global-states'
+import { ChevronRight, Folder, FolderOpen, FolderPlus } from 'lucide-react'
+import { NotebookOutlineView } from '#/notebook/notebook-outline-view'
+import type { PageHeading } from '#/notebook/notebook-outline'
+import { NotebookFolderDialog } from '#/notebook/notebook-folder-dialog'
+import type { FolderAction, FolderActions } from '#/notebook/notebook-folder-dialog'
+import { folderAncestors } from '#/notebook/notebook-folders'
+import './page-tree.css'
 
 /** The page list is open, reduced to icons, or fully hidden. */
 type SidebarMode = 'open' | 'collapsed' | 'hidden'
 
-const defaultSidebarWidth = 280
+const defaultSidebarWidth = 240
 const minSidebarWidth = 220
 const maxSidebarWidth = 440
 
@@ -28,11 +35,15 @@ function clampSidebarWidth(width: number) {
 /** Receive the pages to list, whether keyboard shortcuts are on screen, and the callbacks that select, create, rename, or delete a page or open a settings destination. */
 interface PageSidebarViewProps {
   commandRef?: React.Ref<(id: string) => boolean>
-  pages: readonly Pick<Page, 'pageId' | 'title'>[]
+  pages: readonly PageSummary[]
+  folders?: readonly NotebookFolder[]
+  folderCommands?: FolderActions
+  onNavigateHeading?: (pageId: string, heading: PageHeading) => void
   openPageId: string
   settingsOpen: boolean
+  commandShortcut?: string
   onSelectPage: (pageId: string) => void
-  onCreatePage: () => void
+  onCreatePage: (folderId?: string) => void
   onRenamePage: (pageId: string, title: string) => void
   onDeletePage: (pageId: string) => void
   onOpenThemes?: () => void
@@ -41,7 +52,52 @@ interface PageSidebarViewProps {
 }
 
 /** List pages with a left-aligned title, a page icon, and the library's icon menus. Creating a page opens its title for editing. */
-export function PageSidebarView({ commandRef, pages, openPageId, settingsOpen, onSelectPage, onCreatePage, onRenamePage, onDeletePage, onOpenThemes, onOpenSettings, onOpenCommandPalette }: PageSidebarViewProps) {
+export function PageSidebarView({ commandRef, pages, folders = [], folderCommands, onNavigateHeading, openPageId, settingsOpen, commandShortcut = '⌘K', onSelectPage, onCreatePage, onRenamePage, onDeletePage, onOpenThemes, onOpenSettings, onOpenCommandPalette }: PageSidebarViewProps) {
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
+  const [expandedPages, setExpandedPages] = useState<Set<string>>(new Set())
+  const [selectedFolder, setSelectedFolder] = useState<string>()
+  const [folderAction, setFolderAction] = useState<FolderAction>()
+  const [treeError, setTreeError] = useState('')
+  /** Find the current document's location independently of its body. */
+  function currentPage(page: PageSummary) {
+    return page.pageId === openPageId
+  }
+  const currentFolder = pages.find(currentPage)?.folderId
+  /** Track the active location without resetting a newly selected creation folder. */
+  function ancestorId(folder: NotebookFolder) {
+    return folder.folderId
+  }
+  const ancestorKey = folderAncestors(folders, currentFolder).map(ancestorId).join('/')
+  /** Reveal a page selected through search or moved into a collapsed folder. */
+  function revealLocation() {
+    const ancestors = folderAncestors(folders, currentFolder)
+    /** Merge ancestor expansion without closing unrelated branches. */
+    function expand(previous: Set<string>) {
+      const next = new Set(previous)
+      for (const folder of ancestors) next.add(folder.folderId)
+      return next
+    }
+    setExpandedFolders(expand)
+    setSelectedFolder(currentFolder)
+  }
+  useEffect(revealLocation, [openPageId, currentFolder, ancestorKey])
+  /** Create a container beside the currently selected folder's children. */
+  function newFolder() {
+    setFolderAction({ kind: 'create', parentId: selectedFolder })
+  }
+  /** Return creation to the notebook's top level. */
+  function selectRoots() {
+    setSelectedFolder(undefined)
+  }
+  /** Dismiss an organizational form without changing documents. */
+  function closeFolderDialog() {
+    setFolderAction(undefined)
+  }
+  /** Reveal a newly created empty folder so its location is visible. */
+  function folderCreated(id: string) {
+    setSelectedFolder(id)
+    setExpandedFolders(new Set([...expandedFolders, id]))
+  }
   const titleRef = useRef<HTMLInputElement>(null)
   const pendingRenameRef = useRef(false)
   const [renamingPageId, setRenamingPageId] = useState<string | null>(null)
@@ -98,11 +154,13 @@ export function PageSidebarView({ commandRef, pages, openPageId, settingsOpen, o
   }
   useImperativeHandle(commandRef, bindCommands)
 
-  /** Open the title field for a page that was just created. */
+  /** Focus the document title when a new page is ready, so writing starts in the page itself. */
   function renameCreatedPage() {
     if (!pendingRenameRef.current) return
     pendingRenameRef.current = false
-    setRenamingPageId(openPageId)
+    const title = document.querySelector<HTMLInputElement>('.workspace-notes .page-title')
+    title?.focus()
+    title?.select()
   }
   useEffect(renameCreatedPage, [openPageId])
 
@@ -114,11 +172,11 @@ export function PageSidebarView({ commandRef, pages, openPageId, settingsOpen, o
   }
   useEffect(focusRenameField, [renamingPageId])
 
-  /** Ask for an empty page, show the full list, and edit its title once it is open. */
+  /** Ask for an empty page, show the full list, and focus its document title once it is open. */
   function handleCreatePage() {
     setMode('open')
     pendingRenameRef.current = true
-    onCreatePage()
+    onCreatePage(selectedFolder)
   }
 
   /** Switch between the full list and the icon column. */
@@ -174,13 +232,14 @@ export function PageSidebarView({ commandRef, pages, openPageId, settingsOpen, o
   }
 
   /** Render one page row with its overflow menu and right-click menu. */
-  function renderPage(page: Pick<Page, 'pageId' | 'title'>) {
+  function renderPage(page: PageSummary) {
     const isOpen = page.pageId === openPageId && !settingsOpen
     const isRenaming = page.pageId === renamingPageId
     const title = page.title
 
     /** Show this page. */
     function selectThisPage() {
+      setSelectedFolder(page.folderId)
       onSelectPage(page.pageId)
     }
 
@@ -219,6 +278,17 @@ export function PageSidebarView({ commandRef, pages, openPageId, settingsOpen, o
     function changeActions(open: boolean) {
       setActionsPage(open ? page.pageId : null)
     }
+    /** Toggle this page's live outline without changing its selection. */
+    function toggleOutline() {
+      const next = new Set(expandedPages)
+      if (next.has(page.pageId)) next.delete(page.pageId)
+      else next.add(page.pageId)
+      setExpandedPages(next)
+    }
+    /** Move this page through the shared folder picker. */
+    function moveThisPage() {
+      setFolderAction({ kind: 'move-page', pageId: page.pageId, title: page.title, folderId: page.folderId })
+    }
     const rowClass = isOpen ? 'page-sidebar-row is-open' : 'page-sidebar-row'
     const pageTitle = title || 'Untitled'
     const selectButton = (
@@ -232,6 +302,11 @@ export function PageSidebarView({ commandRef, pages, openPageId, settingsOpen, o
       <li key={page.pageId}>
         <ContextMenu.Root>
           <ContextMenu.Trigger className={rowClass}>
+            {mode === 'open' && (
+              <button className="page-tree-toggle" aria-label={`${expandedPages.has(page.pageId) ? 'Collapse' : 'Expand'} headings for ${pageTitle}`} aria-expanded={expandedPages.has(page.pageId)} onClick={toggleOutline}>
+                <ChevronRight size={14} />
+              </button>
+            )}
             {isRenaming ? (
               <input ref={titleRef} className="page-sidebar-title" aria-label="Page title" value={title} onChange={handleTitleChange} onBlur={finishRename} onKeyDown={handleTitleKeyDown} />
             ) : mode === 'collapsed' ? (
@@ -256,6 +331,9 @@ export function PageSidebarView({ commandRef, pages, openPageId, settingsOpen, o
                           <CellEditingIcon /> Rename
                         </span>
                       </Menu.Item>
+                      <Menu.Item className="primitive-item" onClick={moveThisPage}>
+                        Move to folder…
+                      </Menu.Item>
                       <Menu.Separator className="primitive-separator" />
                       <Menu.Item className="primitive-item primitive-item-danger" disabled={!canDelete} onClick={deleteThisPage}>
                         <span className="primitive-item-label">
@@ -276,6 +354,9 @@ export function PageSidebarView({ commandRef, pages, openPageId, settingsOpen, o
                     <CellEditingIcon /> Rename
                   </span>
                 </ContextMenu.Item>
+                <ContextMenu.Item className="primitive-item" onClick={moveThisPage}>
+                  Move to folder…
+                </ContextMenu.Item>
                 <ContextMenu.Separator className="primitive-separator" />
                 <ContextMenu.Item className="primitive-item primitive-item-danger" disabled={!canDelete} onClick={deleteThisPage}>
                   <span className="primitive-item-label">
@@ -286,7 +367,112 @@ export function PageSidebarView({ commandRef, pages, openPageId, settingsOpen, o
             </ContextMenu.Positioner>
           </ContextMenu.Portal>
         </ContextMenu.Root>
+        {mode === 'open' && expandedPages.has(page.pageId) && onNavigateHeading && <NotebookOutlineView pageId={page.pageId} onNavigate={onNavigateHeading} />}
       </li>
+    )
+  }
+
+  /** Render one folder with the same menu and disclosure conventions as page rows. */
+  function renderFolder(folder: NotebookFolder) {
+    const expanded = expandedFolders.has(folder.folderId)
+    /** Select this creation location and toggle its children. */
+    function toggle() {
+      setSelectedFolder(folder.folderId)
+      const next = new Set(expandedFolders)
+      if (expanded) next.delete(folder.folderId)
+      else next.add(folder.folderId)
+      setExpandedFolders(next)
+    }
+    /** Create a page inside this folder even when a different page is open. */
+    function addPage() {
+      setMode('open')
+      pendingRenameRef.current = true
+      setExpandedFolders(new Set([...expandedFolders, folder.folderId]))
+      onCreatePage(folder.folderId)
+    }
+    /** Create a nested organizational container. */
+    function addFolder() {
+      setExpandedFolders(new Set([...expandedFolders, folder.folderId]))
+      setFolderAction({ kind: 'create', parentId: folder.folderId })
+    }
+    /** Rename only this folder. */
+    function renameFolder() {
+      setFolderAction({ kind: 'rename', folder })
+    }
+    /** Open the validated destination picker. */
+    function moveFolder() {
+      setFolderAction({ kind: 'move-folder', folder })
+    }
+    /** Remove a container while keeping its pages and subfolders in the parent. */
+    function removeFolder() {
+      try {
+        folderCommands?.deleteFolder(folder.folderId)
+        setSelectedFolder(folder.parentId)
+        setTreeError('')
+      } catch (failure) {
+        setTreeError(failure instanceof Error ? failure.message : String(failure))
+      }
+    }
+    return (
+      <li key={folder.folderId}>
+        <div className={`page-sidebar-row page-folder-row${selectedFolder === folder.folderId ? ' is-location' : ''}`}>
+          <button className="page-sidebar-select" aria-label={`Folder ${folder.title}`} aria-expanded={expanded} onClick={toggle}>
+            <ChevronRight className="folder-chevron" size={14} />
+            {expanded ? <FolderOpen size={16} /> : <Folder size={16} />}
+            <span className="page-sidebar-label">{folder.title}</span>
+          </button>
+          <div className="page-sidebar-actions">
+            <Menu.Root>
+              <Menu.Trigger className="primitive-icon-button primitive-icon-quiet" aria-label={`Actions for folder ${folder.title}`}>
+                <MoreActionsIcon />
+              </Menu.Trigger>
+              <Menu.Portal>
+                <Menu.Positioner sideOffset={6} align="start">
+                  <Menu.Popup className="primitive-popup">
+                    <Menu.Item className="primitive-item" onClick={addPage}>
+                      New page inside
+                    </Menu.Item>
+                    <Menu.Item className="primitive-item" onClick={addFolder}>
+                      New folder inside
+                    </Menu.Item>
+                    <Menu.Item className="primitive-item" onClick={renameFolder}>
+                      Rename
+                    </Menu.Item>
+                    <Menu.Item className="primitive-item" onClick={moveFolder}>
+                      Move to folder…
+                    </Menu.Item>
+                    <Menu.Separator className="primitive-separator" />
+                    <Menu.Item className="primitive-item" onClick={removeFolder}>
+                      Remove folder, keep contents
+                    </Menu.Item>
+                  </Menu.Popup>
+                </Menu.Positioner>
+              </Menu.Portal>
+            </Menu.Root>
+          </div>
+        </div>
+        {expanded && <ul className="page-tree-children">{renderChildren(folder.folderId)}</ul>}
+      </li>
+    )
+  }
+  /** List each folder's immediate children; page ordering is preserved within each location. */
+  function renderChildren(parentId?: string) {
+    /** Select direct child containers. */
+    function childFolder(folder: NotebookFolder) {
+      return folder.parentId === parentId
+    }
+    /** Select documents in this location. */
+    function childPage(page: PageSummary) {
+      return page.folderId === parentId
+    }
+    const childFolders = folders.filter(childFolder)
+    const childPages = pages.filter(childPage)
+    return (
+      <>
+        {childFolders.map(renderFolder)}
+        {childPages.map(renderPage)}
+        {parentId && !childFolders.length && !childPages.length && <li className="page-outline-empty">Empty folder</li>}
+      </>
     )
   }
 
@@ -305,26 +491,36 @@ export function PageSidebarView({ commandRef, pages, openPageId, settingsOpen, o
       <div className={slotClass} data-mode={mode} style={slotStyle}>
         <aside className="page-sidebar" aria-label="Pages" inert={mode === 'hidden' ? true : undefined}>
           <div className="page-sidebar-toolbar">
-            <p className="page-sidebar-heading">Pages</p>
+            <p className="page-sidebar-brand page-sidebar-label">Folio</p>
             <div className="page-sidebar-toolbar-actions">
               <IconTooltip label={collapseLabel} side={railTooltipSide}>
                 <button type="button" className="primitive-icon-button primitive-icon-quiet" aria-label={collapseLabel} aria-expanded={mode === 'open'} onClick={toggleCollapsed}>
                   {mode === 'collapsed' ? <SidebarExpandIcon /> : <SidebarCollapseIcon />}
                 </button>
               </IconTooltip>
-              <IconTooltip label="Hide pages" side={railTooltipSide}>
-                <button type="button" className="primitive-icon-button primitive-icon-quiet" aria-label="Hide pages" onClick={hideSidebar}>
-                  <SidebarHideIcon />
-                </button>
-              </IconTooltip>
-              <IconTooltip label="New page" side={railTooltipSide}>
-                <button type="button" className="primitive-icon-button primitive-icon-quiet" aria-label="New page" onClick={handleCreatePage}>
-                  <PlusIcon />
-                </button>
-              </IconTooltip>
             </div>
           </div>
-          <ul className="page-sidebar-list">{pages.map(renderPage)}</ul>
+          <div className="page-sidebar-shortcuts">
+            <button type="button" className="page-sidebar-shortcut" onClick={onOpenCommandPalette} aria-label="Search pages and commands">
+              <SearchIcon />
+              <span className="page-sidebar-label">Search</span>
+              <kbd className="page-sidebar-label">{commandShortcut}</kbd>
+            </button>
+            <button type="button" className="page-sidebar-shortcut" onClick={handleCreatePage} aria-label="New page">
+              <PlusIcon />
+              <span className="page-sidebar-label">New page</span>
+            </button>
+          </div>
+          <div className="page-tree-heading">
+            <button className="page-sidebar-heading" onClick={selectRoots} aria-label="Roots, top level">
+              Roots
+            </button>
+            <button className="primitive-icon-button primitive-icon-quiet" onClick={newFolder} aria-label="New folder" title="New folder">
+              <FolderPlus size={16} />
+            </button>
+          </div>
+          {treeError && <p role="alert">{treeError}</p>}
+          <ul className="page-sidebar-list">{mode === 'collapsed' ? pages.map(renderPage) : renderChildren()}</ul>
           <div className="page-sidebar-footer">
             <Menu.Root open={settingsMenuOpen} onOpenChange={setSettingsMenuOpen}>
               {mode === 'collapsed' ? (
@@ -346,7 +542,7 @@ export function PageSidebarView({ commandRef, pages, openPageId, settingsOpen, o
                     )}
                     <Menu.Item className="primitive-item" onClick={onOpenSettings}>
                       <span className="primitive-item-label">
-                        <KeyboardIcon /> Keyboard shortcuts
+                        <KeyboardIcon /> Settings
                       </span>
                     </Menu.Item>
                     <Menu.Item className="primitive-item" onClick={onOpenCommandPalette}>
@@ -364,6 +560,7 @@ export function PageSidebarView({ commandRef, pages, openPageId, settingsOpen, o
           <div className="page-sidebar-resize" role="separator" tabIndex={0} aria-label="Resize pages" aria-orientation="vertical" aria-valuemin={minSidebarWidth} aria-valuemax={maxSidebarWidth} aria-valuenow={Math.round(width)} onPointerDown={startResize} onKeyDown={nudgeResize} />
         ) : null}
       </div>
+      {folderAction && folderCommands && <NotebookFolderDialog action={folderAction} folders={folders} commands={folderCommands} onClose={closeFolderDialog} onCreated={folderCreated} />}
       {mode === 'hidden' ? (
         <div className="page-sidebar-reveal">
           <IconTooltip label="Show pages">

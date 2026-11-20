@@ -9,12 +9,21 @@ import { readStoredTheme } from '#/theme/theme.ts'
 import type { ThemeSelection } from '#/theme/theme.ts'
 
 /** Sidebar identity and title, stored separately from editable cell content. */
-export type PageSummary = Pick<Page, 'pageId' | 'title'>
+export type PageSummary = Pick<Page, 'pageId' | 'title'> & { folderId?: string }
+
+/** A sidebar container; omitted parentId means a folder directly under Roots. */
+export interface NotebookFolder {
+  folderId: string
+  title: string
+  parentId?: string
+}
 
 /** The ordered sidebar records and id of the selected page. */
 export interface NotebookState {
   pages: readonly PageSummary[]
   openPageId: string
+  /** Omitted in older notebooks; existing pages remain at Roots. */
+  folders?: readonly NotebookFolder[]
 }
 
 /** Preferences that apply across pages. The theme field is the palette and color mode. Page width and cell spacing stay on each page. */

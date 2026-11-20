@@ -1,11 +1,12 @@
 /**
- * Describe a notebook page independently of how it is rendered. Contains the page identifier, its title, the ordered cells it holds, the display metadata stored with that page, and creation of an empty page.
+ * Describe a notebook page independently of rendering. Contains its identity, title, cells in nested preorder, saved deletion history, display metadata, optional graph workspace, and empty-page creation.
  *
  * @file
  */
 
 import { createCellId } from './notebook-cells.ts'
 import type { NotebookCell } from './notebook-cells.ts'
+import type { GraphDocument } from '#/graph/graph-model'
 
 /** Choose how wide the page content is. Narrow uses the notebook's centered column; full uses the available width. */
 export type PageWidth = 'narrow' | 'full'
@@ -26,6 +27,15 @@ export interface Page {
   title: string
   cells: readonly NotebookCell[]
   pageMetadata: PageMetadata
+  graph?: GraphDocument
+  deletedBlocks?: DeletedNotebookBlock[]
+}
+
+/** Retain a deleted subtree and its neighbors for persistent, non-destructive undo. */
+export interface DeletedNotebookBlock {
+  cells: readonly NotebookCell[]
+  nextCellId?: string
+  parentCellId?: string
 }
 
 /** The display metadata used by a page that has not chosen its own spacing or width. */

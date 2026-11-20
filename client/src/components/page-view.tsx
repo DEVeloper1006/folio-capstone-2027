@@ -1,16 +1,19 @@
 /**
- * Render one notebook page from the record it is given. Contains the page title, the ordered cells and, in the editable variant, the title field, the spacing and width menu, and the control that appends a cell. This view does not store the page.
+ * Render a notebook page from its record, with a title, ordered content, display settings, and direct actions for writing, mathematics, and the optional graph workspace. This view does not store the page.
  *
  * @file
  */
 
 import type { CSSProperties, ChangeEvent, ReactNode } from 'react'
-import { Menu } from '@base-ui/react/menu'
+import { Button } from '#/component-library/button'
+import { ChartLine } from 'lucide-react'
 import { MathIcon, MarkdownIcon } from '#/component-library/icons/folio-icons.tsx'
 import { LatexCell } from './latex-cell'
 import { MarkdownCell } from './markdown-cell'
 import { PageMenuView } from './page-menu-view'
 import type { NotebookCell } from '#/notebook/notebook-cells.ts'
+import { cellSource } from '#/notebook/notebook-cells.ts'
+import { blockDepth } from '#/notebook/notebook-blocks'
 import type { Page, PageMetadata } from '#/notebook/page.ts'
 
 /** Choose whether the page accepts edits. `view` shows the stored cells and hides editing controls. */
@@ -24,6 +27,7 @@ interface EditablePageViewProps {
   onMarkdownChange: (cellId: string, markdown: string) => void
   onAddMathCell: () => void
   onAddMarkdownCell: () => void
+  onOpenGraph?: () => void
   onTitleChange: (title: string) => void
   onPageMetadataChange: (pageMetadata: PageMetadata) => void
 }
@@ -41,8 +45,12 @@ export type PageViewProps = EditablePageViewProps | ViewPageProps
 function renderCell(cell: NotebookCell, props: PageViewProps) {
   const readOnly = props.interaction === 'view'
   return (
-    <div className="cell" key={cell.cellId}>
-      {cell.kind === 'math' ? (
+    <div className="cell" key={cell.cellId} style={{ marginInlineStart: blockDepth(cell) * 24 }}>
+      {cell.kind === 'graph' ? (
+        <figure className="notebook-graph">
+          <img src={cell.snapshot.image} width={cell.snapshot.width} height={cell.snapshot.height} alt={`${cell.graph.dimension.toUpperCase()} graph: ${cellSource(cell)}`} />
+        </figure>
+      ) : cell.kind === 'math' ? (
         <LatexCell caption={cell.caption} editorMode={props.page.pageMetadata.editorMode} cellId={cell.cellId} initialLatex={cell.latex} onLatexChange={readOnly ? ignoreLatexChange : props.onLatexChange} readOnly={readOnly} />
       ) : (
         <MarkdownCell editorMode={props.page.pageMetadata.editorMode} cellId={cell.cellId} markdown={cell.markdown} onMarkdownChange={readOnly ? ignoreMarkdownChange : props.onMarkdownChange} readOnly={readOnly} />
@@ -72,31 +80,24 @@ function EditablePageTitle({ title, onTitleChange }: { title: string; onTitleCha
   return <input className="page-title" aria-label="Page title" placeholder="Untitled" value={title} onChange={handleTitleChange} />
 }
 
-/** Open the cell-kind menu from a click, keyboard, or hover. */
-function NewCellControl({ onAddMathCell, onAddMarkdownCell }: { onAddMathCell: () => void; onAddMarkdownCell: () => void }) {
+/** Offer direct content actions instead of hiding the first writing step inside a menu. */
+function NewCellControl({ onAddMathCell, onAddMarkdownCell, onOpenGraph, empty }: { onAddMathCell: () => void; onAddMarkdownCell: () => void; onOpenGraph?: () => void; empty: boolean }) {
   return (
-    <div className="add-cell-actions">
-      <Menu.Root modal={false}>
-        <Menu.Trigger className="ui-button ui-button-quiet" openOnHover delay={160} closeDelay={120}>
-          New Cell
-        </Menu.Trigger>
-        <Menu.Portal>
-          <Menu.Positioner side="bottom" sideOffset={6} align="start">
-            <Menu.Popup className="primitive-popup" finalFocus={false}>
-              <Menu.Item className="primitive-item" onClick={onAddMathCell}>
-                <span className="primitive-item-label">
-                  <MathIcon /> Math
-                </span>
-              </Menu.Item>
-              <Menu.Item className="primitive-item" onClick={onAddMarkdownCell}>
-                <span className="primitive-item-label">
-                  <MarkdownIcon /> Markdown
-                </span>
-              </Menu.Item>
-            </Menu.Popup>
-          </Menu.Positioner>
-        </Menu.Portal>
-      </Menu.Root>
+    <div className={empty ? 'page-start-actions' : 'add-cell-actions'} aria-label="Add to page">
+      <Button variant={empty ? 'default' : 'quiet'} onClick={onAddMarkdownCell}>
+        <MarkdownIcon />
+        {empty ? 'Write a note' : 'Text'}
+      </Button>
+      <Button variant="quiet" onClick={onAddMathCell}>
+        <MathIcon />
+        {empty ? 'Add math' : 'Math'}
+      </Button>
+      {onOpenGraph && (
+        <Button variant="quiet" onClick={onOpenGraph}>
+          <ChartLine size={16} aria-hidden="true" />
+          {empty ? 'Explore a graph' : 'Graph'}
+        </Button>
+      )}
     </div>
   )
 }
@@ -121,9 +122,9 @@ export function PageFrame(props: FrameProps) {
     <section className="page" aria-label={page.title || 'Untitled'} style={cellListStyle}>
       {props.interaction === 'editable' ? <PageMenuView pageMetadata={page.pageMetadata} onPageMetadataChange={props.onPageMetadataChange} /> : null}
       {props.interaction === 'editable' ? <EditablePageTitle title={page.title} onTitleChange={props.onTitleChange} /> : <PageTitleHeading title={page.title} />}
-      {page.cells.length === 0 ? <p className="page-empty">{props.interaction === 'view' ? 'This page is empty.' : 'This page has no cells yet.'}</p> : null}
+      {page.cells.length === 0 ? <p className="page-empty">{props.interaction === 'view' ? 'This page is empty.' : 'Start with a thought, an equation, or a question.'}</p> : null}
       {props.content}
-      {props.interaction === 'editable' ? <NewCellControl onAddMathCell={props.onAddMathCell} onAddMarkdownCell={props.onAddMarkdownCell} /> : null}
+      {props.interaction === 'editable' ? <NewCellControl onAddMathCell={props.onAddMathCell} onAddMarkdownCell={props.onAddMarkdownCell} onOpenGraph={props.onOpenGraph} empty={page.cells.length === 0} /> : null}
     </section>
   )
 }

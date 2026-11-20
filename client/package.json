@@ -31,8 +31,10 @@
     "@tiptap/starter-kit": "^3.34.0",
     "katex": "^0.16.47",
     "lucide-react": "1.73.0",
+    "mathjs": "^15.2.0",
     "mathlive": "^0.111.4",
     "nitro": "3.0.260610-beta",
+    "plotly.js-strict-dist-min": "^4.3.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-markdown": "^10.1.0",
@@ -43,6 +45,7 @@
   "devDependencies": {
     "@tanstack/eslint-config": "0.4.0",
     "@types/node": "^22.10.2",
+    "@types/plotly.js": "^3.0.15",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.0.1",

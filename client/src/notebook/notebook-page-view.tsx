@@ -1,22 +1,28 @@
 /**
- * Render the open notebook page from query subscriptions, track cell selection and editing, and run page and cell commands.
+ * Render a nested notebook from query subscriptions, track cell selection and editing, and share subtree movement, nesting, deletion, and restore operations between drag handles, menus, and cell commands.
  *
  * @file
  */
 import './focus-cell-dialog.css'
+import type { HeadingTarget } from './notebook-outline'
+import { mathSection, sectionMode } from '../math-help/math-context'
+import { appliedSettingsKey } from '../settings/use-settings'
+import { defaultSettings } from '../settings/settings'
 import { Dialog } from '@base-ui/react/dialog'
 import { Button } from '#/component-library/button'
 import { TextField } from '#/component-library/text-field'
-import { useImperativeHandle, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useImperativeHandle, useRef, useState } from 'react'
 import type { ClipboardEvent, FormEvent, Ref } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { PageFrame } from '#/components/page-view'
 import { CellFrame } from '#/component-library/cell-frame'
-import { MathIcon, MarkdownIcon } from '#/component-library/icons/folio-icons'
+import { NotebookBlockView } from './notebook-block-view'
+import { blockDepth, blockEnd, blockIndex, blockDestination, moveBlock, deleteBlock, restoreBlock } from './notebook-blocks'
+import type { BlockAction, BlockPlacement, BlockSlot } from './notebook-blocks'
 import { LatexCell } from '#/components/latex-cell'
 import { MarkdownCell } from '#/components/markdown-cell'
 import { appendCell, editCell, notebookCommands, usePageSelection } from './use-page-state'
-import { createCellId, pastedLatex } from './notebook-cells'
+import { createCellId, pastedLatex, cellSource } from './notebook-cells'
 import type { NotebookCell } from './notebook-cells'
 import type { CellEditorMode, Page, PageMetadata } from './page'
 import { shortcutKey, defaultOverrides } from '#/editor/commands/shortcut-overrides'
@@ -29,10 +35,10 @@ export interface NotebookCommandController {
   getContext: () => CommandContext
 }
 /** Select the layout fields that change independently of a cell's text. */
-function pageLayout(page: Page): Omit<Page, 'cells'> & { cells: readonly Pick<NotebookCell, 'kind' | 'cellId'>[] } {
+function pageLayout(page: Page): Omit<Page, 'cells'> & { cells: readonly BlockSlot[] } {
   /** Keep each cell's identity and kind for ordering and the add-cell control. */
-  function cellSlot({ cellId, kind }: NotebookCell) {
-    return { cellId, kind }
+  function cellSlot({ cellId, kind, depth }: NotebookCell) {
+    return { cellId, kind, depth }
   }
   return { ...page, cells: page.cells.map(cellSlot) }
 }
@@ -46,8 +52,8 @@ function NotebookCellEditor({
   editing,
   focused,
   selected,
-  selectRow,
   setEditing,
+  onEditGraph,
 }: {
   editorMode: CellEditorMode
   pageId: string
@@ -56,8 +62,8 @@ function NotebookCellEditor({
   editing: boolean
   focused: boolean
   selected: boolean
-  selectRow: (id: string) => void
   setEditing: (id: string | null) => void
+  onEditGraph?: (id: string) => void
 }) {
   const client = useQueryClient()
   /** Ignore a stale slot while the layout is changing. */
@@ -66,6 +72,7 @@ function NotebookCellEditor({
     return cell?.cellId === cellId ? cell : undefined
   }
   const cell = usePageSelection(pageId, selectCell)
+  const { data: settings } = useQuery({ queryKey: appliedSettingsKey, initialData: defaultSettings, enabled: false })
   /** Store the edited source on the page containing this field. */
   function changeSource(id: string, source: string) {
     /** Apply the edit to the latest document. */
@@ -89,43 +96,62 @@ function NotebookCellEditor({
   function changeEditing(value: boolean) {
     setEditing(value ? cellId : null)
   }
-  /** Focus the frame to select this whole cell. */
-  function selectFromGutter() {
-    selectRow(cellId)
+  /** Reopen the saved graph with its source and captured view. */
+  function editGraph() {
+    onEditGraph?.(cellId)
   }
-  /** Keep the nearest Markdown cell with up to eight subsequent math steps as autocomplete context. */
+  /** Scope notation completion to the current problem and its selected subject. Missing modes disable optional completion. */
   function previousSteps() {
-    const cells = notebookCommands(client).getPage(pageId)?.cells.slice(0, index) ?? []
-    const notes: string[] = []
-    for (const step of cells.reverse()) {
-      if (step.kind !== 'math') return [step.markdown.slice(-1600), ...notes.reverse()].join('\n')
-      if (step.latex.trim() && notes.length < 8) notes.push(step.latex.slice(-300))
+    const page = notebookCommands(client).getPage(pageId)
+    if (!page) return undefined
+    try {
+      const mode = sectionMode(page, cellId, settings.math)
+      return `${mode.title}: ${mode.summary}\n${mathSection(page, cellId)?.previous ?? ''}`.slice(0, 12000)
+    } catch {
+      return undefined
     }
-    return notes.reverse().join('\n')
   }
   if (!cell) return null
   return (
-    <CellFrame
-      state={editing ? 'editing' : focused ? 'focused' : selected ? 'selected' : 'unselected'}
-      icon={cell.kind === 'math' ? <MathIcon /> : <MarkdownIcon />}
-      label={`Select cell ${index + 1}`}
-      role="group"
-      tabIndex={0}
-      aria-label={`${cell.kind === 'math' ? 'Math' : 'Markdown'} cell ${index + 1}`}
-      data-cell-id={cellId}
-      onSelect={selectFromGutter}
-    >
-      {cell.kind === 'math' ? (
+    <CellFrame state={editing ? 'editing' : focused ? 'focused' : selected ? 'selected' : 'unselected'} role="group" tabIndex={0} aria-label={`${cell.kind === 'graph' ? 'Graph' : cell.kind === 'math' ? 'Math' : 'Markdown'} cell ${index + 1}`} data-cell-id={cellId}>
+      {cell.kind === 'graph' ? (
+        <figure className="notebook-graph">
+          <button className="notebook-graph-image" onClick={editGraph} aria-label="Edit graph">
+            <img src={cell.snapshot.image} width={cell.snapshot.width} height={cell.snapshot.height} alt={`${cell.graph.dimension.toUpperCase()} graph: ${cellSource(cell)}`} />
+          </button>
+          <figcaption>
+            <span>{cellSource(cell)}</span>
+            <Button variant="quiet" onClick={editGraph}>
+              Edit graph
+            </Button>
+          </figcaption>
+        </figure>
+      ) : cell.kind === 'math' ? (
         <LatexCell caption={cell.caption} onCaptionChange={changeCaption} previous={editing ? previousSteps() : undefined} editorMode={editorMode} cellId={cellId} editing={editing} onBeginEditing={beginEditing} initialLatex={cell.latex} onLatexChange={changeSource} />
       ) : (
         <MarkdownCell editorMode={editorMode} cellId={cellId} editing={editing} onEditingChange={changeEditing} markdown={cell.markdown} onMarkdownChange={changeSource} />
       )}
+      <div data-math-help-slot={cellId} />
     </CellFrame>
   )
 }
 
 /** Render a cached page. Only layout changes update the frame and only the edited cell receives new source. */
-export function NotebookPageView({ pageId, commandRef }: { pageId: string; commandRef: Ref<NotebookCommandController> }) {
+export function NotebookPageView({
+  pageId,
+  headingTarget,
+  commandRef,
+  onOpenGraph,
+  onEditGraph,
+  onActiveCellChange,
+}: {
+  pageId: string
+  headingTarget?: HeadingTarget
+  commandRef: Ref<NotebookCommandController>
+  onOpenGraph?: () => void
+  onEditGraph?: (id: string) => void
+  onActiveCellChange?: (id: string) => void
+}) {
   const client = useQueryClient()
   const page = usePageSelection(pageId, pageLayout)
   const { updatePage, renamePage, getPage } = notebookCommands(client)
@@ -133,6 +159,14 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
   const [cellMode, setCellMode] = useState<CommandContext['cellMode']>('idle')
   /** Enter edit mode for a cell, or return to cell selection when editing finishes. */
   function setEditing(id: string | null) {
+    /** Recognize graph cells so keyboard edit commands open the panel. */
+    function isGraph(cell: NotebookCell) {
+      return cell.cellId === id && cell.kind === 'graph'
+    }
+    if (id && getPage(pageId)?.cells.some(isGraph)) {
+      onEditGraph?.(id)
+      return
+    }
     setEditingId(id)
     setCellMode(id ? 'editing' : 'selection')
     if (id) setSelected(id)
@@ -140,7 +174,83 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
   const notebookRef = useRef<HTMLElement>(null)
   const [viewingId, setViewing] = useState<string | null>(null)
   const [selectedId, setSelected] = useState<string | null>(null)
+  /** Retain the last selected notebook block while focus moves into a side panel. */
+  function publishSelection() {
+    if (selectedId) onActiveCellChange?.(selectedId)
+  }
+  useEffect(publishSelection, [selectedId, onActiveCellChange])
   const [notice, setNotice] = useState('')
+  const visitedHeading = useRef<HeadingTarget | undefined>(undefined)
+  /** Close the editor, then focus the heading only after React commits its rendered preview. */
+  function visitHeading() {
+    if (!headingTarget || headingTarget.pageId !== pageId || visitedHeading.current === headingTarget || !page) return
+    if (editingId !== null) {
+      setEditingId(null)
+      return
+    }
+    const row = notebookRef.current?.querySelector<HTMLElement>(`[data-cell-id="${CSS.escape(headingTarget.cellId)}"]`)
+    const heading = row?.querySelectorAll<HTMLElement>('h1,h2,h3,h4,h5,h6').item(headingTarget.ordinal)
+    visitedHeading.current = headingTarget
+    if (!heading) {
+      setNotice('This heading changed. Select it again from the page outline.')
+      return
+    }
+    setSelected(headingTarget.cellId)
+    notebookRef.current?.querySelector('[data-heading-target]')?.removeAttribute('data-heading-target')
+    heading.setAttribute('data-heading-target', '')
+    heading.tabIndex = -1
+    heading.focus({ preventScroll: true })
+    heading.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
+  }
+  useLayoutEffect(visitHeading, [headingTarget, pageId, editingId, page])
+  const [draggedId, setDraggedId] = useState<string | null>(null)
+  /** Save structural changes before updating selection; report storage errors without hiding the previous document. */
+  function changeBlocks(change: (current: Page) => Page, message: string, focusId?: string) {
+    try {
+      updatePage(pageId, change)
+      setNotice(message)
+      /** Refocus the moved block's handle after React has placed its subtree. */
+      function focusBlock() {
+        if (!focusId) {
+          selectRow()
+          return
+        }
+        const block = notebookRef.current?.querySelector<HTMLElement>(`[data-block-id="${CSS.escape(focusId)}"] .block-drag-handle`)
+        block?.focus({ preventScroll: true })
+        block?.scrollIntoView({ block: 'nearest' })
+      }
+      requestAnimationFrame(focusBlock)
+    } catch (cause) {
+      setNotice(cause instanceof Error ? cause.message : 'Could not save the block change. Your page is unchanged.')
+    }
+  }
+  /** Move one subtree using the latest stored order, regardless of how the action was initiated. */
+  function relocateBlock(id: string, targetId: string, placement: BlockPlacement) {
+    /** Keep all descendants with the moving block. */
+    function move(current: Page) {
+      return moveBlock(current, id, targetId, placement)
+    }
+    changeBlocks(move, placement === 'inside' ? 'Block nested. Its contents moved with it.' : 'Block moved.', id)
+  }
+  /** Route the handle menu and keyboard actions through the same subtree operations. */
+  function blockAction(id: string, action: BlockAction) {
+    if (action === 'delete') {
+      /** Retain deleted blocks in the saved page for undo, including graph snapshots. */
+      function remove(current: Page) {
+        return deleteBlock(current, id)
+      }
+      changeBlocks(remove, 'Block deleted. Press Command or Control Z to restore it.')
+      return
+    }
+    const current = getPage(pageId)
+    const destination = current && blockDestination(current.cells, id, action)
+    if (destination) relocateBlock(id, destination.targetId, destination.placement)
+  }
+  /** Restore the most recently deleted subtree without reverting newer edits. */
+  function undoBlockDelete() {
+    const id = getPage(pageId)?.deletedBlocks?.at(-1)?.cells[0]?.cellId
+    changeBlocks(restoreBlock, 'Deleted block restored.', id)
+  }
   const [focusPickerOpen, setFocusPickerOpen] = useState(false)
   const focusPickerTarget = useRef<string | null>(null)
   /** Mount the chosen editor only after the modal has released focus and made the notebook interactive again. */
@@ -180,7 +290,7 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
     const cell = current?.cells.find(matches)
     if (!cell) return
     try {
-      await navigator.clipboard.writeText(cell.kind === 'math' ? cell.latex : cell.markdown)
+      await navigator.clipboard.writeText(cellSource(cell))
       setNotice('Cell copied')
     } catch {
       setNotice('Could not copy the cell to the clipboard.')
@@ -196,6 +306,7 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
         return cell.cellId === id
       }
       const cell = current.cells.find(matches)
+      if (cell?.kind === 'graph') throw new Error('Use Edit graph to change this figure.')
       return editCell(current, id, cell?.kind === 'math' ? pastedLatex(text) : text)
     }
     updatePage(pageId, replace)
@@ -205,8 +316,8 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
   async function pasteCell(id: string) {
     try {
       pasteSource(id, await navigator.clipboard.readText())
-    } catch {
-      setNotice('Clipboard unavailable. Use Cmd/Ctrl+V on the selected cell.')
+    } catch (cause) {
+      setNotice(cause instanceof Error ? cause.message : 'Clipboard unavailable. Use Cmd/Ctrl+V on the selected cell.')
     }
   }
   /** Put source text on the native clipboard when copying a selected row. */
@@ -221,7 +332,7 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
     }
     const cell = getPage(pageId)?.cells.find(matches)
     if (!cell) return
-    event.clipboardData.setData('text/plain', cell.kind === 'math' ? cell.latex : cell.markdown)
+    event.clipboardData.setData('text/plain', cellSource(cell))
     event.preventDefault()
     event.stopPropagation()
     setNotice('Cell copied')
@@ -239,7 +350,12 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
     function matches(cell: NotebookCell) {
       return cell.cellId === selectedId
     }
-    const math = getPage(pageId)?.cells.find(matches)?.kind === 'math'
+    const cell = getPage(pageId)?.cells.find(matches)
+    if (cell?.kind === 'graph') {
+      setNotice('Use Edit graph to change this figure.')
+      return
+    }
+    const math = cell?.kind === 'math'
     const latex = math ? event.clipboardData.getData('application/x-latex') : ''
     pasteSource(selectedId, latex || event.clipboardData.getData('text/plain'))
   }
@@ -256,6 +372,10 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
     const first = cells.at(0)?.cellId
     const last = cells.at(-1)?.cellId
     switch (command) {
+      case 'workspace.page.undoDelete':
+        if (cellMode === 'editing' || !page.deletedBlocks?.length) return false
+        undoBlockDelete()
+        return true
       case 'workspace.page.editRich':
       case 'workspace.page.editSource':
         setMetadata({ ...page.pageMetadata, editorMode: command.endsWith('editSource') ? 'source' : 'rich' })
@@ -337,16 +457,7 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
     }
     if ((command === 'workspace.currentPage.cell.delete' || command === 'workspace.currentPage.cell.deleteSelected') && cellMode !== 'selection') return false
     if (command === 'workspace.currentPage.cell.delete' || command === 'workspace.currentPage.cell.deleteSelected') {
-      /** Remove only the selected cell from the latest page. */
-      function remove(current: Page) {
-        /** Keep cells with other ids. */
-        function keep(cell: NotebookCell) {
-          return cell.cellId !== id
-        }
-        return { ...current, cells: current.cells.filter(keep) }
-      }
-      updatePage(pageId, remove)
-      selectRow(cells.at(index + 1)?.cellId ?? (index > 0 ? cells[index - 1].cellId : undefined))
+      blockAction(id, 'delete')
       return true
     }
     if (command === 'workspace.currentPage.cell.unfocus') {
@@ -361,9 +472,10 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
       const sourceIndex = current.cells.findIndex(isCurrent)
       const original = current.cells.at(sourceIndex)
       if (sourceIndex < 0 || !original) return current
-      const cell: NotebookCell = original.kind === 'math' ? { cellId, kind: 'math', ...(duplicate ? { latex: original.latex, caption: original.caption } : { latex: '' }) } : { cellId, kind: 'markdown', markdown: '' }
+      const depth = blockDepth(original)
+      const cell: NotebookCell = original.kind === 'math' ? { cellId, depth, kind: 'math', ...(duplicate ? { latex: original.latex, caption: original.caption } : { latex: '' }) } : { cellId, depth, kind: 'markdown', markdown: '' }
       const nextCells = [...current.cells]
-      nextCells.splice(command.endsWith('createAbove') ? sourceIndex : sourceIndex + 1, 0, cell)
+      nextCells.splice(command.endsWith('createAbove') ? sourceIndex : blockEnd(current.cells, sourceIndex), 0, cell)
       return { ...current, cells: nextCells }
     }
     updatePage(pageId, insert)
@@ -382,7 +494,7 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
       setCellMode('idle')
       return
     }
-    if (row === event.target || event.target.closest('.notebook-cell-gutter')) {
+    if (row === event.target) {
       setEditingId(null)
       setViewing(null)
       setCellMode('selection')
@@ -452,10 +564,10 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
       <NotebookCellEditor
         editorMode={page?.pageMetadata.editorMode ?? 'rich'}
         focused={slot.cellId === viewingId}
-        selectRow={selectRow}
         selected={slot.cellId === selectedId}
         editing={slot.cellId === editingId}
         setEditing={setEditing}
+        onEditGraph={onEditGraph}
         key={slot.cellId}
         pageId={pageId}
         cellId={slot.cellId}
@@ -463,10 +575,40 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
       />
     )
   }
+  /** Render preorder cells as nested groups while preserving each editor's absolute index and stable id. */
+  function renderBlocks(start: number, end: number): React.ReactNode {
+    if (!page) return null
+    const blocks: React.ReactNode[] = []
+    const draggedIndex = draggedId ? blockIndex(page.cells, draggedId) : -1
+    const draggedEnd = draggedIndex >= 0 ? blockEnd(page.cells, draggedIndex) : -1
+    for (let index = start; index < end;) {
+      const slot = page.cells[index]
+      const next = blockEnd(page.cells, index)
+      blocks.push(
+        <NotebookBlockView
+          key={slot.cellId}
+          cellId={slot.cellId}
+          index={index}
+          cells={page.cells}
+          descendantCount={next - index - 1}
+          content={renderSlot(slot, index)}
+          draggedId={draggedId}
+          blocked={index >= draggedIndex && index < draggedEnd}
+          onDrag={setDraggedId}
+          onMove={relocateBlock}
+          onAction={blockAction}
+        >
+          {renderBlocks(index + 1, next)}
+        </NotebookBlockView>,
+      )
+      index = next
+    }
+    return blocks
+  }
   if (!page) return null
   return (
     <main ref={notebookRef} tabIndex={-1} data-cell-mode={cellMode} onCopy={handleCellCopy} onPaste={handleCellPaste} onFocusCapture={recordFocus} className={`notebook notebook-${page.pageMetadata.width}`} aria-label="Folio notebook">
-      <span className="cell-command-notice" role="status">
+      <span className="notebook-announcement" role="status">
         {notice}
       </span>
       <Dialog.Root open={focusPickerOpen} onOpenChange={setFocusPickerOpen} onOpenChangeComplete={finishFocusPicker}>
@@ -482,7 +624,7 @@ export function NotebookPageView({ pageId, commandRef }: { pageId: string; comma
           </Dialog.Popup>
         </Dialog.Portal>
       </Dialog.Root>
-      <PageFrame page={page} interaction="editable" onAddMathCell={addMath} onAddMarkdownCell={addMarkdown} onTitleChange={rename} onPageMetadataChange={setMetadata} content={page.cells.map(renderSlot)} />
+      <PageFrame page={page} interaction="editable" onAddMathCell={addMath} onAddMarkdownCell={addMarkdown} onOpenGraph={onOpenGraph} onTitleChange={rename} onPageMetadataChange={setMetadata} content={renderBlocks(0, page.cells.length)} />
     </main>
   )
 }
