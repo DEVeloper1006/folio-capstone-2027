@@ -178,10 +178,6 @@ struct NotebookView: View {
                 CanvasToolOptions(viewModel: viewModel, tool: tool).padding(.leading, 48).padding(.top, 48)
             }
         }
-        .overlay(alignment: .top) {
-            SessionModeControl(mode: $viewModel.sessionMode)
-                .padding(.top, 8)
-        }
         .overlay(alignment: .bottomTrailing) {
             StatusChipView(
                 mathMode: viewModel.mathMode,
@@ -191,26 +187,6 @@ struct NotebookView: View {
             .padding(.trailing, 60)
             .padding(.bottom, 8)
             .allowsHitTesting(false)
-        }
-        .overlay(alignment: .bottomTrailing) {
-            VStack(spacing: 12) {
-                VoicePillView(onAnnotation: { _ in })
-                Button {
-                    withAnimation { showChat.toggle() }
-                } label: {
-                    Image(systemName: "bubble.fill")
-                        .font(.system(size: 20))
-                        .foregroundStyle(FolioTheme.ink)
-                        .frame(width: 48, height: 48)
-                        .background(
-                            Circle()
-                                .fill(FolioTheme.chromeBackground)
-                                .shadow(color: FolioTheme.chromeShadow, radius: 8, y: 2)
-                        )
-                }
-            }
-            .padding(.trailing, 16)
-            .padding(.bottom, 16)
         }
         .overlay(alignment: .trailing) {
             if showChat {
