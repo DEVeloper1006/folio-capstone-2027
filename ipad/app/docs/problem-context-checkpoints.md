@@ -1,0 +1,96 @@
+# Problem-context implementation checkpoints
+
+## Checkpoint 0: repository baseline
+
+- Repository: `DEVeloper1006/folio-capstone-2027`
+- Baseline commit: `7ace848` (`Style math captions and source completion overlays`)
+- Starting branch: `main`
+- Working branch for this increment: `feat/problem-context-compute`
+- Toolchain: Xcode 26.2, build 17C52; iOS SDK 26.2.
+- Baseline command: `xcodebuild -project ipad/app/inkpad/inkpad.xcodeproj -scheme inkpad -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath /private/tmp/folio-problem-baseline build`
+- Baseline result: **BUILD SUCCEEDED**.
+- Baseline output folder: `/private/tmp/folio-problem-baseline/`.
+
+The baseline is the known-good rollback point. No notebook store or source history was reset. The validated local recognition exports are not in the checkout, so this compile does not validate model inference.
+
+## Checkpoint 1: explicit page-local row grouping
+
+- Changes: optional `Step.problemGroupID`; preview controls to join rows/groups and separate one row; architecture notes; device interaction guide; growing regression checklist.
+- Feature build command: `xcodebuild -project ipad/app/inkpad/inkpad.xcodeproj -scheme inkpad -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath /private/tmp/folio-problem-feature build`
+- Feature result: **BUILD SUCCEEDED**.
+- Output folder: `/private/tmp/folio-problem-feature/`.
+- Existing warning: `CanvasSmoke.swift` uses deprecated iOS 26 `coordinateSpace`; Xcode also skipped App Intents metadata because the target does not link AppIntents.
+- Existing unit tests: `xcodebuild test ... -only-testing:inkpadTests` **TEST SUCCEEDED**; 104 existing test cases passed. The run included computation, recognition, persistence, and expression workflow cases. No test source was added or changed.
+- Existing UI interaction tests: **25 passed, 2 failed** (27 cases total). `CanvasUITests.testLibraryNavigationKeepsPenEraserAndLassoConnected` failed at `CanvasUITests.swift:154` because the stroke summary stayed `3 strokes; 64f63cfe4fa7dcd8`. `ComputationUITests.testMatrixComputeInsertMoveUndoAndReopen` failed at `ComputationUITests.swift:54` because direct card dragging did not change the ink stroke summary (`0 strokes; 4dbfb0f27e2ef58a`). The passing cases included row-scoped compute, expression review, recognized-source insertion/reopen, and preview interactions. These failures are in untouched canvas/result-drag areas; do not attribute them to grouping without further investigation.
+- Manual interaction: not yet performed on physical iPad. Follow `problem-context-ipad-checklist.md` after installing this branch.
+
+## Checkpoint 2: bounded contextual substitution and solve
+
+- Changes: per-row explicit `Definition` / `Equation to solve` meaning; native AST substitution for accepted, earlier single-symbol definitions in the same group; dependency/cycle and duplicate-definition checks; one remaining variable and degree at most two; contextual results store and validate a complete group source manifest so changed, inserted, reordered, reclassified or ungrouped rows invalidate the result. The preview surfaces the definitions used before **Substitute & Solve**.
+- Feature commit: `591eb97` (`Add bounded contextual equation solving checkpoint`); no remote branch, PR or deployment.
+- Final simulator build: `xcodebuild -project ipad/app/inkpad/inkpad.xcodeproj -scheme inkpad -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath /private/tmp/folio-problem-context-final build` — **BUILD SUCCEEDED**. Output folder: `/private/tmp/folio-problem-context-final/`.
+- Final generic iOS device build: `xcodebuild -project ipad/app/inkpad/inkpad.xcodeproj -scheme inkpad -configuration Debug -destination 'generic/platform=iOS' -derivedDataPath /private/tmp/folio-problem-context-final-device build` — **BUILD SUCCEEDED**. Output folder: `/private/tmp/folio-problem-context-final-device/`.
+- Final focused existing UI checks: **3 passed, 0 failed** on iPad Pro 13-inch (M5), iOS 26.2: `ExpressionWorkflowUITests.testInlineReviewSolveTargetInsertAndReopen`, `PolynomialUITests.testComputeRemoveAndUnsavedRecognitionEditGuard`, and `Calc1UITests.testRowContextAndMenuDoNotCarryOtherRowsResults`. Result bundle: `/private/tmp/folio-context-final-ui/Logs/Test/Test-inkpad-2026.11.18_15-32-57--0500.xcresult`. These exercise adjacent pre-existing preview and computation workflows; none directly covers the new group controls/contextual solve.
+- Existing unit checks after the feature implementation: **104 passed** in `inkpadTests`; log: `/private/tmp/folio-context-unit-tests.log`. No test source was added or changed because the repository pauses test development until Saad resumes it.
+- Full existing UI suite from checkpoint 1: **25 passed, 2 failed** in canvas/result-drag cases documented above. Those unrelated areas were not changed in checkpoint 2.
+- Manual new-flow interaction: not verified. The simulator CUA bridge stopped accepting actions while setting up a scratch notebook, and no physical iPad was available. Use the interaction checklist; report the recognized rows and exact button/menu behavior.
+- Build output warnings are existing: deprecated iOS 26 `coordinateSpace` use in `CanvasSmoke.swift` and skipped App Intents metadata because the app target does not link AppIntents.
+
+## Physical iPad installation with local model — November 18, 2026
+
+The initial device installation omitted the ignored model assets and could not provide local recognition. Corrected by staging the original validated exports from `/Users/jasimraza/Desktop/capstone/folio-ipad-labs/results/on-device-texteller` with `ipad/app/scripts/prepare-local-recognition.py`; the script verified package hashes and the pinned model/adapter. Rebuilt for device `00008103-001A28121AE9401E` using `/private/tmp/folio-ipad-connected` derived data. Build log: `/private/tmp/folio-ipad-bundled-model-build.log` — **BUILD SUCCEEDED**.
+
+Before reinstalling, inspected the built app and confirmed `Encoder.mlmodelc` (171,805,182 bytes), `Decoder.mlmodelc` (423,831,708 bytes), `tokenizer-table.json` (206,339 bytes) and `model-manifest.json` (295 bytes). Installation and ordinary app launch both succeeded on the physical iPad Air. This verifies packaging and launch, not a new handwriting inference or grouping interaction run. Model assets remain ignored and uncommitted. Future local-recognition installs must check the actual app bundle before installation.
+
+## Checkpoint 3: automatic context and verification — November 18, 2026
+
+- Replaces manual group membership and role setup with deterministic AST/layout inference on recognition, acceptance and preview open. New optional SwiftData fields cache exact-input native equation ASTs and a user separation override. Existing group/role fields now store inferred semantics; old explicit assignments are recomputed.
+- Normal flow: review transcriptions, inspect detected source rows/definitions, then **Verify & Solve**. Needed unaccepted definitions cannot be used, and edited/unaccepted target text disables the action. **Wrong problem? → Separate here** corrects a boundary without configuring mathematical roles.
+- Device build: `xcodebuild -project ipad/app/inkpad/inkpad.xcodeproj -scheme inkpad -configuration Debug -destination 'id=00008103-001A28121AE9401E' -derivedDataPath /private/tmp/folio-ipad-connected -allowProvisioningUpdates build` — **BUILD SUCCEEDED**; log `/private/tmp/folio-auto-context-build.log`. An initial compile failed for a missing CoreGraphics import, which was corrected before the passing build.
+- Verified `Encoder.mlmodelc`, `Decoder.mlmodelc`, tokenizer and manifest inside the built app before installation. Installation and ordinary launch succeeded on the physical iPad Air, and the app was still present in the running process list after launch.
+- Existing automated checks: **104 unit tests passed; 3 focused UI tests passed**, no failures. Focused cases: row context/menu isolation, inline review/solve/insert/reopen and compute/remove/unsaved-edit guard. Log `/private/tmp/folio-auto-context-tests.log`; result bundle `/private/tmp/folio-auto-context-tests/Logs/Test/Test-inkpad-2026.11.18_16-05-53--0500.xcresult`. No test source was added or extended under the repository pause.
+- New inference and its corrections are not covered directly by the existing tests. The revised device checklist is the manual handoff; no new handwriting accuracy or automatic grouping interaction claim is made from build/launch alone. Historic notebook migration beyond this installed store is unverified. Layout thresholds are documented heuristics and may join nearby unrelated exercises; users must see the sources before solving.
+- Roll back to `c5190a4` for the previous explicit-group workflow with bundled-model installation notes; preserve notebook backups before moving between builds with schema changes.
+
+## Checkpoint 4: visible computation, worksheet notation and broader problem scope
+
+- Fix: the contextual action formerly saved answers inside a collapsed result disclosure. It now shows computing/cancellation, immediate output, an expanded result card and adjacent errors; deduplicated/repeated calculations still reveal the answer.
+- Architecture: [worksheet math workflows](worksheet-math-workflows.md) records the primary OpenStax sources, semantic notation contract, supported forms and explicit limits. Function signatures, prime requests, differentials and first partials are retained as semantic statements independently of native polynomial coverage. Column histories and numbered questions bound scope; all execution continues to use only earlier same-group accepted definitions.
+- Device and simulator builds **BUILD SUCCEEDED**. Latest logs: `/private/tmp/folio-worksheet-final-build.log` and `/private/tmp/folio-worksheet-manual-build.log`. Existing optional App Intents metadata warning remains.
+- Independent existing calculus oracle: **96 passed, 0 failed**, SymPy 1.14.0 via the already installed labs `.venv-local-ocr` environment. The system Python lacks SymPy; no package install or new test source was needed. Direct existing-engine requests also matched the documented OpenStax partials and function-declaration integration/differentiation examples.
+- Existing UI checks: **8 passed, 0 failed** across Calc1UITests, DefiniteIntegralUITests, PolynomialUITests and the inline solve/insert/reopen case. `/private/tmp/folio-worksheet-final-tests.log` records those passes. The combined runner was interrupted during its later unit phase by starting the manual simulator session too soon; its overall status is **TEST FAILED**, so it is not recorded as an overall successful run. The final-source unit suite was rerun alone: **104 passed, 0 failed; TEST SUCCEEDED**. Log `/private/tmp/folio-worksheet-unit-final.log`; result bundle `/private/tmp/folio-worksheet-tests/Logs/Test/Test-inkpad-2026.11.18_16-32-55--0500.xcresult`. The 8-case UI pass preceded the final smart-prime normalization and scope guard refinements; the final manual checks exercised the resulting scalar, prime and function-integral paths.
+- An earlier development UI run had 3 failures because direct standalone integration hid the previous suggested-operation entry point. Restored that standalone review path before the 8-case passing rerun. Original log: `/private/tmp/folio-worksheet-tests.log`.
+- Manual simulator UI verification used an existing disposable notebook fixture, not new test code: accepted `t=10` and `t+6x=15`; tapped Verify & Solve; observed immediate `x=5/6`, expanded full card and source explanation. Repeated tap retained one result and kept it visible.
+- In that same sheet, accepted `f(x)=x^2-2x` below the solved scalar exercise; observed a new scope starting at the function row. A later `f’(x)` resolved only that function and visibly produced `2x-2`. A later `\int f(x) dx` visibly produced `x^3/3-x^2+C`, with only the function row in the source summary. Relaunch preserved the reviewed transcriptions/scopes. The simulator keyboard converted apostrophe to a curly quote; normalization was corrected and verified by the successful stored-curly-prime request.
+- Final app resources were inspected before device installation: compiled encoder/decoder, tokenizer and manifest present. Installation and ordinary launch succeeded on the physical iPad Air. Physical handwriting recognition accuracy, complete two-column/numbered-question UI coverage, and direct partial-request UI interaction remain device regression cases; the engine partial examples are not claimed as equivalent UI coverage.
+- No automated test sources or frameworks were added/extended. Rollback checkpoint: `5c9f71d` for the earlier automatic grouping implementation. Preserve notebook backups when changing builds.
+
+## Checkpoint 5: integration methods, finite domain splitting and solved-result chains — November 19, 2026
+
+- Adds single exact-real solved values from earlier current same-group equations to the local symbol environment. Stores result-level references (stable result/source IDs, request and output) and recursively checks their freshness with cycle/depth protection. Multiple, complex and approximate solution sets are not silently selected.
+- Changes row manifests to the prefix through the target. Accepting later working no longer invalidates the earlier solve; changing/removing a used result invalidates downstream calculations. Existing full-group results may require a one-time recomputation; data is preserved.
+- Adds the three canonical quadratic-radical trig-substitution formula families with explicit real-domain conditions and a structural/chain-rule certificate. Adds verified real partial-fraction fallback and finite Split definite integral with affine abs-corner detection or explicit interior split points. Singular endpoints/poles still fail rather than cancelling divergent values.
+- The final direct action infers the remaining solve variable after substitution. Manual rehearsal first exposed the stale default x when solving for a; corrected before the successful rehearsal.
+- Final simulator/device builds **BUILD SUCCEEDED**. Logs: `/private/tmp/folio-integration-demo-sim-build.log`, `/private/tmp/folio-integration-demo-build.log`. Calculus engine version advances to `native-math-calc1-v2-nerdamer-2.0.1`.
+- Existing combined checks **TEST SUCCEEDED**: 104 unit cases and 6 UI cases (Calc1UITests, DefiniteIntegralUITests, inline review/solve/insert/reopen). Log `/private/tmp/folio-integration-demo-tests.log`; result bundle `/private/tmp/folio-worksheet-tests/Logs/Test/Test-inkpad-2026.11.19_17-23-04--0500.xcresult`. This pass preceded the final solve-variable correction and presentation refinements. Final-source unit rerun: **104 passed, 0 failed; TEST SUCCEEDED**. Log `/private/tmp/folio-integration-demo-unit-final.log`; result bundle `/private/tmp/folio-worksheet-tests/Logs/Test/Test-inkpad-2026.11.19_17-34-03--0500.xcresult`. The manual new-path rehearsal supplements these existing cases.
+- Existing independent oracle `verify-calc1.py`: **96 passed, 0 failed**, SymPy 1.14.0 in the already installed labs `.venv-local-ocr`. Direct engine runs verified representative u-sub, rational, radical and split cases. Independent symbolic differentiation of all three root templates simplified their derivative differences to zero (on their stated real domains); no numeric sampling is used as a proof in the implementation.
+- Manual UI rehearsal on existing disposable fixture: t=10; f(x)=3x²; t+6a=22; integral from 0 to a of f(x). Observed a=2, then the final source summary **Using Row 2 …; Solved Row 3: a=2**, then exact output **8** with F(x)=x³ and F(2)=8, F(0)=0. Earlier solve remained current after the later row was accepted. Removing the saved a=2 marked the dependent integral **Outdated result** and disabled insertion. Restarted simulator to recover its interaction bridge before this successful rehearsal; no new test fixture/code was added.
+- The signed device bundle was checked for compiled encoder/decoder, tokenizer and manifest. The first install was blocked by the iPad being locked; the user unlocked it and installation succeeded. The final correction build was then installed and ordinary launch succeeded on the physical iPad Air.
+- [Mini-demo and test guide](integration-mini-demo.md) gives expected answers, exact workflow, demo scope and remaining gaps. Physical-iPad live handwriting accuracy, full domain classification, improper convergence, arbitrary piecewise expressions and universal u/du transformations are not claimed.
+- Rollback: `c83f1c1` for the earlier worksheet-calculus checkpoint. Preserve notebook backups before switching schema versions. No push/merge/deployment or automated test-source changes.
+
+## Publication handoff — November 19, 2026
+
+The user authorized committing and pushing this work on November 19. The publication target is `origin/feat/problem-context-compute` in `DEVeloper1006/folio-capstone-2027`; this authorization does not merge into main or deploy a release.
+
+- Latest implementation checkpoint: `f2a3ba6` (integration families and solved-value chains). Earlier stages: `c83f1c1` (worksheet notation/visible results), `5c9f71d` (automatic context), `591eb97` (bounded contextual solve), `db389e7` (explicit grouping). Baseline: `7ace848`.
+- Current handoff: [architecture and notation](worksheet-math-workflows.md), [mini demo and expected answers](integration-mini-demo.md), [iPad interactions](problem-context-ipad-checklist.md), and [growing regression checklist](problem-context-regression.md).
+- Verification remains as recorded above: successful simulator/device builds, final 104-case unit run, six existing compute/integral UI cases, 96 independent calculus cases, and manual end-to-end demo plus dependency invalidation. This documentation-only publication update does not rerun or broaden those checks.
+- Earlier full-suite canvas/result-drag failures and physical handwriting/layout gaps remain documented; they are not relabeled as resolved by the focused passing runs.
+- `/private/tmp` build logs and xcresult paths are local execution evidence, not tracked or portable artifacts. Validated model exports, compiled apps, personal notebook data and credentials stay out of Git. A fresh checkout must stage validated local recognition resources using `prepare-local-recognition.py`, then inspect the built app bundle before installing.
+- Maintain the repository pause on new or extended automated test sources until Saad resumes test development. Preserve notebook backups before switching builds with schema changes.
+
+## Rollback instructions
+
+The feature is isolated on `feat/problem-context-compute`. Checkpoint 1 is committed as `db389e7`; checkpoint 2 is committed as `591eb97`. To return to the untouched baseline, switch to `main` at `7ace848`. To retain the feature while returning to baseline work, leave the feature branch intact and switch branches; do not reset a shared branch. See the publication handoff above for the authorized remote branch. No merge or deployment is part of this handoff.
+

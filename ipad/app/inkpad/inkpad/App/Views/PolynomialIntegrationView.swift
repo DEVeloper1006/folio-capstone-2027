@@ -1,3 +1,4 @@
+/* Presents polynomial integration and shared computation cards with source freshness, method details and explicit result insertion. */
 import SwiftUI
 import SwiftData
 
@@ -83,7 +84,7 @@ struct PolynomialResultCard: View {
                 Text("Variable: \(result.variable)").font(.caption)
             }
             if let request=result.computationRequest {
-                if request.operation.needsB { Text("B: "+request.inputB).font(.system(.caption,design:.monospaced)) }
+                if request.operation.needsB { Text((request.operation == .splitIntegral ? "Split points: ":"B: ")+request.inputB).font(.system(.caption,design:.monospaced)) }
                 if [.matrixScale,.matrixPower].contains(request.operation) { Text((request.operation == .matrixPower ? "Exponent: ":"Scalar: ")+request.point).font(.caption) }
                 if request.operation == .evaluate { Text("At \(request.variable) = \(request.point)").font(.caption) }
                 if request.operation == .definiteIntegral { Text("Bounds: \(request.lower) to \(request.upper)").font(.caption) }

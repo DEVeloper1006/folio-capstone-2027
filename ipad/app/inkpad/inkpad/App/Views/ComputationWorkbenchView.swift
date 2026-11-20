@@ -1,3 +1,4 @@
+/* Reviews operation-specific worksheet inputs, resolves only the current problem context, and saves source-validated results. */
 import SwiftUI
 import SwiftData
 
@@ -54,7 +55,7 @@ struct ComputationWorkbenchView:View {
     }
     private var saved:[ComputationResult] { RowComputationScope.results(on:page,source:source,sessionIDs:sessionIDs) }
     private var currentResult:ComputationResult? { saved.first { $0.stableID==latestID } }
-    private var isIntegration:Bool { [.integral,.definiteIntegral,.numericalIntegral].contains(operation) }
+    private var isIntegration:Bool { [.splitIntegral,.integral,.definiteIntegral,.numericalIntegral].contains(operation) }
     private var hasReadBounds:Bool { review?.kind=="definiteIntegral" && operation.needsInterval }
     private var hasReadPoint:Bool { review?.kind=="limit" && [.limit,.limitLeft,.limitRight].contains(operation) }
 
@@ -105,7 +106,7 @@ struct ComputationWorkbenchView:View {
                 }
             }
         }
-        .onAppear { if let source { openingSnapshot=try? PolynomialResultStore.snapshot(source) } }
+        .onAppear { ProblemContextMathService.refresh(page:page);if let source { openingSnapshot=try? PolynomialResultStore.snapshot(source) } }
         .onChange(of:request) { _,_ in task?.cancel();errorText="";latestID=nil }
         .onChange(of:operation) { old,new in
             if [.limit,.limitLeft,.limitRight].contains(new) && ![.limit,.limitLeft,.limitRight].contains(old) { point="0" }
@@ -169,9 +170,9 @@ struct ComputationWorkbenchView:View {
     }
     @ViewBuilder private var parameterFields:some View {
         if operation.needsB {
-            Section(operation == .compose ? "Inner expression B (A is applied to B)":operation.isMatrix ? "Second matrix":operation == .volumeWasher ? "Inner radius r(x)":"Second expression / curve") {
+            Section(operation == .splitIntegral ? "Split points (optional; comma-separated)":operation == .compose ? "Inner expression B (A is applied to B)":operation.isMatrix ? "Second matrix":operation == .volumeWasher ? "Inner radius r(x)":"Second expression / curve") {
                 if operation.isMatrix { MatrixInputEditor(text:$matrixB,identifier:"matrixB") }
-                else { TextField("Expression B",text:$algebraB,axis:.vertical).accessibilityIdentifier("mathExpressionB").focused($focusedInput,equals:.secondExpression) }
+                else { TextField(operation == .splitIntegral ? "Auto-detect linear absolute-value corners, or enter 0, 1":"Expression B",text:$algebraB,axis:.vertical).accessibilityIdentifier("mathExpressionB").focused($focusedInput,equals:.secondExpression) }
             }.disabled(busy).textInputAutocapitalization(.never).autocorrectionDisabled()
         }
         if operation.needsPoint && !hasReadPoint {
@@ -213,7 +214,11 @@ struct ComputationWorkbenchView:View {
                 return
             }
             try await Task.sleep(for:.milliseconds(220));try Task.checkCancellation()
-            let value=try await Calc1MathService.inspect(input);try Task.checkCancellation()
+            let resolved:MathComputationRequest
+            if let source,input.inputA==source.acceptedLatex,source.problemGroupID != nil {
+                resolved=try ProblemContextMathService.plan(input,page:page,target:source).request
+            } else { resolved=try WorksheetMathNotation.resolved(input) }
+            let value=try await Calc1MathService.inspect(resolved);try Task.checkCancellation()
             guard request==input else { return };review=value
             if value.kind=="limit",let side=value.direction {
                 let chosen:MathOperation=side=="left" ? .limitLeft:.limitRight
@@ -254,9 +259,12 @@ struct ComputationWorkbenchView:View {
         task=Task { @MainActor in
             defer { busy=false }
             do {
-                let answer=try await MathComputationWorker.shared.compute(input);try Task.checkCancellation()
+                let plan=try linked ? source.map{try ProblemContextMathService.plan(input,page:page,target:$0)}:nil
+                let computed=try await MathComputationWorker.shared.compute(plan?.request ?? input);try Task.checkCancellation()
+                let answer=MathComputationAnswer(request:computed.request,inputLatex:input.inputA,outputLatex:computed.outputLatex,
+                    steps:(plan?.summaries ?? [])+computed.steps,engineVersion:computed.engineVersion)
                 guard request==input else { return }
-                let result=try MathResultStore.save(answer,page:page,source:linked ? source:nil,expected:linked ? openingSnapshot:nil,context:context)
+                let result=try MathResultStore.save(answer,page:page,source:linked ? source:nil,expected:linked ? openingSnapshot:nil,context:context,sourceContext:plan?.sources ?? [],contextGroupID:plan?.groupID,sourceResults:plan?.resultSources ?? [])
                 sessionIDs.insert(result.stableID);latestID=result.stableID;stage = .result
             } catch is CancellationError { }
             catch { errorText=error.localizedDescription }

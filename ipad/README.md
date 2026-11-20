@@ -65,6 +65,10 @@ xcodebuild -project ipad/app/inkpad/inkpad.xcodeproj \
 
 The app includes Pencil input, recognition review, LaTeX rendering and local computation. Symbolic computation does not require the Python/SymPy server or a Mac recognition endpoint. Native app details live in `ipad/app/docs/`.
 
+The current math-context increment automatically infers page-local problems from nearby stored equation ASTs and substitutes earlier accepted definitions into a selected equation. Users verify the detected source summary before solving. See [problem grouping and contextual computation](app/docs/problem-context-compute.md), the [iPad interaction checklist](app/docs/problem-context-ipad-checklist.md), the [growing major-version regression checklist](app/docs/problem-context-regression.md), and the [build checkpoints and rollback record](app/docs/problem-context-checkpoints.md). Contextual solving currently supports single-symbol definitions and at most one unresolved variable in linear or quadratic equations; general MathJSON, function definitions and systems remain unsupported.
+
+For current function, derivative, differential and partial notation, supported examples, source references and limits, see [worksheet math workflows](app/docs/worksheet-math-workflows.md). Contextual actions reveal saved answers immediately and use only definitions in the reviewed problem scope.
+
 ### Handwriting recognition assets
 
 The validated Core ML models are generated local resources and are not ordinary Git source. Obtain the existing validated export artifacts, then run:
@@ -105,3 +109,7 @@ Verified before opening the migration PR with Xcode 26.2 (17C52):
 - Updated Markdown passed the repository's local formatter and the migration edits passed `git diff --check`.
 
 Build warnings remain: an existing canvas smoke helper uses deprecated `coordinateSpace`; Xcode skips optional App Intents metadata; the web build reports chunk-size/module-directive warnings. Neither build failed. This migration did not run new model inference, install on a physical iPad, validate Pencil gestures again, or execute every research prototype. Prior device validation remains evidence for the original app checkpoint, not a new device test of the relocated checkout.
+
+### Integration mini demo
+
+See the [rehearsed solve → integrate → evaluate workflow and test guide](app/docs/integration-mini-demo.md) for current integration examples, scope, expected answers and demo limits.

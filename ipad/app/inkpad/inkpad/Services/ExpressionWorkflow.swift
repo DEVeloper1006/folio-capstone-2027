@@ -1,3 +1,4 @@
+/* Tracks expression review state, schedules recognition and suggests operations while preserving worksheet notation semantics. */
 import Foundation
 import Observation
 import CoreGraphics
@@ -47,6 +48,11 @@ nonisolated struct ExpressionComputeSuggestion:Equatable,Sendable {
         if text.contains("="),(text.contains("|") || text.contains("\\vert") || text.contains("\\lvert") || text.hasPrefix("abs(")) {return Self(operation:.solveAbsolute,title:"Solve absolute value")}
         if text.range(of:#"(^|[^A-Za-z])i([^A-Za-z]|$)"#,options:.regularExpression) != nil,(try? ExactComplexValue.parse(text)) != nil {return Self(operation:.complexCalculate,title:"Calculate complex expression")}
         if text.contains("\\lim") { return Self(operation:.limit,title:"Find limit") }
+        if let notation=try? WorksheetMathNotation.read(text) {
+            if notation.kind == .partial { return Self(operation:.partialDerivative,title:"Find partial derivative") }
+            if notation.kind == .derivative { return Self(operation:notation.order==2 ? .secondDerivative:.derivative,title:"Differentiate") }
+            if notation.kind == .definition && !notation.arguments.isEmpty { return Self(operation:.derivative,title:"Differentiate") }
+        }
         let algebra=AlgebraComputationService()
         if text.hasPrefix("y=") || text.hasPrefix("y =") || text.range(of:#"^[fgh]\s*\([A-Za-z]\)\s*="#,options:.regularExpression) != nil {
             return Self(operation:.derivative,title:"Differentiate")

@@ -1,3 +1,4 @@
+/* Parses a bounded polynomial grammar into a native syntax tree and evaluates polynomial, rational and complex operations. */
 import Foundation
 
 nonisolated enum PolynomialError: LocalizedError, Equatable {
@@ -191,7 +192,7 @@ private nonisolated enum PolynomialLexer {
     }
 }
 
-private nonisolated indirect enum PolynomialAST {
+nonisolated indirect enum PolynomialAST: Codable {
     case number(ExactRational), variable(String), add(Self, Self), multiply(Self, Self), divide(Self, Self), negate(Self), power(Self, Int)
     var variables: Set<String> {
         switch self {
@@ -199,6 +200,26 @@ private nonisolated indirect enum PolynomialAST {
         case .variable(let value): [value]
         case .add(let a, let b), .multiply(let a, let b), .divide(let a, let b): a.variables.union(b.variables)
         case .negate(let a), .power(let a, _): a.variables
+        }
+    }
+    var singleSymbol:String? {
+        if case .variable(let name)=self { return name }
+        return nil
+    }
+    /// Replace named symbol nodes with their AST bindings and reject recursive definitions.
+    func replacingSymbols(_ bindings:[String:Self],stack:Set<String>=[])throws->Self {
+        switch self {
+        case .number:return self
+        case .variable(let name):
+            guard let replacement=bindings[name] else { return self }
+            guard !stack.contains(name) else { throw PolynomialError.invalid("The grouped definitions contain a circular dependency involving \(name).") }
+            guard stack.count<64 else { throw PolynomialError.invalid("The grouped definitions are too deeply nested to resolve safely.") }
+            return try replacement.replacingSymbols(bindings,stack:stack.union([name]))
+        case .add(let a,let b):return try .add(a.replacingSymbols(bindings,stack:stack),b.replacingSymbols(bindings,stack:stack))
+        case .multiply(let a,let b):return try .multiply(a.replacingSymbols(bindings,stack:stack),b.replacingSymbols(bindings,stack:stack))
+        case .divide(let a,let b):return try .divide(a.replacingSymbols(bindings,stack:stack),b.replacingSymbols(bindings,stack:stack))
+        case .negate(let a):return try .negate(a.replacingSymbols(bindings,stack:stack))
+        case .power(let a,let exponent):return try .power(a.replacingSymbols(bindings,stack:stack),exponent)
         }
     }
     func polynomial() throws -> PolynomialValue {
@@ -307,6 +328,14 @@ nonisolated struct PolynomialIntegrationAnswer: Codable, Sendable {
 
 nonisolated struct PolynomialIntegrationService {
     static let version = "native-polynomial-v1"
+    /// Parse one bounded algebraic expression into the native AST without applying the single-variable integration restriction.
+    func expressionAST(_ input:String)throws->PolynomialAST {
+        let tokens=try PolynomialLexer.tokens(input.trimmingCharacters(in:.whitespacesAndNewlines))
+        var parser=PolynomialParser(tokens:tokens)
+        let ast=try parser.expression()
+        guard parser.position==tokens.count else { throw PolynomialError.invalid("This expression contains notation outside the supported polynomial grammar.") }
+        return ast
+    }
     func prepare(_ latex: String) throws -> PreparedPolynomialIntegral {
         var tokens = try PolynomialLexer.tokens(latex.trimmingCharacters(in: .whitespacesAndNewlines))
         var differential: String?

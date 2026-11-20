@@ -14,7 +14,7 @@ On narrower iPad layouts, secondary notebook actions (recognition settings, expo
 
 Each row presentation has a fresh identity. History and reuse are scoped to the initiating row plus results created in that presentation. Another row's results never appear automatically. A new free-form toolbar calculation starts a fresh session. Existing saved objects remain in the notebook model; the new free-form screen does not automatically load page-wide history. Accepted handwriting histories are accessible by reopening their row.
 
-**Use this result as input** is explicit. Edited/reused inputs are independent typed computations with their request preserved; the accepted transcription is not overwritten. Full chained-result dependencies are not yet persisted as a dependency graph.
+**Use this result as input** is explicit. Edited/reused inputs are independent typed computations with their request preserved; the accepted transcription is not overwritten. Current exact-real solved scalars can be reused by later same-group calculations with stored result-level dependencies; arbitrary result/function chains remain bounded. See `integration-mini-demo.md`.
 
 ## Input conventions
 
@@ -66,7 +66,7 @@ The bundled symbolic engine is **Nerdamer 2.0.1**. The published package SHA-512
 
 Each worker has an 8-second deadline and can be terminated. A 12-second native watchdog covers page loading as well. Cancellation disposes the request. Parsing is limited to 2,000 source characters, 400 tokens, 160 AST nodes and 32 nested groups. Powers have magnitude at most 1,000; expansions estimated above 500 terms are rejected. Numerical quadrature is limited to 30,000 evaluations / 18 adaptive levels with a stated tolerance. Budget exhaustion returns an error and saves no fabricated answer.
 
-Native results use `native-math-v6`; extended results record `native-math-calc1-v1-nerdamer-2.0.1`. Deduplication uses the answer's actual engine version. Existing history remains visible; no persisted model schema changes are required.
+Native results use `native-math-v6`; extended results record `native-math-calc1-v2-nerdamer-2.0.1`. Deduplication uses the answer's actual engine version. Existing history remains visible; no persisted model schema changes are required.
 
 Primary references: [Nerdamer API](https://nerdamer.com/docs/api/nerdamer/), [calculus API](https://nerdamer.com/docs/api/calculus/), [limit behavior](https://nerdamer.com/docs/api/calculus/limit-dir/), [pinned package](https://registry.npmjs.org/nerdamer/2.0.1), [Worker termination](https://developer.mozilla.org/en-US/docs/Web/API/Worker/terminate).
 
@@ -89,3 +89,5 @@ Next steps after this build is stable:
 See [math-coverage-roadmap.md](math-coverage-roadmap.md) for source-linked Ontario/AP/IB topic coverage, unsupported areas and staged releases, including the deferred visual math editor. Complex roots apply to real-coefficient linear/quadratic equation solving; this does not enable general complex input or complex calculus.
 
 The next exact algebra batch adds polynomial inequalities, linear absolute-value equations, polynomial composition and rational complex calculations. See [exact-algebra.md](exact-algebra.md) for syntax and boundaries; the menu now has51 operations.
+
+For current trig-substitution families, rational fallback, finite Split definite integral, and demo readiness, see [integration mini demo](integration-mini-demo.md). Improper integrals and arbitrary piecewise functions remain outside the split command.

@@ -1,3 +1,4 @@
+/* Tracks ink regions, recognition revisions and inferred page-local math context without replacing the PencilKit drawing. */
 import Foundation
 import SwiftData
 import CoreGraphics
@@ -97,6 +98,7 @@ final class StepTrackingCoordinator: StepTracking {
         }
 
         reorderActiveSteps(on: page)
+        ProblemContextMathService.refresh(page:page)
         try? context.save()
 
         for (step, groupingIsAmbiguous) in changedSteps {
@@ -163,6 +165,7 @@ final class StepTrackingCoordinator: StepTracking {
             appendRevisionIfNeeded(to: step, context: context)
         }
 
+        ProblemContextMathService.refresh(page:page)
         try? context.save()
     }
 
