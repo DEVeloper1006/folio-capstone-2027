@@ -1,3 +1,4 @@
+/* Owns PencilKit drawing state, tool contact, history and persistence callbacks. */
 import SwiftUI
 import PencilKit
 
@@ -63,6 +64,8 @@ final class CanvasViewModel {
     @ObservationIgnored private var loadingPreferences=true
     @ObservationIgnored private let preferences:UserDefaults
     @ObservationIgnored private var autosaveTask:Task<Void,Never>?
+    private(set) var isUsingTool=false
+    var onToolActivityChanged:((Bool)->Void)?
     var onDrawingChanged:((Data)->Void)?
     var onSave:((Data,PageBackgroundStyle)->Void)?
     var canvasError=""
@@ -147,11 +150,17 @@ final class CanvasViewModel {
     }
     func detach() {
         if let undoObserver { NotificationCenter.default.removeObserver(undoObserver) }
+        toolActivityChanged(false)
         undoObserver=nil;history.removeAllActions();canvas=nil;refreshUndoState()
     }
     func refreshUndoState() { canUndo=history.canUndo;canRedo=history.canRedo }
     func undo() { guard history.canUndo else { return };history.undo();refreshUndoState() }
     func redo() { guard history.canRedo else { return };history.redo();refreshUndoState() }
+    /// Publish contact changes so automatic recognition can wait until a stroke finishes.
+    func toolActivityChanged(_ active:Bool) {
+        guard isUsingTool != active else { return }
+        isUsingTool=active;onToolActivityChanged?(active)
+    }
     func drawingChanged(_ value:PKDrawing) {
         drawing=value;onDrawingChanged?(value.dataRepresentation());scheduleAutosave()
         Task { @MainActor [weak self] in self?.refreshUndoState() }

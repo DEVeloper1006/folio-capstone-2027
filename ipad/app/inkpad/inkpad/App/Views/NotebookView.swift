@@ -1,3 +1,4 @@
+/* Presents the notebook and coordinates persistence, mode-aware idle recognition, review and computation. */
 import SwiftUI
 import SwiftData
 import PencilKit
@@ -248,6 +249,7 @@ struct NotebookView: View {
             viewModel.save()
             cancelRecognition()
             viewModel.onDrawingChanged = nil
+            viewModel.onToolActivityChanged = nil
         }
         .onChange(of: scenePhase) { _, phase in
             recognitionIsActive = phase == .active
@@ -257,6 +259,7 @@ struct NotebookView: View {
         .onChange(of: viewModel.mathMode) { _, mode in
             currentPage?.mathMode = mode
             cancelRecognition()
+            if shouldRecognizeAutomatically { scheduleRecognition() }
         }
         .onChange(of: automaticRecognition) { _, enabled in
             if enabled { scheduleRecognition() } else { cancelRecognition() }
@@ -559,6 +562,7 @@ struct NotebookView: View {
                 try? modelContext.save()
             }
         }
+        viewModel.onToolActivityChanged = handleToolActivity
         viewModel.onDrawingChanged = { data in
             cancelRecognition()
             currentPage?.drawingData = data
@@ -572,6 +576,13 @@ struct NotebookView: View {
             }
             if shouldRecognizeAutomatically { scheduleRecognition() }
         }
+    }
+
+    /// LINALG cancels recognition on contact and restarts its quiet period on lift.
+    private func handleToolActivity(_ active:Bool) {
+        guard viewModel.mathMode == .linalg else { return }
+        if active { cancelRecognition() }
+        else if shouldRecognizeAutomatically { scheduleRecognition() }
     }
 
     private func makeStepTracker()->StepTrackingCoordinator {
@@ -589,14 +600,16 @@ struct NotebookView: View {
         showTypeset=true;scheduleRecognition(force:true)
     }
 
+    /// Debounce automatic recognition by mode; explicit Recognize remains immediate.
     private func scheduleRecognition(force:Bool=false) {
         cancelRecognition()
+        guard force || viewModel.mathMode != .linalg || !viewModel.isUsingTool else { return }
         guard let page=currentPage else { return }
         viewModel.save()
         guard let data=page.drawingData,(try? PKDrawing(data:data).strokes.isEmpty)==false else { return }
         recognitionNotice=""
         let revision=recognitionRevision
-        recognitionScheduler.schedule(delay:force ? .zero:.milliseconds(650)) {
+        recognitionScheduler.schedule(delay:force ? .zero:viewModel.mathMode.recognitionQuietPeriod) {
             guard revision==recognitionRevision,currentPage === page,recognitionIsActive else { return }
             await stepTracker.process(drawingData:data,page:page,context:modelContext,force:force)
         }

@@ -1,4 +1,4 @@
-/* Tracks ink regions, recognition revisions and inferred page-local math context without replacing the PencilKit drawing. */
+/* Tracks ink regions, consolidates bracket-bounded matrix fragments and preserves recognition freshness and page-local math context. */
 import Foundation
 import SwiftData
 import CoreGraphics
@@ -53,7 +53,8 @@ final class StepTrackingCoordinator: StepTracking {
             let groupingIsAmbiguous: Bool
             if let best = candidates.first {
                 step = best.0
-                groupingIsAmbiguous = candidates.dropFirst().first.map { best.1 - $0.1 < 0.1 } ?? false
+                // A bracket pair supplies explicit ownership when old recognition split the matrix into fragments.
+                groupingIsAmbiguous = !region.isBoundedMatrix && (candidates.dropFirst().first.map { best.1 - $0.1 < 0.1 } ?? false)
             } else {
                 step = Step(
                     sortIndex: page.steps.count,

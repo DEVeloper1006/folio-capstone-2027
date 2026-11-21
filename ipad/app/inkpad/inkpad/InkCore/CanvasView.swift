@@ -1,3 +1,4 @@
+/* Bridges PencilKit drawing, tool contact, viewport and accessibility into SwiftUI. */
 import SwiftUI
 import PencilKit
 
@@ -70,7 +71,12 @@ struct CanvasView:UIViewRepresentable {
             let interaction=UIPencilInteraction();interaction.delegate=self;canvas.addInteraction(interaction);self.interaction=interaction
             updateViewport(canvas)
         }
-        func canvasViewDidBeginUsingTool(_ canvasView:PKCanvasView) { viewModel.settingsTool=nil }
+        /// Cancel idle recognition as soon as a drawing tool touches down.
+        func canvasViewDidBeginUsingTool(_ canvasView:PKCanvasView) {
+            viewModel.settingsTool=nil;viewModel.toolActivityChanged(true)
+        }
+        /// Begin the quiet period after the drawing gesture ends.
+        func canvasViewDidEndUsingTool(_ canvasView:PKCanvasView) { viewModel.toolActivityChanged(false) }
         func canvasViewDrawingDidChange(_ canvas:PKCanvasView) { updateAccessibility(canvas);viewModel.drawingChanged(canvas.drawing) }
         func updateAccessibility(_ canvas:PKCanvasView) {
             #if DEBUG

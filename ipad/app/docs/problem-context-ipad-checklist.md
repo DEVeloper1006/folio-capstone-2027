@@ -35,3 +35,17 @@ The new automatic-group workflow needs direct device verification. Passing exist
 ## Worksheet notation and action feedback
 
 Follow the supported examples and interference scenarios in [worksheet math workflows](worksheet-math-workflows.md). Every Verify & Solve / Verify & Compute tap must visibly produce a result, a computing indicator or an actionable error; repeated taps must reveal reused answers. Test two separate exercises on one page and the new function/differential notation before treating this increment as accepted.
+
+## LINALG quiet-period check
+
+1. Turn automatic recognition on and select LINALG. Write a large matrix, keeping gaps between strokes under four seconds. It should wait while you write.
+2. Hold a slow continuous stroke longer than four seconds: recognition should not start during contact. Lift the Pencil and leave the sheet untouched: recognition should begin around four seconds later (inference adds time before results appear).
+3. Add a new entry after a two- or three-second pause: the full four-second wait should restart. Try erasing, undo, and switching modes during the wait; old work should not publish.
+4. Select CALC, then PROOF: their automatic delay remains about 0.65 seconds. Explicit Recognize should remain immediate in every mode. Disable automatic recognition and confirm no automatic run occurs.
+5. Send matrix dimensions, mode, whether detection began before you finished, and whether four seconds feels too short/long. A screenshot of the full handwritten matrix plus recognized text helps distinguish timing from recognition/segmentation errors.
+
+CALC/PROOF timing tuning is deferred. A pause longer than four seconds can still trigger recognition of an unfinished matrix; this change does not infer when a matrix is mathematically complete.
+
+## Matrix bounds and entries
+
+Follow the [matrix recognition device check](matrix-recognition.md#device-check-and-feedback), including retrying an existing fragmented matrix, two matrices plus a nearby equation, signed multi-digit entries, and incomplete grids. Report expected/actual dimensions, the first wrong `(row, column)`, and recognition time.

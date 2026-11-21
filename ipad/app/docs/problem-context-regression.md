@@ -74,3 +74,22 @@ Add confirmed cases here as grouping, AST interpretation and cross-row computati
 - [ ] Split finite integrals at affine abs corners or explicit valid points; retain per-segment values/error estimates and reversed-limit sign.
 - [ ] Splitting at 0 does not turn integral of 1/x from −1 to 1 into zero. No improper convergence claim is inferred.
 - [ ] Reopen the notebook with source-result dependency JSON; freshness and downstream invalidation still work.
+
+## Mode-aware recognition timing
+
+- [ ] LINALG: no automatic inference while Pencil/tool is down, including a stroke longer than four seconds.
+- [ ] Each new stroke, erasure or undo restarts a four-second idle period; obsolete results do not publish.
+- [ ] Mode switch replaces pending timing; page exit/background cancels pending work.
+- [ ] CALC and PROOF retain 650 ms debounce; tune later using real writing feedback.
+- [ ] Explicit Recognize remains immediate and automatic-off is respected.
+- [ ] Large-matrix transcription/segmentation accuracy checked separately from scheduling.
+
+## Bracketed matrix recognition
+
+- [ ] A completed 5×6 matrix remains one region even when ordinary gap thresholds would split its columns.
+- [ ] Existing fragment drafts consolidate after explicit Recognize; old fragments become inactive.
+- [ ] Two bracketed matrices and nearby equations remain separate; determinant bars are not silently converted to an ordinary matrix.
+- [ ] Sloped rows, negative numbers and multi-digit entries keep the right row/column position.
+- [ ] Blank/unclear grids ask for review and never fill zeros; touching entries and augmented bars are checked as limitations.
+- [ ] New ink cancels cell inference; stale drafts/accepted results cannot silently remain current.
+- [ ] Local-model resources are bundled; matrix cell inference stays reviewable and does not imply symbolic matrix compute support.

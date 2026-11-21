@@ -1,3 +1,4 @@
+/* Groups handwritten expressions while reserving paired-bracket matrices as complete, isolated regions. */
 import Foundation
 import PencilKit
 import CryptoKit
@@ -6,6 +7,7 @@ struct InkRegion: Sendable {
     let bounds: CGRect
     let inkData: Data
     let strokeFingerprints: [String]
+    var isBoundedMatrix:Bool=false
 
     var fingerprint: String {
         strokeFingerprints.sorted().joined(separator: "|")
@@ -20,32 +22,44 @@ struct SpatialInkSegmenter: InkSegmenting {
     private let maximumHorizontalGap: CGFloat = 48
     private let maximumVerticalGap: CGFloat = 24
 
+    /// Preserve matrix boundaries before applying the existing expression proximity rules.
     func regions(in drawingData: Data) -> [InkRegion] {
         guard let drawing = try? PKDrawing(data: drawingData) else { return [] }
         let strokes = drawing.strokes.filter { $0.ink.inkType != .marker }
         guard !strokes.isEmpty else { return [] }
 
+        let matrices=MatrixInkLayout.detect(in:strokes,extractCells:false)
+        var ownership:[Int:Int]=[:]
+        for (matrixID,matrix) in matrices.enumerated() {
+            for index in matrix.strokeIndices { ownership[index]=matrixID }
+        }
         var groups = DisjointSet(count: strokes.count)
         for left in strokes.indices {
             for right in strokes.indices where right > left {
-                if shouldGroup(strokes[left].renderBounds, strokes[right].renderBounds) {
+                // A bracketed matrix owns its strokes, even across large row/column gaps.
+                // Do not let ordinary proximity pull neighboring exercises into that crop.
+                if let owner=ownership[left],owner==ownership[right] {
+                    groups.union(left,right)
+                } else if ownership[left]==nil && ownership[right]==nil && shouldGroup(strokes[left].renderBounds, strokes[right].renderBounds) {
                     groups.union(left, right)
                 }
             }
         }
 
-        var clusters: [Int: [PKStroke]] = [:]
+        var clusters: [Int: [Int]] = [:]
         for index in strokes.indices {
-            clusters[groups.find(index), default: []].append(strokes[index])
+            clusters[groups.find(index), default: []].append(index)
         }
 
-        return clusters.values.compactMap { cluster in
-            guard let first = cluster.first else { return nil }
+        return clusters.values.compactMap { indices in
+            let cluster=indices.map { strokes[$0] }
+            guard let first = cluster.first,let firstIndex=indices.first else { return nil }
             let bounds = cluster.dropFirst().reduce(first.renderBounds) { $0.union($1.renderBounds) }
             return InkRegion(
                 bounds: bounds,
                 inkData: PKDrawing(strokes: cluster).dataRepresentation(),
-                strokeFingerprints: cluster.map(Self.fingerprint(for:))
+                strokeFingerprints: cluster.map(Self.fingerprint(for:)),
+                isBoundedMatrix:ownership[firstIndex] != nil
             )
         }
         .sorted {

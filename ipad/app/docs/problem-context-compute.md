@@ -41,3 +41,13 @@ Do not replace PencilKit, row recognition, SwiftData notebook relationships, or 
 - Keep matrices and multiline recognition inputs distinct from a group of independent rows.
 - If syntax is unsupported or intent is ambiguous, ask for correction or an explicit choice; do not coerce it into another operation.
 
+
+## Mode-aware automatic recognition (2026-11-20)
+
+`MathMode.recognitionQuietPeriod` is four seconds for LINALG and the existing 650 ms for CALC/PROOF. PencilKit tool contact is forwarded through `CanvasViewModel` to `NotebookView`: LINALG cancels pending/in-flight recognition on contact, does not schedule while the tool is down, and starts a fresh four-second debounce on lift. Drawing changes (including erasing/undo) also restart the debounce. Mode changes cancel old work and schedule using the new mode. Explicit Recognize remains immediate; automatic recognition disabled stays disabled. Existing coordinator cancellation and drawing/mode freshness guards prevent obsolete inference from publishing.
+
+This is an inactivity heuristic, not matrix-completion detection: a pause longer than four seconds can still read an unfinished matrix. It does not change matrix segmentation or model capabilities. Tune CALC/PROOF separately after gathering handwriting feedback; their current 650 ms policy is intentionally preserved.
+
+## Matrix recognition boundaries
+
+See [bounded matrix recognition](matrix-recognition.md) for bracket ownership, conservative column/row extraction, local cell inference and limitations. This runs before AST interpretation; recognizing a matrix does not expand the compute service’s operation support.
