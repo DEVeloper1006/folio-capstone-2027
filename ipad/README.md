@@ -46,6 +46,8 @@ Open http://localhost:3000. Node/pnpm versions are not pinned in this repository
 
 ## Run the iPad app
 
+For a fresh Mac and your own iPad, follow [Build Folio and run it on your iPad](app/docs/build-and-run-ipad.md). It covers the separately shared model assets, your own signing team, bundle verification, installation and troubleshooting.
+
 Use a Mac with Xcode and the iOS 26.2 SDK or newer; the current app deployment target is iOS 26.2.
 
 From the repository root:
